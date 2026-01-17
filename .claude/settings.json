@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "Glob",
+      "Grep",
+      "Skill(dev-frontend)",
+      "Skill(dev-frontend:*)"
+    ]
+  },
+  "skills": [
+    {
+      "name": "architect",
+      "description": "Arquitecto de Software - Orquestador del proyecto POS SaaS",
+      "path": ".claude/commands/architect.md"
+    },
+    {
+      "name": "dev-backend",
+      "description": "Backend Developer - NestJS, Use Cases, Controllers, DTOs",
+      "path": ".claude/commands/dev-backend.md"
+    },
+    {
+      "name": "dev-frontend",
+      "description": "Frontend Developer - NextJS, React Query, Zustand, Components",
+      "path": ".claude/commands/dev-frontend.md"
+    },
+    {
+      "name": "dev-database",
+      "description": "Database Developer - Prisma ORM y PostgreSQL",
+      "path": ".claude/commands/dev-database.md"
+    },
+    {
+      "name": "dev-testing",
+      "description": "Testing Developer - Pruebas CRUD Backend y Frontend",
+      "path": ".claude/commands/dev-testing.md"
+    },
+    {
+      "name": "dev-docker",
+      "description": "DevOps Developer - Configuración de Docker, PostgreSQL y Redis",
+      "path": ".claude/commands/dev-docker.md"
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+# docker-compose.yml
+# @reference: docs/arquitectura/11-DOCKER-CONFIG.md
+# Sistema POS SaaS - Servicios de desarrollo
+
+version: '3.8'
+
+services:
+  # =====================================================
+  # PostgreSQL - Base de datos principal
+  # =====================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: pos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-pos_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pos_password_2024}
+      POSTGRES_DB: ${DB_DATABASE:-pos_database}
+    ports:
+      - "${DB_PORT:-5435}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-pos_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pos_network
+
+  # =====================================================
+  # PostgreSQL TEST - Base de datos para pruebas
+  # =====================================================
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: pos_postgres_test
+    restart: unless-stopped
+    profiles:
+      - test
+    environment:
+      POSTGRES_USER: pos_test_user
+      POSTGRES_PASSWORD: pos_test_password
+      POSTGRES_DB: pos_test_database
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pos_test_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pos_network
+
+  # =====================================================
+  # Redis - Cache y sesiones
+  # =====================================================
+  redis:
+    image: redis:7-alpine
+    container_name: pos_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password_2024}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password_2024}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pos_network
+
+  # =====================================================
+  # pgAdmin - Admin BD (opcional, profile: tools)
+  # =====================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pos_pgadmin
+    restart: unless-stopped
+    profiles:
+      - tools
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pos.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - pos_network
+
+  # =====================================================
+  # Redis Commander - Admin Redis (opcional, profile: tools)
+  # =====================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: pos_redis_commander
+    restart: unless-stopped
+    profiles:
+      - tools
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password_2024}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - pos_network
+
+volumes:
+  postgres_data:
+    name: pos_postgres_data
+  redis_data:
+    name: pos_redis_data
+  pgadmin_data:
+    name: pos_pgadmin_data
+
+networks:
+  pos_network:
+    name: pos_network
+    driver: bridge

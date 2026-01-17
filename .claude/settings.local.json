@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Skill(architect)",
+      "Skill(architect:*)",
+      "Bash(ls:*)",
+      "Skill(dev-docker)",
+      "Skill(dev-docker:*)",
+      "Skill(dev-database)",
+      "Skill(dev-database:*)",
+      "Skill(dev-backend)",
+      "Skill(dev-backend:*)"
+    ]
+  }
+}
