@@ -28,6 +28,11 @@ export enum TipoDocumento {
   OTRO = 'otro',
 }
 
+export enum TipoCliente {
+  REGULAR = 'regular',
+  MAYORISTA = 'mayorista',
+}
+
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 
 export class CreateClienteDto {
@@ -120,4 +125,8 @@ export class CreateClienteDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @IsOptional()
+  @IsEnum(TipoCliente, { message: 'Tipo de cliente no valido (regular o mayorista)' })
+  tipoCliente?: TipoCliente;
 }

@@ -93,6 +93,14 @@ model Empresa {
   ventas                Venta[]
   lotes                 Lote[]
   movimientosInventario MovimientoInventario[]
+  promociones           Promocion[]
+  proveedores           Proveedor[]
+  compras               Compra[]
+  pagosProveedor        PagoProveedor[]
+  landingSecciones      LandingSeccion[]
+  landingContactos      LandingContacto[]
+  seoConfigs            SeoConfig[]
+  suscripciones         Suscripcion[]
 
   @@map("empresas")
 }
@@ -129,6 +137,7 @@ model Sucursal {
   movimientosInventario MovimientoInventario[]
   traspasosOrigen       MovimientoInventario[] @relation("TraspasoOrigen")
   traspasosDestino      MovimientoInventario[] @relation("TraspasoDestino")
+  compras               Compra[]
 
   @@unique([empresaId, codigo])
   @@map("sucursales")
@@ -229,6 +238,8 @@ model Usuario {
   cajaCierres           Caja[]    @relation("CajaUsuarioCierre")
   movimientosInventario MovimientoInventario[]
   movimientosCaja       MovimientoCaja[] @relation("MovimientoCajaUsuario")
+  comprasCreadas        Compra[]         @relation("CompraCreador")
+  pagosProveedorCreados PagoProveedor[]  @relation("PagoProveedorCreador")
 
   @@unique([empresaId, email])
   @@map("usuarios")
@@ -433,6 +444,7 @@ model Producto {
   atributoImagen Atributo?      @relation("ProductoAtributoImagen", fields: [atributoImagenId], references: [id], onDelete: SetNull)
   variantes      Variante[]
   imagenes       ProductoImagen[]
+  compraDetalles CompraDetalle[]
 
   @@unique([empresaId, codigoInterno])
   @@unique([empresaId, slug])
@@ -509,6 +521,7 @@ model Variante {
   ventaDetalles         VentaDetalle[]
   lotes                 Lote[]
   movimientosInventario MovimientoInventario[]
+  compraDetalles        CompraDetalle[]
 
   @@map("variantes")
 }
@@ -667,16 +680,26 @@ model Cliente {
 // METODOS DE PAGO
 // =====================================================
 model MetodoPago {
-  id          String   @id @default(uuid()) @db.Uuid
-  empresaId   String   @map("empresa_id") @db.Uuid
-  nombre      String   @db.VarChar(100)
-  codigo      String   @db.VarChar(50)
-  tipo        String   @db.VarChar(30)
-  icono       String?  @db.VarChar(100)
-  comision    Decimal  @default(0) @db.Decimal(5, 2)
-  activo      Boolean  @default(true)
-  orden       Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                   String   @id @default(uuid()) @db.Uuid
+  empresaId            String   @map("empresa_id") @db.Uuid
+  codigo               String   @db.VarChar(30)
+  nombre               String   @db.VarChar(100)
+  descripcion          String?
+  tipo                 String   @db.VarChar(20)
+  icono                String?  @db.VarChar(50)
+  color                String?  @db.VarChar(7)
+  requiereReferencia   Boolean  @default(false) @map("requiere_referencia")
+  comisionPorcentaje   Decimal  @default(0) @map("comision_porcentaje") @db.Decimal(5, 2)
+  comisionFija         Decimal  @default(0) @map("comision_fija") @db.Decimal(10, 2)
+  esPasarelaIntegrada  Boolean  @default(false) @map("es_pasarela_integrada")
+  pasarelaCodigo       String?  @map("pasarela_codigo") @db.VarChar(50)
+  pasarelaConfig       Json?    @map("pasarela_config")
+  orden                Int      @default(0)
+  activo               Boolean  @default(true)
+  visiblePos           Boolean  @default(true) @map("visible_pos")
+  visibleWeb           Boolean  @default(true) @map("visible_web")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   // Relaciones
   empresa    Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
@@ -752,22 +775,24 @@ model MovimientoCaja {
 // VENTAS
 // =====================================================
 model Venta {
-  id               String    @id @default(uuid()) @db.Uuid
-  empresaId        String    @map("empresa_id") @db.Uuid
-  sucursalId       String    @map("sucursal_id") @db.Uuid
-  cajaId           String    @map("caja_id") @db.Uuid
-  usuarioId        String    @map("usuario_id") @db.Uuid
-  clienteId        String?   @map("cliente_id") @db.Uuid
-  numeroVenta      String    @map("numero_venta") @db.VarChar(20)
-  subtotal         Decimal   @db.Decimal(12, 2)
-  descuento        Decimal   @default(0) @db.Decimal(12, 2)
-  impuesto         Decimal   @default(0) @db.Decimal(12, 2)
-  total            Decimal   @db.Decimal(12, 2)
-  tipoComprobante  String    @default("boleta") @map("tipo_comprobante") @db.VarChar(20)
-  estado           String    @default("completada") @db.VarChar(20)
-  notas            String?
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id                       String    @id @default(uuid()) @db.Uuid
+  empresaId                String    @map("empresa_id") @db.Uuid
+  sucursalId               String    @map("sucursal_id") @db.Uuid
+  cajaId                   String    @map("caja_id") @db.Uuid
+  usuarioId                String    @map("usuario_id") @db.Uuid
+  clienteId                String?   @map("cliente_id") @db.Uuid
+  clienteNombreTemporal    String?   @map("cliente_nombre_temporal") @db.VarChar(200)
+  clienteDocumentoTemporal String?   @map("cliente_documento_temporal") @db.VarChar(20)
+  numeroVenta              String    @map("numero_venta") @db.VarChar(20)
+  subtotal                 Decimal   @db.Decimal(12, 2)
+  descuento                Decimal   @default(0) @db.Decimal(12, 2)
+  impuesto                 Decimal   @default(0) @db.Decimal(12, 2)
+  total                    Decimal   @db.Decimal(12, 2)
+  tipoComprobante          String    @default("boleta") @map("tipo_comprobante") @db.VarChar(20)
+  estado                   String    @default("completada") @db.VarChar(20)
+  notas                    String?
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
   empresa         Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
@@ -813,4 +838,384 @@ model VentaPago {
   metodoPago MetodoPago @relation(fields: [metodoPagoId], references: [id])
 
   @@map("venta_pagos")
+}
+
+// =====================================================
+// PROMOCIONES
+// =====================================================
+model Promocion {
+  id                      String    @id @default(uuid()) @db.Uuid
+  empresaId               String    @map("empresa_id") @db.Uuid
+  codigo                  String    @db.VarChar(50)
+  nombre                  String    @db.VarChar(200)
+  descripcion             String?
+  tipo                    String    @db.VarChar(30)
+  cantidadComprar         Int?      @map("cantidad_comprar")
+  cantidadBeneficio       Int?      @map("cantidad_beneficio")
+  descuentoPorcentaje     Decimal?  @map("descuento_porcentaje") @db.Decimal(5, 2)
+  descuentoMonto          Decimal?  @map("descuento_monto") @db.Decimal(12, 2)
+  precioFijo              Decimal?  @map("precio_fijo") @db.Decimal(12, 2)
+  montoMinimoCompra       Decimal?  @map("monto_minimo_compra") @db.Decimal(12, 2)
+  aplicaA                 String    @default("productos") @map("aplica_a") @db.VarChar(20)
+  categoriasIds           String[]  @map("categorias_ids") @db.Uuid
+  productosIds            String[]  @map("productos_ids") @db.Uuid
+  marcasIds               String[]  @map("marcas_ids") @db.Uuid
+  fechaInicio             DateTime  @map("fecha_inicio")
+  fechaFin                DateTime? @map("fecha_fin")
+  horaInicio              String?   @map("hora_inicio") @db.VarChar(8)
+  horaFin                 String?   @map("hora_fin") @db.VarChar(8)
+  diasSemana              Int[]     @map("dias_semana")
+  limiteUsosTotal         Int?      @map("limite_usos_total")
+  limiteUsosCliente       Int?      @map("limite_usos_cliente")
+  usosActuales            Int       @default(0) @map("usos_actuales")
+  soloClientesRegistrados Boolean   @default(false) @map("solo_clientes_registrados")
+  todasSucursales         Boolean   @default(true) @map("todas_sucursales")
+  sucursalesIds           String[]  @map("sucursales_ids") @db.Uuid
+  acumulable              Boolean   @default(false)
+  prioridad               Int       @default(0)
+  activo                  Boolean   @default(true)
+  visiblePos              Boolean   @default(true) @map("visible_pos")
+  visibleWeb              Boolean   @default(true) @map("visible_web")
+  imagen                  String?   @db.VarChar(500)
+  banner                  String?   @db.VarChar(500)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, codigo])
+  @@index([fechaInicio, fechaFin])
+  @@index([activo])
+  @@map("promociones")
+}
+
+// =====================================================
+// PROVEEDORES
+// =====================================================
+model Proveedor {
+  id                String    @id @default(uuid()) @db.Uuid
+  empresaId         String    @map("empresa_id") @db.Uuid
+  codigo            String    @db.VarChar(20)
+  razonSocial       String    @map("razon_social") @db.VarChar(200)
+  nombreComercial   String?   @map("nombre_comercial") @db.VarChar(200)
+  ruc               String?   @db.VarChar(20)
+  email             String?   @db.VarChar(150)
+  telefono          String?   @db.VarChar(20)
+  celular           String?   @db.VarChar(20)
+  direccion         String?
+  contactoNombre    String?   @map("contacto_nombre") @db.VarChar(150)
+  contactoCargo     String?   @map("contacto_cargo") @db.VarChar(100)
+  contactoTelefono  String?   @map("contacto_telefono") @db.VarChar(20)
+  contactoEmail     String?   @map("contacto_email") @db.VarChar(150)
+  diasCredito       Int       @default(0) @map("dias_credito")
+  limiteCredito     Decimal?  @map("limite_credito") @db.Decimal(12, 2)
+  activo            Boolean   @default(true)
+  notas             String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  empresa         Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  compras         Compra[]
+  pagos           PagoProveedor[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, nombreComercial])
+  @@map("proveedores")
+}
+
+// =====================================================
+// COMPRAS (Ordenes de Compra a Proveedores)
+// =====================================================
+model Compra {
+  id                  String    @id @default(uuid()) @db.Uuid
+  empresaId           String    @map("empresa_id") @db.Uuid
+  sucursalId          String    @map("sucursal_id") @db.Uuid
+  proveedorId         String    @map("proveedor_id") @db.Uuid
+
+  // Identificacion
+  numero              String    @db.VarChar(20)
+  fecha               DateTime  @default(now()) @db.Date
+  fechaVencimiento    DateTime? @map("fecha_vencimiento") @db.Date
+
+  // Documento del proveedor
+  tipoDocumentoRef    String?   @map("tipo_documento_ref") @db.VarChar(20)
+  numeroDocumentoRef  String?   @map("numero_documento_ref") @db.VarChar(50)
+
+  // Montos
+  subtotal            Decimal   @default(0) @db.Decimal(12, 2)
+  descuento           Decimal   @default(0) @db.Decimal(12, 2)
+  impuesto            Decimal   @default(0) @db.Decimal(12, 2)
+  total               Decimal   @default(0) @db.Decimal(12, 2)
+
+  // Pago
+  estadoPago          String    @default("pendiente") @map("estado_pago") @db.VarChar(20)
+  montoPagado         Decimal   @default(0) @map("monto_pagado") @db.Decimal(12, 2)
+  montoPendiente      Decimal   @default(0) @map("monto_pendiente") @db.Decimal(12, 2)
+
+  // Tipo
+  tipo                String    @default("compra") @db.VarChar(20)
+  afectaInventario    Boolean   @default(true) @map("afecta_inventario")
+
+  // Estado
+  estado              String    @default("recibida") @db.VarChar(20)
+  notas               String?
+
+  // Registro por IA
+  registradoPorIa     Boolean   @default(false) @map("registrado_por_ia")
+  mensajeOriginal     String?   @map("mensaje_original")
+
+  // Auditoria
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+
+  // Relaciones
+  empresa             Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  sucursal            Sucursal         @relation(fields: [sucursalId], references: [id])
+  proveedor           Proveedor        @relation(fields: [proveedorId], references: [id])
+  creador             Usuario?         @relation("CompraCreador", fields: [createdBy], references: [id])
+  detalles            CompraDetalle[]
+  pagos               PagoProveedor[]
+
+  @@unique([empresaId, numero])
+  @@index([empresaId])
+  @@index([proveedorId])
+  @@index([empresaId, estadoPago])
+  @@index([empresaId, fecha])
+  @@map("compras")
+}
+
+model CompraDetalle {
+  id              String   @id @default(uuid()) @db.Uuid
+  compraId        String   @map("compra_id") @db.Uuid
+  productoId      String?  @map("producto_id") @db.Uuid
+  varianteId      String?  @map("variante_id") @db.Uuid
+  descripcion     String   @db.VarChar(300)
+  cantidad        Decimal  @db.Decimal(12, 3)
+  unidadMedida    String   @default("UND") @map("unidad_medida") @db.VarChar(20)
+  precioUnitario  Decimal  @map("precio_unitario") @db.Decimal(12, 4)
+  subtotal        Decimal  @db.Decimal(12, 2)
+  productoTexto   String?  @map("producto_texto") @db.VarChar(200)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  compra   Compra    @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  producto Producto? @relation(fields: [productoId], references: [id])
+  variante Variante? @relation(fields: [varianteId], references: [id])
+
+  @@index([compraId])
+  @@map("compra_detalles")
+}
+
+// =====================================================
+// PAGOS A PROVEEDOR
+// =====================================================
+model PagoProveedor {
+  id              String    @id @default(uuid()) @db.Uuid
+  empresaId       String    @map("empresa_id") @db.Uuid
+  proveedorId     String    @map("proveedor_id") @db.Uuid
+  compraId        String?   @map("compra_id") @db.Uuid
+
+  // Identificacion
+  numero          String    @db.VarChar(20)
+  fecha           DateTime  @default(now()) @db.Date
+
+  // Monto
+  monto           Decimal   @db.Decimal(12, 2)
+  metodoPago      String?   @map("metodo_pago") @db.VarChar(50)
+
+  // Referencia
+  referencia      String?   @db.VarChar(100)
+
+  // Estado
+  estado          String    @default("completado") @db.VarChar(20)
+  notas           String?
+
+  // Registro por IA
+  registradoPorIa Boolean   @default(false) @map("registrado_por_ia")
+  mensajeOriginal String?   @map("mensaje_original")
+
+  // Auditoria
+  createdAt       DateTime  @default(now()) @map("created_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+
+  // Relaciones
+  empresa         Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  proveedor       Proveedor @relation(fields: [proveedorId], references: [id])
+  compra          Compra?   @relation(fields: [compraId], references: [id])
+  creador         Usuario?  @relation("PagoProveedorCreador", fields: [createdBy], references: [id])
+
+  @@unique([empresaId, numero])
+  @@index([empresaId])
+  @@index([proveedorId])
+  @@index([empresaId, fecha])
+  @@map("pagos_proveedor")
+}
+
+// =====================================================
+// AUDITORIA
+// =====================================================
+model AuditoriaRol {
+  id              String    @id @default(uuid()) @db.Uuid
+  empresaId       String    @map("empresa_id") @db.Uuid
+  usuarioId       String    @map("usuario_id") @db.Uuid
+  accion          String    @db.VarChar(30)
+  rolAnteriorId   String?   @map("rol_anterior_id") @db.Uuid
+  rolNuevoId      String?   @map("rol_nuevo_id") @db.Uuid
+  datosAnteriores Json?     @map("datos_anteriores")
+  datosNuevos     Json?     @map("datos_nuevos")
+  motivo          String?
+  realizadoPor    String    @map("realizado_por") @db.Uuid
+  ipAddress       String?   @map("ip_address") @db.VarChar(45)
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([empresaId])
+  @@index([usuarioId])
+  @@index([createdAt])
+  @@map("auditoria_roles")
+}
+
+model AuditoriaAccion {
+  id              String    @id @default(uuid()) @db.Uuid
+  empresaId       String?   @map("empresa_id") @db.Uuid
+  usuarioId       String    @map("usuario_id") @db.Uuid
+  usuarioNombre   String?   @map("usuario_nombre") @db.VarChar(200)
+  usuarioRol      String?   @map("usuario_rol") @db.VarChar(50)
+  modulo          String    @db.VarChar(50)
+  accion          String    @db.VarChar(30)
+  entidadId       String?   @map("entidad_id") @db.Uuid
+  entidadTipo     String?   @map("entidad_tipo") @db.VarChar(50)
+  descripcion     String
+  datosAnteriores Json?     @map("datos_anteriores")
+  datosNuevos     Json?     @map("datos_nuevos")
+  sucursalId      String?   @map("sucursal_id") @db.Uuid
+  ipAddress       String?   @map("ip_address") @db.VarChar(45)
+  userAgent       String?   @map("user_agent") @db.VarChar(500)
+  requestId       String?   @map("request_id") @db.VarChar(100)
+  exitoso         Boolean   @default(true)
+  errorMensaje    String?   @map("error_mensaje")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([empresaId])
+  @@index([usuarioId])
+  @@index([modulo])
+  @@index([createdAt])
+  @@index([entidadTipo, entidadId])
+  @@map("auditoria_acciones")
+}
+
+// =====================================================
+// LANDING PAGES
+// =====================================================
+model LandingSeccion {
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @map("empresa_id") @db.Uuid
+  tipo        String   @db.VarChar(50) // hero, features, testimonios, pricing, cta, gallery
+  titulo      String?  @db.VarChar(200)
+  subtitulo   String?  @db.VarChar(500)
+  contenido   Json?    // Contenido dinamico segun tipo
+  imagen      String?  @db.VarChar(500)
+  orden       Int      @default(0)
+  activo      Boolean  @default(true)
+  estilos     Json?    // CSS custom
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  empresa     Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("landing_secciones")
+}
+
+model LandingContacto {
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @map("empresa_id") @db.Uuid
+  nombre      String   @db.VarChar(200)
+  email       String   @db.VarChar(200)
+  telefono    String?  @db.VarChar(20)
+  mensaje     String
+  leido       Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  empresa     Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("landing_contactos")
+}
+
+// =====================================================
+// SEO CONFIGURACION
+// =====================================================
+model SeoConfig {
+  id              String   @id @default(uuid()) @db.Uuid
+  empresaId       String   @map("empresa_id") @db.Uuid
+  pagina          String   @db.VarChar(100) // home, productos, nosotros, contacto
+  metaTitle       String?  @map("meta_title") @db.VarChar(200)
+  metaDescription String?  @map("meta_description") @db.VarChar(500)
+  metaKeywords    String?  @map("meta_keywords") @db.VarChar(500)
+  ogImage         String?  @map("og_image") @db.VarChar(500)
+  ogTitle         String?  @map("og_title") @db.VarChar(200)
+  ogDescription   String?  @map("og_description") @db.VarChar(500)
+  canonicalUrl    String?  @map("canonical_url") @db.VarChar(500)
+  robotsTxt       String?  @map("robots_txt")
+  sitemapActivo   Boolean  @default(true) @map("sitemap_activo")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  empresa         Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, pagina])
+  @@map("seo_config")
+}
+
+// =====================================================
+// BILLING / SUSCRIPCIONES
+// =====================================================
+model Plan {
+  id              String   @id @default(uuid()) @db.Uuid
+  codigo          String   @unique @db.VarChar(50) // free, basic, pro, enterprise
+  nombre          String   @db.VarChar(100)
+  descripcion     String?
+  precioMensual   Decimal  @default(0) @map("precio_mensual") @db.Decimal(10, 2)
+  precioAnual     Decimal  @default(0) @map("precio_anual") @db.Decimal(10, 2)
+  maxSucursales   Int      @default(1) @map("max_sucursales")
+  maxUsuarios     Int      @default(2) @map("max_usuarios")
+  maxProductos    Int      @default(500) @map("max_productos")
+  features        Json?    // Lista de features del plan
+  activo          Boolean  @default(true)
+  esPopular       Boolean  @default(false) @map("es_popular")
+  orden           Int      @default(0)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  suscripciones   Suscripcion[]
+
+  @@map("planes")
+}
+
+model Suscripcion {
+  id              String    @id @default(uuid()) @db.Uuid
+  empresaId       String    @map("empresa_id") @db.Uuid
+  planId          String    @map("plan_id") @db.Uuid
+  estado          String    @default("activa") @db.VarChar(30) // activa, cancelada, vencida, trial
+  periodoFacturacion String @default("mensual") @map("periodo_facturacion") @db.VarChar(20) // mensual, anual
+  fechaInicio     DateTime  @map("fecha_inicio")
+  fechaFin        DateTime? @map("fecha_fin")
+  fechaCancelacion DateTime? @map("fecha_cancelacion")
+  trialHasta      DateTime? @map("trial_hasta")
+  precioActual    Decimal   @default(0) @map("precio_actual") @db.Decimal(10, 2)
+  moneda          String    @default("PEN") @db.VarChar(3)
+  pasarelaId      String?   @map("pasarela_id") @db.VarChar(200) // ID externo de la pasarela
+  metaData        Json?     @map("meta_data")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  empresa         Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  plan            Plan      @relation(fields: [planId], references: [id])
+
+  @@index([empresaId])
+  @@index([estado])
+  @@map("suscripciones")
 }

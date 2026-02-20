@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useAuthStore } from '@/application/stores/auth.store';
-import { useLogout } from '@/application/hooks/mutations/use-auth';
+import { useLogout, useCurrentUser } from '@/application/hooks/mutations/use-auth';
 import { useState } from 'react';
 
 interface MenuItem {
@@ -52,43 +52,43 @@ const menuItems: MenuSection[] = [
   {
     title: 'Principal',
     items: [
-      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { href: '/pos', icon: ShoppingCart, label: 'Punto de Venta', external: true },
+      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', permission: 'dashboard.ver' },
+      { href: '/pos', icon: ShoppingCart, label: 'Punto de Venta', permission: 'ventas.crear', external: true },
     ],
   },
   {
     title: 'Catalogos',
     items: [
-      { href: '/catalogos/categorias', icon: Folder, label: 'Categorias', permission: 'categorias:leer' },
-      { href: '/catalogos/marcas', icon: Tag, label: 'Marcas', permission: 'marcas:leer' },
-      { href: '/catalogos/atributos', icon: Palette, label: 'Atributos', permission: 'atributos:leer' },
+      { href: '/catalogos/categorias', icon: Folder, label: 'Categorias', permission: 'categorias.ver' },
+      { href: '/catalogos/marcas', icon: Tag, label: 'Marcas', permission: 'categorias.ver' },
+      { href: '/catalogos/atributos', icon: Palette, label: 'Atributos', permission: 'categorias.ver' },
     ],
   },
   {
     title: 'Inventario',
     items: [
-      { href: '/productos', icon: Package, label: 'Productos', permission: 'productos:leer' },
-      { href: '/inventario', icon: Warehouse, label: 'Stock', permission: 'inventario:leer' },
+      { href: '/productos', icon: Package, label: 'Productos', permission: 'productos.ver' },
+      { href: '/inventario', icon: Warehouse, label: 'Stock', permission: 'inventario.ver' },
     ],
   },
   {
     title: 'Ventas',
     items: [
-      { href: '/ventas', icon: Receipt, label: 'Historial', permission: 'ventas:leer' },
-      { href: '/caja', icon: Calculator, label: 'Caja', permission: 'caja:ver' },
-      { href: '/clientes', icon: Users, label: 'Clientes', permission: 'clientes:leer' },
+      { href: '/ventas', icon: Receipt, label: 'Historial', permission: 'ventas.ver' },
+      { href: '/caja', icon: Calculator, label: 'Caja', permission: 'caja.abrir' },
+      { href: '/clientes', icon: Users, label: 'Clientes', permission: 'clientes.ver' },
     ],
   },
   {
     title: 'Marketing',
     items: [
-      { href: '/promociones', icon: Percent, label: 'Promociones', permission: 'promociones:leer' },
+      { href: '/promociones', icon: Percent, label: 'Promociones', permission: 'admin' },
     ],
   },
   {
     title: 'Reportes',
     items: [
-      { href: '/reportes', icon: BarChart, label: 'Reportes', permission: 'reportes:leer' },
+      { href: '/reportes', icon: BarChart, label: 'Reportes', permission: 'reportes.ventas' },
     ],
   },
   {
@@ -101,9 +101,14 @@ const menuItems: MenuSection[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { usuario, hasPermission } = useAuthStore();
+  // Usar useCurrentUser para obtener datos frescos del usuario
+  const { data: currentUser } = useCurrentUser();
+  const { hasPermission } = useAuthStore();
   const logoutMutation = useLogout();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Usar el usuario del hook (más actualizado)
+  const usuario = currentUser;
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -111,11 +116,17 @@ export function Sidebar() {
 
   const filterMenuItems = (items: MenuItem[]) => {
     return items.filter((item) => {
+      // Sin permiso requerido = visible para todos
       if (!item.permission) return true;
-      if (item.permission === 'admin') {
-        return usuario?.rol?.codigo === 'admin' || usuario?.rol?.codigo === 'super_admin';
+
+      // Admin y Super Admin ven TODO el menú
+      const rolCodigo = usuario?.rol?.codigo;
+      if (rolCodigo === 'admin' || rolCodigo === 'super_admin') {
+        return true;
       }
-      return hasPermission(item.permission);
+
+      // Para otros roles, verificar permiso específico
+      return usuario?.permisos?.includes(item.permission) || hasPermission(item.permission);
     });
   };
 

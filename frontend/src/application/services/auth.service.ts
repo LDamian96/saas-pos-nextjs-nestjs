@@ -73,6 +73,16 @@ export interface AuthResponse {
   message?: string;
 }
 
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
 export const authService = {
   login: async (dto: LoginDto): Promise<AuthResponse> => {
     const { data } = await api.post('/auth/login', dto);
@@ -90,10 +100,21 @@ export const authService = {
 
   getMe: async (): Promise<Usuario> => {
     const { data } = await api.get('/auth/me');
-    return data.data;
+    // Backend retorna { success: true, data: { usuario: {...} } }
+    return data.data.usuario || data.data;
   },
 
   refresh: async (): Promise<void> => {
     await api.post('/auth/refresh');
+  },
+
+  forgotPassword: async (dto: ForgotPasswordDto): Promise<{ success: boolean; message: string }> => {
+    const { data } = await api.post('/auth/forgot-password', dto);
+    return data;
+  },
+
+  resetPassword: async (dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> => {
+    const { data } = await api.post('/auth/reset-password', dto);
+    return data;
   },
 };

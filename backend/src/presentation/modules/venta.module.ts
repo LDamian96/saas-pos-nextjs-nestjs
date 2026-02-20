@@ -12,6 +12,7 @@ import { Module } from '@nestjs/common';
 import { VentaController } from '../http/controllers/venta.controller';
 import { VentaService } from '../../core/application/services/venta.service';
 import { LoteService } from '../../core/application/services/lote.service';
+import { NotificacionService } from '../../core/application/services/notificacion.service';
 import { PrismaModule } from '../../infrastructure/persistence/prisma/prisma.module';
 import { RedisModule } from '../../infrastructure/cache/redis.module';
 import { AuthModule } from './auth.module';
@@ -19,7 +20,7 @@ import { AuthModule } from './auth.module';
 @Module({
   imports: [PrismaModule, RedisModule, AuthModule],
   controllers: [VentaController],
-  providers: [VentaService, LoteService],
+  providers: [VentaService, LoteService, NotificacionService],
   exports: [VentaService],
 })
 export class VentaModule {}

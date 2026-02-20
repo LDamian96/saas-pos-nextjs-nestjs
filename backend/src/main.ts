@@ -26,8 +26,14 @@ async function bootstrap() {
   app.use(cookieParser(configService.get('COOKIE_SECRET')));
 
   // CORS configurado para frontend
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    configService.get('FRONTEND_URL'),
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: configService.get('FRONTEND_URL') || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],

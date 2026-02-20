@@ -26,6 +26,21 @@ import { UsuarioModule } from './presentation/modules/usuario.module';
 import { CajaModule } from './presentation/modules/caja.module';
 import { ClienteModule } from './presentation/modules/cliente.module';
 import { ReportesModule } from './presentation/modules/reportes.module';
+import { MetodoPagoModule } from './presentation/modules/metodo-pago.module';
+import { PromocionModule } from './presentation/modules/promocion.module';
+import { ProveedorModule } from './presentation/modules/proveedor.module';
+import { CompraModule } from './presentation/modules/compra.module';
+import { PagoProveedorModule } from './presentation/modules/pago-proveedor.module';
+import { AuditoriaModule } from './presentation/modules/auditoria.module';
+import { ExportImportModule } from './presentation/modules/export-import.module';
+import { PdfModule } from './presentation/modules/pdf.module';
+import { QrModule } from './presentation/modules/qr.module';
+import { RolModule } from './presentation/modules/rol.module';
+import { LandingModule } from './presentation/modules/landing.module';
+import { SeoModule } from './presentation/modules/seo.module';
+import { BillingModule } from './presentation/modules/billing.module';
+import { SuperAdminModule } from './presentation/modules/superadmin.module';
+import { FacturacionModule } from './presentation/modules/facturacion.module';
 
 @Module({
   imports: [
@@ -70,6 +85,21 @@ import { ReportesModule } from './presentation/modules/reportes.module';
     CajaModule,
     ClienteModule,
     ReportesModule,
+    MetodoPagoModule,
+    PromocionModule,
+    ProveedorModule,
+    CompraModule,
+    PagoProveedorModule,
+    AuditoriaModule,
+    ExportImportModule,
+    PdfModule,
+    QrModule,
+    RolModule,
+    LandingModule,
+    SeoModule,
+    BillingModule,
+    SuperAdminModule,
+    FacturacionModule,
   ],
 })
 export class AppModule {}

@@ -8,6 +8,24 @@
 
 import { z } from 'zod';
 
+// Helper: convierte string vacío o NaN a undefined para campos numéricos opcionales
+const optionalNumber = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null || Number.isNaN(Number(val)) ? undefined : Number(val)),
+  z.number().min(0).optional()
+);
+const optionalPositiveInt = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null || Number.isNaN(Number(val)) ? undefined : Number(val)),
+  z.number().int().min(1).optional()
+);
+const optionalNonNegativeInt = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null || Number.isNaN(Number(val)) ? undefined : Number(val)),
+  z.number().int().min(0).optional()
+);
+const optionalPercentage = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null || Number.isNaN(Number(val)) ? undefined : Number(val)),
+  z.number().min(0).max(100).optional()
+);
+
 // =====================================================
 // SCHEMA - PRODUCTO
 // =====================================================
@@ -36,10 +54,10 @@ export const createProductoSchema = z.object({
   // Precios
   precioCompra: z.coerce.number().min(0, 'El precio no puede ser negativo').default(0),
   precioVenta: z.coerce.number().min(0.01, 'El precio de venta es obligatorio'),
-  precioMayorista: z.coerce.number().min(0).optional(),
-  cantidadMinimaMayorista: z.coerce.number().int().min(1).optional(),
-  precioOferta: z.coerce.number().min(0).optional(),
-  descuentoPorcentaje: z.coerce.number().min(0).max(100).optional(),
+  precioMayorista: optionalNumber,
+  cantidadMinimaMayorista: optionalPositiveInt,
+  precioOferta: optionalNumber,
+  descuentoPorcentaje: optionalPercentage,
   ofertaDesde: z.string().optional(),
   ofertaHasta: z.string().optional(),
 
@@ -48,7 +66,7 @@ export const createProductoSchema = z.object({
   manejaStock: z.boolean().default(true),
   stock: z.coerce.number().int().min(0).default(0),
   stockMinimo: z.coerce.number().int().min(0).default(0),
-  stockMaximo: z.coerce.number().int().min(0).optional(),
+  stockMaximo: optionalNonNegativeInt,
 
   // Imagen
   imagenPrincipal: z.string().url().optional().or(z.literal('')),
@@ -65,10 +83,10 @@ export const createProductoSchema = z.object({
   metaDescripcion: z.string().max(160, 'Máximo 160 caracteres').optional(),
 
   // Dimensiones
-  peso: z.coerce.number().min(0).optional(),
-  largo: z.coerce.number().min(0).optional(),
-  ancho: z.coerce.number().min(0).optional(),
-  alto: z.coerce.number().min(0).optional(),
+  peso: optionalNumber,
+  largo: optionalNumber,
+  ancho: optionalNumber,
+  alto: optionalNumber,
 });
 
 export const updateProductoSchema = createProductoSchema.partial();

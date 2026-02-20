@@ -10,7 +10,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Building2, Store, Users, Shield, CreditCard, Printer } from 'lucide-react';
+import { Building2, Store, Users, Shield, CreditCard, Printer, ClipboardList, FileText } from 'lucide-react';
 
 const configItems = [
   {
@@ -54,6 +54,20 @@ const configItems = [
     title: 'Impresion',
     description: 'Configurar tickets y facturas',
     color: 'bg-cyan-500',
+  },
+  {
+    href: '/configuracion/facturacion',
+    icon: FileText,
+    title: 'Facturacion Electronica',
+    description: 'Boletas y facturas SUNAT',
+    color: 'bg-indigo-500',
+  },
+  {
+    href: '/configuracion/auditoria',
+    icon: ClipboardList,
+    title: 'Auditoria',
+    description: 'Registro de actividades del sistema',
+    color: 'bg-amber-500',
   },
 ];
 

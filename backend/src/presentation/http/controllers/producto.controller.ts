@@ -33,6 +33,7 @@ import {
   UpdateProductoDto,
   ListarProductosQueryDto,
 } from '../../../core/application/dto/producto';
+import { UpdateVarianteRapidoDto } from '../../../core/application/dto/variante';
 
 // Tipo local con empresaId garantizado (TenantGuard valida esto)
 interface UserWithEmpresa {
@@ -173,7 +174,7 @@ export class ProductoController {
     @CurrentUser() user: UserWithEmpresa,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('varianteId', ParseUUIDPipe) varianteId: string,
-    @Body() dto: { precioVenta?: number; precioCompra?: number; stock?: number; activo?: boolean },
+    @Body() dto: UpdateVarianteRapidoDto,
   ) {
     try {
       const variante = await this.productoService.updateVariante(

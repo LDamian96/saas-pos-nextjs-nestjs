@@ -1,0 +1,93 @@
+# docker-compose.facturacion.yml
+# Sistema de Facturacion Electronica SUNAT (Opcional)
+# Basado en Facturalo - Open Source
+#
+# Uso: docker-compose -f docker-compose.facturacion.yml up -d
+#
+# MODO BETA (Pruebas gratis):
+#   RUC: 20000000001
+#   Usuario SOL: MODDATOS
+#   Clave SOL: moddatos
+
+version: '3.8'
+
+services:
+  # =====================================================
+  # Facturalo - Sistema de Facturacion Electronica
+  # =====================================================
+  facturalo-db:
+    image: mysql:8.0
+    container_name: facturalo_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${FACTURALO_DB_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${FACTURALO_DB_DATABASE:-facturalo}
+      MYSQL_USER: ${FACTURALO_DB_USER:-facturalo}
+      MYSQL_PASSWORD: ${FACTURALO_DB_PASSWORD:-facturalo123}
+    ports:
+      - "3307:3306"
+    volumes:
+      - facturalo_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - facturalo_network
+
+  facturalo-app:
+    image: php:8.2-fpm
+    container_name: facturalo_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      # Base de datos
+      DB_CONNECTION: mysql
+      DB_HOST: facturalo-db
+      DB_PORT: 3306
+      DB_DATABASE: ${FACTURALO_DB_DATABASE:-facturalo}
+      DB_USERNAME: ${FACTURALO_DB_USER:-facturalo}
+      DB_PASSWORD: ${FACTURALO_DB_PASSWORD:-facturalo123}
+      # SUNAT - MODO BETA (Pruebas)
+      SUNAT_ENDPOINT: https://e-beta.sunat.gob.pe
+      SUNAT_BETA: "true"
+      # API
+      APP_URL: http://localhost:8085
+      APP_KEY: base64:CAMBIAR_ESTA_CLAVE_EN_PRODUCCION
+    volumes:
+      - ./facturalo:/var/www/html
+      - ./docker/facturalo/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    depends_on:
+      facturalo-db:
+        condition: service_healthy
+    networks:
+      - facturalo_network
+      - pos_network
+
+  facturalo-nginx:
+    image: nginx:alpine
+    container_name: facturalo_nginx
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    volumes:
+      - ./facturalo:/var/www/html
+      - ./docker/facturalo/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - facturalo-app
+    networks:
+      - facturalo_network
+      - pos_network
+
+volumes:
+  facturalo_mysql_data:
+    name: facturalo_mysql_data
+
+networks:
+  facturalo_network:
+    name: facturalo_network
+    driver: bridge
+  pos_network:
+    external: true
+    name: pos_network

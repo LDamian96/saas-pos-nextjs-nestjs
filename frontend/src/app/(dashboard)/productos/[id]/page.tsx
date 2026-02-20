@@ -188,16 +188,9 @@ export default function ProductoDetailPage({ params }: Props) {
             </div>
 
             <div className="flex items-center justify-between py-2 border-t">
-              <span className="text-gray-500">Stock Minimo</span>
+              <span className="text-gray-500">Alerta stock bajo</span>
               <span className="font-medium">{producto.stockMinimo}</span>
             </div>
-
-            {producto.stockMaximo && (
-              <div className="flex items-center justify-between py-2 border-t">
-                <span className="text-gray-500">Stock Maximo</span>
-                <span className="font-medium">{producto.stockMaximo}</span>
-              </div>
-            )}
 
             <div className="flex items-center justify-between py-2 border-t">
               <span className="text-gray-500">Maneja Stock</span>

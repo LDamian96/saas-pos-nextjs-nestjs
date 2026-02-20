@@ -30,13 +30,14 @@ export default function AjusteInventarioPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [items, setItems] = useState<ItemAjuste[]>([]);
   const [sucursalId, setSucursalId] = useState('');
-  const [motivo, setMotivo] = useState('conteo_fisico');
+  const [motivo, setMotivo] = useState('ajuste_positivo');
   const [notas, setNotas] = useState('');
 
   const { data: searchResults } = useProductoSearch(searchQuery);
 
   const handleAddProduct = (producto: ProductoListItem) => {
-    const varianteId = producto.variantes?.[0]?.id || producto.id;
+    const varianteId = producto.variantes?.[0]?.id;
+    if (!varianteId) return;
 
     const existing = items.find(item => item.varianteId === varianteId);
     if (!existing) {
@@ -73,7 +74,7 @@ export default function AjusteInventarioPage() {
             sucursalId,
             varianteId: item.varianteId,
             tipo: 'ajuste',
-            motivo,
+            motivo: diferencia > 0 ? 'ajuste_positivo' : 'ajuste_negativo',
             cantidad: Math.abs(diferencia),
             notas: `Stock anterior: ${item.stockActual}, Stock nuevo: ${item.stockNuevo}. ${notas}`.trim(),
           });
@@ -144,10 +145,8 @@ export default function AjusteInventarioPage() {
                   onChange={(e) => setMotivo(e.target.value)}
                   className="w-full h-11 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                 >
-                  <option value="conteo_fisico">Conteo fisico</option>
-                  <option value="correccion_sistema">Correccion del sistema</option>
-                  <option value="auditoria">Auditoria</option>
-                  <option value="otro">Otro</option>
+                  <option value="ajuste_positivo">Ajuste positivo (sobrante)</option>
+                  <option value="ajuste_negativo">Ajuste negativo (faltante)</option>
                 </select>
               </div>
             </div>

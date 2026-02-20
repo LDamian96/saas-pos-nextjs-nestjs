@@ -80,6 +80,8 @@ export interface MetodoPago {
   tipo: string;
   icono?: string;
   comision: number;
+  esPasarelaIntegrada?: boolean;
+  pasarelaCodigo?: string;
 }
 
 export interface CreateVentaItemDto {
@@ -101,6 +103,8 @@ export interface CreateVentaDto {
   sucursalId: string;
   cajaId: string;
   clienteId?: string;
+  clienteNombre?: string;
+  clienteDocumento?: string;
   tipoComprobante?: string;
   observaciones?: string;
   items: CreateVentaItemDto[];
@@ -181,10 +185,10 @@ export const ventaService = {
   },
 
   /**
-   * Obtener metodos de pago activos
+   * Obtener metodos de pago activos (usa endpoint principal que incluye campos de pasarela)
    */
   getMetodosPago: async (): Promise<MetodoPago[]> => {
-    const { data } = await api.get('/ventas/metodos-pago');
+    const { data } = await api.get('/metodos-pago');
     return data.data;
   },
 

@@ -54,7 +54,15 @@ export class CategoriaService {
       where.activo = query.activo;
     }
     if (query?.search) {
-      where.nombre = { contains: query.search, mode: 'insensitive' };
+      // Normalizar búsqueda para soportar acentos (ej: "electro" matchea "Electrónicos")
+      const normalizedSearch = query.search
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      where.OR = [
+        { nombre: { contains: query.search, mode: 'insensitive' } },
+        { slug: { contains: normalizedSearch, mode: 'insensitive' } },
+      ];
     }
 
     // 3. Buscar en BD

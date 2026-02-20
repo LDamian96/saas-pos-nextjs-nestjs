@@ -21,6 +21,7 @@ import {
   User,
   Building2,
   Calculator,
+  Smartphone,
 } from 'lucide-react';
 
 // Formateador de moneda
@@ -102,7 +103,7 @@ export function CajaStatus() {
       {isLoadingResumen ? (
         <ResumenSkeleton />
       ) : resumen ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <ResumenCard
             title="Total en Caja"
             value={formatCurrency(resumen.totalEnCaja)}
@@ -120,6 +121,13 @@ export function CajaStatus() {
             value={formatCurrency(resumen.totalTarjeta)}
             icon={<CreditCard className="h-5 w-5" />}
             variant="info"
+          />
+          <ResumenCard
+            title="Billeteras"
+            value={formatCurrency(resumen.totalOtros)}
+            subtitle="Yape, Plin, etc."
+            icon={<Smartphone className="h-5 w-5" />}
+            variant="warning"
           />
           <ResumenCard
             title="Total Ventas"
@@ -167,13 +175,14 @@ function ResumenCard({
   value: string;
   subtitle?: string;
   icon: React.ReactNode;
-  variant?: 'default' | 'primary' | 'success' | 'info';
+  variant?: 'default' | 'primary' | 'success' | 'info' | 'warning';
 }) {
   const bgColors = {
     default: 'bg-card',
     primary: 'bg-blue-50 dark:bg-blue-950',
     success: 'bg-green-50 dark:bg-green-950',
     info: 'bg-purple-50 dark:bg-purple-950',
+    warning: 'bg-orange-50 dark:bg-orange-950',
   };
 
   const iconColors = {
@@ -181,6 +190,7 @@ function ResumenCard({
     primary: 'text-blue-600',
     success: 'text-green-600',
     info: 'text-purple-600',
+    warning: 'text-orange-600',
   };
 
   return (

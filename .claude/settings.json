@@ -8,7 +8,8 @@
       "Glob",
       "Grep",
       "Skill(dev-frontend)",
-      "Skill(dev-frontend:*)"
+      "Skill(dev-frontend:*)",
+      "mcp__chrome-devtools__*"
     ]
   },
   "skills": [
@@ -42,5 +43,11 @@
       "description": "DevOps Developer - Configuración de Docker, PostgreSQL y Redis",
       "path": ".claude/commands/dev-docker.md"
     }
-  ]
+  ],
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--autoConnect"]
+    }
+  }
 }

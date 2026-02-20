@@ -151,6 +151,19 @@ export function ProductoForm({ producto, onSuccess }: ProductoFormProps) {
     }
   }, [producto, form]);
 
+  // Re-aplicar categoriaId/marcaId cuando las opciones del dropdown cargan
+  useEffect(() => {
+    if (producto && categorias?.length) {
+      form.setValue('categoriaId', producto.categoriaId || '');
+    }
+  }, [producto, categorias, form]);
+
+  useEffect(() => {
+    if (producto && marcas?.length) {
+      form.setValue('marcaId', producto.marcaId || '');
+    }
+  }, [producto, marcas, form]);
+
   const onSubmit = async (data: CreateProductoFormData) => {
     try {
       // Limpiar campos vacíos

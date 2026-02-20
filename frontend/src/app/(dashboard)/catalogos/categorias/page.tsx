@@ -11,7 +11,7 @@
  * - UX: ver docs/arquitectura/19-UX-UI-GUIDELINES.md
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Edit, Trash2, FolderOpen, ChevronRight, Tags, FolderPlus } from 'lucide-react';
 import { useCategorias } from '@/application/hooks/queries/use-categorias';
@@ -141,7 +141,7 @@ export default function CategoriasPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {categoriasJerarquicas.map((categoria, index) => (
-                <>
+                <Fragment key={categoria.id}>
                   {/* Categoría Principal */}
                   <motion.tr
                     key={categoria.id}
@@ -276,7 +276,7 @@ export default function CategoriasPage() {
                       </td>
                     </motion.tr>
                   ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

@@ -101,6 +101,17 @@ export default function VentasPage() {
     }).format(value);
   };
 
+  const formatDate = (dateValue: string | Date | null | undefined) => {
+    if (!dateValue) return '-';
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return '-';
+      return format(date, 'dd/MM/yyyy HH:mm', { locale: es });
+    } catch {
+      return '-';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -278,7 +289,7 @@ export default function VentasPage() {
                   >
                     <TableCell className="font-mono font-medium">{venta.numero}</TableCell>
                     <TableCell>
-                      {format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm', { locale: es })}
+                      {formatDate(venta.createdAt)}
                     </TableCell>
                     <TableCell>{venta.clienteNombre || 'Consumidor Final'}</TableCell>
                     <TableCell>{venta.items?.length || 0} items</TableCell>

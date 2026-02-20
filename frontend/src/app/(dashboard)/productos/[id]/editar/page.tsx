@@ -2,13 +2,13 @@
 
 /**
  * @file page.tsx
- * @description Pagina para editar producto existente
+ * @description Pagina para editar producto existente - Layout tipo detalle con campos editables
  */
 
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, Save, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Package, Save, Box, BarChart3, AlertTriangle, Eye, Ruler } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { useCategorias } from '@/application/hooks/queries/use-categorias';
@@ -31,33 +31,42 @@ export default function EditarProductoPage() {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    watch,
+    formState: { errors, isDirty },
   } = useForm<UpdateProductoDto>();
 
-  // Cargar datos del producto cuando esten disponibles
+  const manejaStockValue = watch('manejaStock');
+
+  // Wait for producto AND dropdown options before reset to avoid select mismatch
   useEffect(() => {
-    if (producto) {
+    if (producto && categorias) {
       reset({
         nombre: producto.nombre,
-        categoriaId: producto.categoria?.id,
-        marcaId: producto.marca?.id || undefined,
+        categoriaId: producto.categoriaId || producto.categoria?.id,
+        marcaId: producto.marcaId || producto.marca?.id || undefined,
         sku: producto.sku || '',
         codigoBarras: producto.codigoBarras || '',
         descripcionCorta: producto.descripcionCorta || '',
+        descripcionLarga: producto.descripcionLarga || '',
         precioCompra: Number(producto.precioCompra) || undefined,
         precioVenta: Number(producto.precioVenta) || 0,
         precioMayorista: producto.precioMayorista ? Number(producto.precioMayorista) : undefined,
+        precioOferta: producto.precioOferta ? Number(producto.precioOferta) : undefined,
+        descuentoPorcentaje: producto.descuentoPorcentaje || undefined,
         stockMinimo: producto.stockMinimo,
-        stockMaximo: producto.stockMaximo || undefined,
         manejaStock: producto.manejaStock,
         aplicaImpuesto: producto.aplicaImpuesto,
         activo: producto.activo,
         visiblePos: producto.visiblePos,
         visibleWeb: producto.visibleWeb,
         destacado: producto.destacado,
+        peso: producto.peso || undefined,
+        largo: producto.largo || undefined,
+        ancho: producto.ancho || undefined,
+        alto: producto.alto || undefined,
       });
     }
-  }, [producto, reset]);
+  }, [producto, categorias, marcas, reset]);
 
   const onSubmit = async (data: UpdateProductoDto) => {
     try {
@@ -68,10 +77,37 @@ export default function EditarProductoPage() {
     }
   };
 
+  const formatPrice = (price: number | string | null | undefined) => {
+    if (price === null || price === undefined) return 'S/ 0.00';
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    return `S/ ${num.toFixed(2)}`;
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white rounded-xl border p-6">
+              <div className="h-48 bg-gray-200 rounded mb-4" />
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-1/3" />
+            </div>
+            <div className="bg-white rounded-xl border p-6">
+              <div className="h-6 bg-gray-200 rounded w-1/2 mb-4" />
+              <div className="h-16 bg-gray-200 rounded mb-4" />
+              <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-full" />
+            </div>
+            <div className="bg-white rounded-xl border p-6">
+              <div className="h-6 bg-gray-200 rounded w-1/2 mb-4" />
+              <div className="h-16 bg-gray-200 rounded mb-4" />
+              <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-full" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -89,81 +125,101 @@ export default function EditarProductoPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="flex items-center justify-between"
       >
-        <Link
-          href={`/productos/${id}`}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Package className="h-8 w-8 text-blue-600" />
-            Editar Producto
-          </h1>
-          <p className="text-gray-500 mt-1">{producto.nombre}</p>
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Link
+            href={`/productos/${id}`}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-500" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <input
+              type="text"
+              {...register('nombre', { required: 'El nombre es requerido' })}
+              className="text-3xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-full transition-colors pb-1"
+              placeholder="Nombre del producto"
+            />
+            {errors.nombre && (
+              <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>
+            )}
+            <p className="text-gray-500 mt-1">SKU: {producto.sku}</p>
+          </div>
         </div>
+
+        <button
+          type="submit"
+          disabled={updateMutation.isPending}
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 shrink-0 ml-4"
+        >
+          {updateMutation.isPending ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              Guardando...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5" />
+              Guardar Cambios
+            </>
+          )}
+        </button>
       </motion.div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Informacion basica */}
+      {/* 3-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Column 1 - Image + Basic Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-xl border border-gray-200 p-6"
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Informacion Basica</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre del producto *
-              </label>
-              <input
-                type="text"
-                {...register('nombre', { required: 'El nombre es requerido' })}
-                className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                placeholder="Ej: Camiseta Azul Nike"
+          {/* Image placeholder */}
+          <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+            {producto.imagenPrincipal ? (
+              <img
+                src={producto.imagenPrincipal}
+                alt={producto.nombre}
+                className="w-full h-full object-cover"
               />
-              {errors.nombre && (
-                <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>
-              )}
-            </div>
+            ) : (
+              <Package className="h-16 w-16 text-gray-400" />
+            )}
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoria *
-              </label>
+          {/* Editable fields styled as key-value rows */}
+          <div className="space-y-3">
+            {/* Categoria - dropdown */}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500 text-sm shrink-0">Categoria</span>
               <select
                 {...register('categoriaId', { required: 'Selecciona una categoria' })}
-                className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                className="text-right font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none cursor-pointer py-0.5 min-w-0"
               >
-                <option value="">Seleccionar categoria</option>
+                <option value="">Seleccionar...</option>
                 {categorias?.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.nombre}
                   </option>
                 ))}
               </select>
-              {errors.categoriaId && (
-                <p className="text-sm text-red-500 mt-1">{errors.categoriaId.message}</p>
-              )}
             </div>
+            {errors.categoriaId && (
+              <p className="text-xs text-red-500 text-right">{errors.categoriaId.message}</p>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Marca
-              </label>
+            {/* Marca - dropdown */}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500 text-sm shrink-0">Marca</span>
               <select
                 {...register('marcaId')}
-                className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                className="text-right font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none cursor-pointer py-0.5 min-w-0"
               >
                 <option value="">Sin marca</option>
                 {marcas?.map((marca) => (
@@ -174,76 +230,67 @@ export default function EditarProductoPage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                SKU
+            {/* Tipo - read-only */}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 text-sm">Tipo</span>
+              <span className="font-medium text-sm capitalize">{producto.tipo}</span>
+            </div>
+
+            {/* Estado - checkbox */}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 text-sm">Estado</span>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...register('activo')}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium">Activo</span>
               </label>
+            </div>
+
+            {/* SKU - editable */}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500 text-sm shrink-0">SKU</span>
               <input
                 type="text"
                 {...register('sku')}
-                className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                className="text-right font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-full py-0.5"
                 placeholder="Codigo SKU"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Codigo de Barras
-              </label>
+            {/* Codigo Barras - editable */}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500 text-sm shrink-0">Cod. Barras</span>
               <input
                 type="text"
                 {...register('codigoBarras')}
-                className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                className="text-right font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-full py-0.5"
                 placeholder="Escanear o escribir"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descripcion corta
-              </label>
-              <textarea
-                {...register('descripcionCorta')}
-                rows={2}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none"
-                placeholder="Breve descripcion del producto"
               />
             </div>
           </div>
         </motion.div>
 
-        {/* Precios */}
+        {/* Column 2 - Precios */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="bg-white rounded-xl border border-gray-200 p-6"
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Precios</h2>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            Precios
+          </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio de Compra
-              </label>
+          <div className="space-y-4">
+            {/* Precio de Venta - big input */}
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <label className="text-sm text-gray-500 block mb-1">Precio de Venta *</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">S/</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  {...register('precioCompra', { valueAsNumber: true })}
-                  className="w-full h-12 pl-10 pr-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio de Venta *
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">S/</span>
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 text-2xl font-bold">S/</span>
                 <input
                   type="number"
                   step="0.01"
@@ -252,166 +299,358 @@ export default function EditarProductoPage() {
                     valueAsNumber: true,
                     min: { value: 0.01, message: 'El precio debe ser mayor a 0' }
                   })}
-                  className="w-full h-12 pl-10 pr-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-full pl-10 py-1 transition-colors"
                   placeholder="0.00"
                 />
               </div>
               {errors.precioVenta && (
-                <p className="text-sm text-red-500 mt-1">{errors.precioVenta.message}</p>
+                <p className="text-xs text-red-500 mt-1">{errors.precioVenta.message}</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio Mayorista
-              </label>
+            {/* Precio Oferta */}
+            <div className="p-4 bg-green-50 rounded-lg">
+              <label className="text-sm text-green-600 block mb-1">Precio Oferta</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">S/</span>
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-green-400 text-lg font-bold">S/</span>
                 <input
                   type="number"
                   step="0.01"
-                  {...register('precioMayorista', { valueAsNumber: true })}
-                  className="w-full h-12 pl-10 pr-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  {...register('precioOferta', { valueAsNumber: true })}
+                  className="text-lg font-bold text-green-700 bg-transparent border-b border-transparent hover:border-green-300 focus:border-green-500 focus:outline-none w-full pl-8 py-0.5 transition-colors"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex items-center gap-1 mt-2">
+                <span className="text-xs text-green-600">Descuento:</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  {...register('descuentoPorcentaje', { valueAsNumber: true })}
+                  className="text-sm font-medium text-green-700 bg-transparent border-b border-transparent hover:border-green-300 focus:border-green-500 focus:outline-none w-16 text-center transition-colors"
+                  placeholder="0"
+                />
+                <span className="text-xs text-green-600">%</span>
+              </div>
+            </div>
+
+            {/* Precio Compra */}
+            <div className="flex items-center justify-between py-2 border-t">
+              <span className="text-gray-500 text-sm">Precio Compra</span>
+              <div className="relative">
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  {...register('precioCompra', { valueAsNumber: true })}
+                  className="text-right font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-28 pl-6 py-0.5 transition-colors"
                   placeholder="0.00"
                 />
               </div>
             </div>
+
+            {/* Precio Mayorista */}
+            <div className="flex items-center justify-between py-2 border-t">
+              <span className="text-gray-500 text-sm">Precio Mayorista</span>
+              <div className="relative">
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  {...register('precioMayorista', { valueAsNumber: true })}
+                  className="text-right font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-28 pl-6 py-0.5 transition-colors"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Aplica Impuesto */}
+            <div className="flex items-center justify-between py-2 border-t">
+              <span className="text-gray-500 text-sm">Aplica Impuesto (IGV)</span>
+              <input
+                type="checkbox"
+                {...register('aplicaImpuesto')}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
           </div>
         </motion.div>
 
-        {/* Inventario */}
+        {/* Column 3 - Inventario */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="bg-white rounded-xl border border-gray-200 p-6"
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Inventario</h2>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Box className="h-5 w-5 text-purple-600" />
+            Inventario
+          </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Stock Minimo
-              </label>
+          <div className="space-y-4">
+            {/* Stock Actual - read-only */}
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-500">Stock Actual</p>
+              <p className={`text-2xl font-bold ${
+                producto.stock <= producto.stockMinimo ? 'text-red-600' : 'text-gray-900'
+              }`}>
+                {producto.stock} unidades
+              </p>
+              <p className="text-xs text-gray-400 mt-1">Gestionado via movimientos de inventario</p>
+            </div>
+
+            {/* Alerta stock bajo */}
+            <div className="flex items-center justify-between py-2 border-t">
+              <span className="text-gray-500 text-sm">Alerta stock bajo</span>
               <input
                 type="number"
                 {...register('stockMinimo', { valueAsNumber: true })}
-                className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                className="text-right font-medium text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-24 py-0.5 transition-colors"
                 placeholder="5"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Stock Maximo
+            {/* Maneja Stock - checkbox */}
+            <div className="flex items-center justify-between py-2 border-t">
+              <span className="text-gray-500 text-sm">Maneja Stock</span>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...register('manejaStock')}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  manejaStockValue ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {manejaStockValue ? 'Si' : 'No'}
+                </span>
               </label>
-              <input
-                type="number"
-                {...register('stockMaximo', { valueAsNumber: true })}
-                className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                placeholder="Opcional"
-              />
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-6 mt-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                {...register('manejaStock')}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Maneja stock</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                {...register('aplicaImpuesto')}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Aplica impuesto (IGV)</span>
-            </label>
-          </div>
         </motion.div>
+      </div>
 
-        {/* Visibilidad */}
+      {/* Variantes (read-only, if variable product) */}
+      {producto.tipo === 'variable' && producto.variantes && producto.variantes.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="bg-white rounded-xl border border-gray-200 p-6"
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Visibilidad</h2>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Variantes ({producto.variantes.length})
+            <span className="text-sm font-normal text-gray-400 ml-2">Solo lectura</span>
+          </h3>
 
-          <div className="flex flex-wrap gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                {...register('activo')}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Producto activo</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                {...register('visiblePos')}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Visible en POS</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                {...register('visibleWeb')}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Visible en Web</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                {...register('destacado')}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Producto destacado</span>
-            </label>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-4 py-2 text-sm font-medium text-gray-500">Variante</th>
+                  <th className="text-left px-4 py-2 text-sm font-medium text-gray-500">SKU</th>
+                  <th className="text-right px-4 py-2 text-sm font-medium text-gray-500">Precio</th>
+                  <th className="text-right px-4 py-2 text-sm font-medium text-gray-500">Stock</th>
+                  <th className="text-left px-4 py-2 text-sm font-medium text-gray-500">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {producto.variantes.map((variante) => (
+                  <tr key={variante.id} className="border-t">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {variante.valores?.map((v, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-gray-100 rounded text-sm">
+                            {v.codigoColor && (
+                              <span
+                                className="inline-block w-3 h-3 rounded-full mr-1"
+                                style={{ backgroundColor: v.codigoColor }}
+                              />
+                            )}
+                            {v.valor}
+                          </span>
+                        )) || <span className="text-gray-500">{variante.nombre || variante.sku}</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-sm">{variante.sku}</td>
+                    <td className="px-4 py-3 text-right font-medium">{formatPrice(variante.precioVenta)}</td>
+                    <td className="px-4 py-3 text-right">{variante.stock}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        variante.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {variante.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </motion.div>
+      )}
 
-        {/* Botones */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="flex gap-4"
+      {/* Descripcion */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="bg-white rounded-xl border border-gray-200 p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Descripcion</h3>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Descripcion corta</label>
+            <textarea
+              {...register('descripcionCorta')}
+              rows={2}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none text-sm"
+              placeholder="Breve descripcion del producto"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Descripcion larga</label>
+            <textarea
+              {...register('descripcionLarga')}
+              rows={4}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none text-sm"
+              placeholder="Descripcion detallada del producto"
+            />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Visibilidad y Opciones */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="bg-white rounded-xl border border-gray-200 p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Eye className="h-5 w-5 text-indigo-600" />
+          Visibilidad y Opciones
+        </h3>
+
+        <div className="flex flex-wrap gap-x-8 gap-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('visiblePos')}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Visible en POS</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('visibleWeb')}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Visible en Web</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('destacado')}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Producto destacado</span>
+          </label>
+        </div>
+      </motion.div>
+
+      {/* Dimensiones y Peso */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45 }}
+        className="bg-white rounded-xl border border-gray-200 p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Ruler className="h-5 w-5 text-orange-600" />
+          Dimensiones y Peso
+        </h3>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Peso (kg)</label>
+            <input
+              type="number"
+              step="0.01"
+              {...register('peso', { valueAsNumber: true })}
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-sm"
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Largo (cm)</label>
+            <input
+              type="number"
+              step="0.1"
+              {...register('largo', { valueAsNumber: true })}
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-sm"
+              placeholder="0.0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Ancho (cm)</label>
+            <input
+              type="number"
+              step="0.1"
+              {...register('ancho', { valueAsNumber: true })}
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-sm"
+              placeholder="0.0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Alto (cm)</label>
+            <input
+              type="number"
+              step="0.1"
+              {...register('alto', { valueAsNumber: true })}
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-sm"
+              placeholder="0.0"
+            />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Action Buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="flex gap-4 justify-end"
+      >
+        <Link
+          href={`/productos/${id}`}
+          className="px-6 h-11 flex items-center justify-center border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
         >
-          <Link
-            href={`/productos/${id}`}
-            className="flex-1 h-12 flex items-center justify-center border-2 border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={updateMutation.isPending}
-            className="flex-1 h-12 flex items-center justify-center gap-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {updateMutation.isPending ? (
-              'Guardando...'
-            ) : (
-              <>
-                <Save className="h-5 w-5" />
-                Guardar Cambios
-              </>
-            )}
-          </button>
-        </motion.div>
-      </form>
-    </div>
+          Cancelar
+        </Link>
+        <button
+          type="submit"
+          disabled={updateMutation.isPending}
+          className="px-6 h-11 flex items-center justify-center gap-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {updateMutation.isPending ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              Guardando...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5" />
+              Guardar Cambios
+            </>
+          )}
+        </button>
+      </motion.div>
+    </form>
   );
 }

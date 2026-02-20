@@ -306,8 +306,8 @@ export const movimientosService = {
 
     const { data } = await apiClient.get(`/movimientos-inventario?${params.toString()}`);
     return {
-      items: data.data.items as MovimientoInventario[],
-      pagination: data.data.pagination,
+      items: data.items as MovimientoInventario[],
+      pagination: data.pagination,
     };
   },
 
@@ -533,7 +533,7 @@ export const alertasInventarioService = {
   getStockBajo: async (sucursalId?: string): Promise<AlertaStockBajo[]> => {
     const params = sucursalId ? `?sucursalId=${sucursalId}` : '';
     const { data } = await apiClient.get(`/alertas-inventario/stock-bajo${params}`);
-    return data.data;
+    return data;
   },
 
   // Obtener alertas de vencimiento
@@ -541,13 +541,13 @@ export const alertasInventarioService = {
     const params = new URLSearchParams({ diasAlerta: String(diasAlerta) });
     if (sucursalId) params.append('sucursalId', sucursalId);
     const { data } = await apiClient.get(`/alertas-inventario/vencimientos?${params.toString()}`);
-    return data.data;
+    return data;
   },
 
   // Obtener resumen de alertas
   getResumen: async (sucursalId?: string): Promise<ResumenAlertas> => {
     const params = sucursalId ? `?sucursalId=${sucursalId}` : '';
     const { data } = await apiClient.get(`/alertas-inventario/resumen${params}`);
-    return data.data;
+    return data;
   },
 };

@@ -14,7 +14,8 @@ export interface CartItem {
   imagen?: string;
   cantidad: number;
   precioUnitario: number;
-  precioOriginal: number;
+  precioOriginal: number; // Precio normal de venta
+  precioMayorista?: number; // Precio mayorista (si existe)
   descuento: number;
   subtotal: number;
   stockDisponible: number;
@@ -30,11 +31,12 @@ export interface PaymentItem {
 }
 
 export interface Cliente {
-  id: string;
+  id?: string; // Opcional para clientes ingresados manualmente
   nombre: string;
   documento?: string;
   email?: string;
   telefono?: string;
+  tipoCliente?: 'regular' | 'mayorista';
 }
 
 interface POSState {
@@ -69,6 +71,7 @@ interface POSState {
 
   // Acciones de cliente
   setCliente: (cliente: Cliente | null) => void;
+  applyMayoristaPricing: (esMayorista: boolean) => void;
 
   // Acciones de pago
   addPago: (pago: PaymentItem) => void;
@@ -243,7 +246,38 @@ export const usePOSStore = create<POSState>((set, get) => ({
   },
 
   // Cliente
-  setCliente: (cliente) => set({ cliente }),
+  setCliente: (cliente) => {
+    set({ cliente });
+    // Recalcular precios al cambiar cliente
+    const esMayorista = cliente?.tipoCliente === 'mayorista';
+    get().applyMayoristaPricing(esMayorista);
+  },
+
+  // Aplicar/quitar precios mayoristas al carrito
+  applyMayoristaPricing: (esMayorista) => {
+    set((state) => {
+      const updatedItems = state.items.map((item) => {
+        const precio = esMayorista && item.precioMayorista && item.precioMayorista > 0
+          ? item.precioMayorista
+          : item.precioOriginal;
+        return {
+          ...item,
+          precioUnitario: precio,
+          subtotal: (precio - item.descuento) * item.cantidad,
+        };
+      });
+
+      const subtotal = calcularSubtotal(updatedItems);
+      const descuentoTotal = calcularDescuentoTotal(updatedItems);
+
+      return {
+        items: updatedItems,
+        subtotal,
+        descuentoTotal,
+        total: subtotal,
+      };
+    });
+  },
 
   // Pagos
   addPago: (pago) => {

@@ -5,3 +5,4 @@
 
 export * from './create-variante.dto';
 export * from './update-variante.dto';
+export * from './update-variante-rapido.dto';

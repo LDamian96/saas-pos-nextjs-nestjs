@@ -112,6 +112,7 @@ export class ProductoService {
             id: true,
             sku: true,
             precioVenta: true,
+            precioMayorista: true,
             stock: true,
             codigoBarras: true,
           },
@@ -146,6 +147,7 @@ export class ProductoService {
           categoria: producto.categoria,
           marca: producto.marca,
           precioVenta: producto.precioVenta,
+          precioMayorista: producto.precioMayorista,
           precioOferta: producto.precioOferta,
           descuentoPorcentaje: producto.descuentoPorcentaje,
           imagenPrincipal: producto.imagenPrincipal,
@@ -154,7 +156,7 @@ export class ProductoService {
           activo: producto.activo,
           visiblePos: producto.visiblePos,
           visibleWeb: producto.visibleWeb,
-          variantes: visiblePos ? producto.variantes : [],
+          variantes: producto.variantes || [], // always include variantes
         };
       }),
     );
@@ -320,6 +322,12 @@ export class ProductoService {
       },
     });
 
+    // Obtener sucursales activas para crear stockSucursal
+    const sucursales = await this.prisma.sucursal.findMany({
+      where: { empresaId, activo: true },
+      select: { id: true },
+    });
+
     // Crear variantes si se proporcionaron
     if (variantes && variantes.length > 0) {
       for (const varianteData of variantes) {
@@ -341,10 +349,21 @@ export class ProductoService {
             })),
           });
         }
+
+        // Crear stockSucursal para cada sucursal
+        if (sucursales.length > 0) {
+          await this.prisma.stockSucursal.createMany({
+            data: sucursales.map((s) => ({
+              varianteId: variante.id,
+              sucursalId: s.id,
+              stock: vData.stock || 0,
+            })),
+          });
+        }
       }
     } else if (producto.tipo === 'simple') {
       // Crear variante por defecto para productos simples
-      await this.prisma.variante.create({
+      const defaultVariante = await this.prisma.variante.create({
         data: {
           productoId: producto.id,
           sku: producto.sku || producto.codigoInterno,
@@ -356,6 +375,17 @@ export class ProductoService {
           activo: true,
         },
       });
+
+      // Crear stockSucursal para todas las sucursales de la empresa
+      if (sucursales.length > 0) {
+        await this.prisma.stockSucursal.createMany({
+          data: sucursales.map((s) => ({
+            varianteId: defaultVariante.id,
+            sucursalId: s.id,
+            stock: producto.stock || 0,
+          })),
+        });
+      }
     }
 
     // Invalidar cache

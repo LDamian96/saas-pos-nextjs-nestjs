@@ -35,7 +35,8 @@ export default function SalidaInventarioPage() {
   const { data: searchResults } = useProductoSearch(searchQuery);
 
   const handleAddProduct = (producto: ProductoListItem) => {
-    const varianteId = producto.variantes?.[0]?.id || producto.id;
+    const varianteId = producto.variantes?.[0]?.id;
+    if (!varianteId) return;
 
     const existing = items.find(item => item.varianteId === varianteId);
     if (existing) {
@@ -146,12 +147,9 @@ export default function SalidaInventarioPage() {
                   onChange={(e) => setMotivo(e.target.value)}
                   className="w-full h-11 px-4 border-2 border-gray-200 rounded-lg focus:border-red-500 focus:outline-none"
                 >
-                  <option value="merma">Merma o deterioro</option>
-                  <option value="vencimiento">Producto vencido</option>
-                  <option value="robo">Robo o perdida</option>
+                  <option value="merma">Merma, deterioro o vencimiento</option>
                   <option value="devolucion_proveedor">Devolucion a proveedor</option>
-                  <option value="consumo_interno">Consumo interno</option>
-                  <option value="otro">Otro</option>
+                  <option value="uso_interno">Uso o consumo interno</option>
                 </select>
               </div>
             </div>

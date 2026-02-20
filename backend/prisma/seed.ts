@@ -269,6 +269,52 @@ async function main() {
 
   // Importar bcrypt para hashear password
   const bcrypt = await import('bcrypt');
+  const passwordHash = await bcrypt.hash('admin123', 12);
+
+  // =====================================================
+  // 3. SUPER ADMIN DEL SAAS (Sin empresa - Dueño del SaaS)
+  // =====================================================
+  console.log('\nCreando SuperAdmin del SaaS...');
+
+  const rolSuperAdmin = await prisma.rol.findFirst({
+    where: { codigo: 'super_admin', empresaId: null },
+  });
+
+  if (!rolSuperAdmin) {
+    throw new Error('Rol super_admin no encontrado. Ejecuta el seed de nuevo.');
+  }
+
+  // Crear SuperAdmin (empresaId = null porque es dueño del SaaS)
+  // Usamos findFirst + create/update porque el unique constraint no permite null en upsert
+  const existingSuperAdmin = await prisma.usuario.findFirst({
+    where: { email: 'superadmin@pos-saas.com', empresaId: null },
+  });
+
+  if (existingSuperAdmin) {
+    await prisma.usuario.update({
+      where: { id: existingSuperAdmin.id },
+      data: { passwordHash },
+    });
+  } else {
+    await prisma.usuario.create({
+      data: {
+        empresaId: null, // Sin empresa - es el dueño del SaaS
+        sucursalId: null,
+        rolId: rolSuperAdmin.id,
+        email: 'superadmin@pos-saas.com',
+        passwordHash,
+        nombre: 'Super',
+        apellido: 'Admin',
+        todasSucursales: true,
+        puedeAnularVenta: true,
+        puedeVerCostos: true,
+        puedeVerUtilidades: true,
+        puedeModificarPrecios: true,
+        activo: true,
+      },
+    });
+  }
+  console.log('  SuperAdmin: superadmin@pos-saas.com (Dueño del SaaS)');
 
   // Buscar rol admin
   const rolAdmin = await prisma.rol.findFirst({
@@ -278,6 +324,11 @@ async function main() {
   if (!rolAdmin) {
     throw new Error('Rol admin no encontrado. Ejecuta el seed de nuevo.');
   }
+
+  // =====================================================
+  // 4. EMPRESA DEMO Y SU ADMIN
+  // =====================================================
+  console.log('\nCreando Empresa Demo...');
 
   // Crear empresa demo
   const empresaDemo = await prisma.empresa.upsert({
@@ -320,9 +371,7 @@ async function main() {
   });
   console.log(`  Sucursal: ${sucursalDemo.nombre}`);
 
-  // Crear usuario admin demo
-  const passwordHash = await bcrypt.hash('admin123', 12);
-
+  // Crear usuario admin demo (dueño del negocio)
   const usuarioDemo = await prisma.usuario.upsert({
     where: {
       empresaId_email: { empresaId: empresaDemo.id, email: 'admin@demo.com' },
@@ -1707,15 +1756,23 @@ async function main() {
   console.log(`  - ${totalVariantes} variantes`);
   console.log('  - Stock asignado a todas las variantes');
   console.log('  - 6 métodos de pago');
-  console.log('\n┌─────────────────────────────────────────────────┐');
-  console.log('│          CUENTAS DEMO (Password: admin123)      │');
-  console.log('├─────────────────────────────────────────────────┤');
-  console.log('│  admin@demo.com      → Dueño del negocio        │');
-  console.log('│  supervisor@demo.com → Supervisor de tienda     │');
-  console.log('│  cajero@demo.com     → Cajero                   │');
-  console.log('│  almacen@demo.com    → Encargado de almacén     │');
-  console.log('│  vendedor@demo.com   → Vendedor                 │');
-  console.log('└─────────────────────────────────────────────────┘');
+  console.log('\n┌───────────────────────────────────────────────────────┐');
+  console.log('│       CREDENCIALES DE ACCESO (Password: admin123)     │');
+  console.log('├───────────────────────────────────────────────────────┤');
+  console.log('│                                                       │');
+  console.log('│  🔑 SUPER ADMIN (Dueño del SaaS):                     │');
+  console.log('│     superadmin@pos-saas.com → Control total del SaaS  │');
+  console.log('│                                                       │');
+  console.log('│  🏪 ADMIN NEGOCIO (Dueño de Tienda Demo):             │');
+  console.log('│     admin@demo.com → Administrador del negocio        │');
+  console.log('│                                                       │');
+  console.log('│  👥 OTROS USUARIOS (Tienda Demo):                     │');
+  console.log('│     supervisor@demo.com → Supervisor de tienda        │');
+  console.log('│     cajero@demo.com     → Cajero                      │');
+  console.log('│     almacen@demo.com    → Encargado de almacén        │');
+  console.log('│     vendedor@demo.com   → Vendedor                    │');
+  console.log('│                                                       │');
+  console.log('└───────────────────────────────────────────────────────┘');
   console.log('\n┌─────────────────────────────────────────────────┐');
   console.log('│              PRODUCTOS POR CATEGORÍA            │');
   console.log('├─────────────────────────────────────────────────┤');

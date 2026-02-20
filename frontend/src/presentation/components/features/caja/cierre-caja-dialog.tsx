@@ -8,7 +8,7 @@
  * - DTOs: ver backend/src/core/application/dto/caja/cierre-caja.dto.ts
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,16 +30,22 @@ import { Card, CardContent } from '@/presentation/components/ui/card';
 import { Badge } from '@/presentation/components/ui/badge';
 import { useCerrarCaja } from '@/application/hooks/mutations/use-caja-mutations';
 import { useCajaActual, useCajaResumen } from '@/application/hooks/queries/use-caja';
-import { DoorClosed, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import {
+  DoorClosed,
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
+  Banknote,
+  CreditCard,
+  Smartphone,
+  Lock,
+} from 'lucide-react';
 
-// Schema de validación
+// Schema de validación - solo efectivo es input del usuario
 const cierreCajaSchema = z.object({
-  montoCierre: z.coerce
+  efectivoContado: z.coerce
     .number()
     .min(0, 'El monto no puede ser negativo'),
-  montoEfectivo: z.coerce.number().min(0).optional(),
-  montoTarjeta: z.coerce.number().min(0).optional(),
-  montoOtros: z.coerce.number().min(0).optional(),
   observaciones: z.string().optional(),
 });
 
@@ -68,33 +74,45 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
   const dialogOpen = open ?? isOpen;
   const setDialogOpen = onOpenChange ?? setIsOpen;
 
+  // Montos electrónicos del sistema (auto-calculados)
+  const tarjetaSistema = resumen?.totalTarjeta || 0;
+  const otrosSistema = resumen?.totalOtros || 0;
+  const efectivoEsperado = resumen?.totalEfectivo || 0;
+
   const form = useForm<CierreCajaForm>({
     resolver: zodResolver(cierreCajaSchema),
     defaultValues: {
-      montoCierre: 0,
-      montoEfectivo: 0,
-      montoTarjeta: 0,
-      montoOtros: 0,
+      efectivoContado: 0,
       observaciones: '',
     },
   });
 
-  // Calcular diferencia en tiempo real
-  const montoCierre = form.watch('montoCierre') || 0;
-  const montoEsperado = resumen?.totalEnCaja || 0;
-  const diferencia = montoCierre - montoEsperado;
+  // Pre-llenar con el monto esperado de efectivo cuando carga el resumen
+  useEffect(() => {
+    if (resumen && dialogOpen) {
+      form.setValue('efectivoContado', resumen.totalEfectivo || 0);
+    }
+  }, [resumen, dialogOpen]);
+
+  // Calcular diferencia de efectivo en tiempo real
+  const efectivoContado = Number(form.watch('efectivoContado')) || 0;
+  const diferenciaEfectivo = efectivoContado - efectivoEsperado;
+
+  // Total de cierre = efectivo contado + electrónicos (auto)
+  const totalCierre = efectivoContado + tarjetaSistema + otrosSistema;
 
   const onSubmit = async (data: CierreCajaForm) => {
     if (!cajaActual) return;
 
     try {
+      const efectivo = Number(data.efectivoContado) || 0;
       await cerrarCaja.mutateAsync({
         cajaId: cajaActual.id,
         dto: {
-          montoCierre: data.montoCierre,
-          montoEfectivo: data.montoEfectivo,
-          montoTarjeta: data.montoTarjeta,
-          montoOtros: data.montoOtros,
+          montoCierre: efectivo + tarjetaSistema + otrosSistema,
+          montoEfectivo: efectivo,
+          montoTarjeta: tarjetaSistema,
+          montoOtros: otrosSistema,
           observaciones: data.observaciones || undefined,
         },
       });
@@ -121,78 +139,104 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
           Cerrar Caja
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <DoorClosed className="h-5 w-5" />
             Cerrar Caja
           </DialogTitle>
           <DialogDescription>
-            Cuenta el efectivo y registra el cierre de la caja del día.
+            Cuenta el efectivo fisico. Los pagos electronicos se calculan automaticamente.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Resumen esperado */}
-        {resumen && (
-          <Card className="bg-muted/50">
-            <CardContent className="pt-4">
-              <div className="text-sm font-medium text-muted-foreground mb-2">
-                Monto esperado en caja
-              </div>
-              <div className="text-2xl font-bold">
-                {formatCurrency(resumen.totalEnCaja)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Efectivo: {formatCurrency(resumen.totalEfectivo)} •
-                Tarjeta: {formatCurrency(resumen.totalTarjeta)} •
-                Ventas: {resumen.cantidadVentas}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Pagos electrónicos - auto-calculados */}
+        <div className="space-y-2">
+          <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Lock className="h-3 w-3" />
+            Pagos electronicos (automatico)
+          </Label>
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="bg-purple-50 border-purple-200">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-purple-600" />
+                  <div className="flex-1">
+                    <p className="text-xs text-purple-600 font-medium">Tarjeta</p>
+                    <p className="text-lg font-bold text-purple-900">
+                      {formatCurrency(tarjetaSistema)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-orange-50 border-orange-200">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4 text-orange-600" />
+                  <div className="flex-1">
+                    <p className="text-xs text-orange-600 font-medium">Yape / Plin / Otros</p>
+                    <p className="text-lg font-bold text-orange-900">
+                      {formatCurrency(otrosSistema)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <Separator />
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Conteo de efectivo - único input del usuario */}
           <div className="space-y-2">
-            <Label htmlFor="montoCierre">Monto Total Contado</Label>
+            <Label htmlFor="efectivoContado" className="flex items-center gap-2">
+              <Banknote className="h-4 w-4 text-green-600" />
+              Efectivo contado en caja
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Esperado: {formatCurrency(efectivoEsperado)}
+            </p>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 S/
               </span>
               <Input
-                id="montoCierre"
+                id="efectivoContado"
                 type="number"
                 step="0.01"
                 min="0"
                 className="pl-10 h-12 text-lg"
                 placeholder="0.00"
-                {...form.register('montoCierre')}
+                {...form.register('efectivoContado')}
               />
             </div>
-            {form.formState.errors.montoCierre && (
+            {form.formState.errors.efectivoContado && (
               <p className="text-sm text-destructive">
-                {form.formState.errors.montoCierre.message}
+                {form.formState.errors.efectivoContado.message}
               </p>
             )}
           </div>
 
-          {/* Indicador de diferencia */}
-          {montoCierre > 0 && (
-            <Card className={diferencia === 0 ? 'border-green-500 bg-green-50' : diferencia > 0 ? 'border-blue-500 bg-blue-50' : 'border-red-500 bg-red-50'}>
+          {/* Indicador de diferencia de efectivo */}
+          {efectivoContado > 0 && (
+            <Card className={diferenciaEfectivo === 0 ? 'border-green-500 bg-green-50' : diferenciaEfectivo > 0 ? 'border-blue-500 bg-blue-50' : 'border-red-500 bg-red-50'}>
               <CardContent className="py-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Diferencia:</span>
+                  <span className="text-sm font-medium">Diferencia efectivo:</span>
                   <div className="flex items-center gap-2">
-                    {diferencia === 0 ? (
+                    {diferenciaEfectivo === 0 ? (
                       <>
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <Badge variant="outline" className="bg-green-100 text-green-700">
                           Cuadrado
                         </Badge>
                       </>
-                    ) : diferencia > 0 ? (
+                    ) : diferenciaEfectivo > 0 ? (
                       <>
                         <span className="font-bold text-blue-600">
-                          +{formatCurrency(diferencia)}
+                          +{formatCurrency(diferenciaEfectivo)}
                         </span>
                         <Badge variant="outline" className="bg-blue-100 text-blue-700">
                           Sobrante
@@ -202,7 +246,7 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
                       <>
                         <AlertTriangle className="h-4 w-4 text-red-600" />
                         <span className="font-bold text-red-600">
-                          {formatCurrency(diferencia)}
+                          {formatCurrency(diferenciaEfectivo)}
                         </span>
                         <Badge variant="outline" className="bg-red-100 text-red-700">
                           Faltante
@@ -217,53 +261,18 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
 
           <Separator />
 
-          {/* Desglose opcional */}
-          <div className="space-y-3">
-            <Label className="text-sm text-muted-foreground">
-              Desglose (opcional)
-            </Label>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="montoEfectivo" className="text-xs">
-                  Efectivo
-                </Label>
-                <Input
-                  id="montoEfectivo"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  {...form.register('montoEfectivo')}
-                />
+          {/* Total de cierre - auto-calculado */}
+          <Card className="bg-muted/50">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">Total de cierre</span>
+                <span className="text-xl font-bold">{formatCurrency(totalCierre)}</span>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="montoTarjeta" className="text-xs">
-                  Tarjeta
-                </Label>
-                <Input
-                  id="montoTarjeta"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  {...form.register('montoTarjeta')}
-                />
+              <div className="text-xs text-muted-foreground mt-1 text-right">
+                Efectivo {formatCurrency(efectivoContado)} + Tarjeta {formatCurrency(tarjetaSistema)} + Otros {formatCurrency(otrosSistema)}
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="montoOtros" className="text-xs">
-                  Otros
-                </Label>
-                <Input
-                  id="montoOtros"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  {...form.register('montoOtros')}
-                />
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           <div className="space-y-2">
             <Label htmlFor="observaciones">Observaciones (opcional)</Label>

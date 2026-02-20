@@ -84,12 +84,18 @@ export class ClienteService {
     // Contar total
     const total = await this.prisma.cliente.count({ where });
 
-    // Obtener clientes
+    // Obtener clientes con conteo de ventas
     const clientes = await this.prisma.cliente.findMany({
       where,
       orderBy: { [orden]: direccion },
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        ventas: {
+          where: { estado: 'completada' },
+          select: { total: true },
+        },
+      },
     });
 
     // Formatear respuesta
@@ -112,6 +118,8 @@ export class ClienteService {
       saldoPendiente: cliente.saldoPendiente,
       activo: cliente.activo,
       createdAt: cliente.createdAt,
+      totalCompras: cliente.ventas.length,
+      montoTotalCompras: cliente.ventas.reduce((sum, v) => sum + Number(v.total), 0),
     }));
 
     return {
@@ -191,6 +199,7 @@ export class ClienteService {
       telefono: cliente.telefono,
       whatsapp: cliente.whatsapp,
       direccion: cliente.direccion,
+      tipoCliente: cliente.tipoCliente,
     };
   }
 
@@ -210,14 +219,14 @@ export class ClienteService {
       }
     }
 
-    // Crear cliente
+    // Crear cliente - mapear solo campos válidos del schema
+    const { celular, tieneCredito, departamento, provincia, distrito, fechaNacimiento, ...validFields } = dto;
     const cliente = await this.prisma.cliente.create({
       data: {
-        ...dto,
+        ...validFields,
         empresaId,
-        fechaNacimiento: dto.fechaNacimiento
-          ? new Date(dto.fechaNacimiento)
-          : null,
+        whatsapp: celular || undefined,
+        fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : null,
       },
     });
 
@@ -249,13 +258,15 @@ export class ClienteService {
       }
     }
 
-    // Actualizar
+    // Actualizar - mapear solo campos válidos del schema
+    const { celular, tieneCredito, departamento, provincia, distrito, fechaNacimiento, ...validUpdateFields } = dto as any;
     await this.prisma.cliente.update({
       where: { id },
       data: {
-        ...dto,
-        fechaNacimiento: dto.fechaNacimiento
-          ? new Date(dto.fechaNacimiento)
+        ...validUpdateFields,
+        ...(celular !== undefined && { whatsapp: celular }),
+        fechaNacimiento: fechaNacimiento
+          ? new Date(fechaNacimiento)
           : undefined,
       },
     });
@@ -304,11 +315,18 @@ export class ClienteService {
       where: { empresaId, limiteCredito: { gt: 0 }, activo: true },
     });
 
+    // Sumar monto total de ventas asociadas a clientes
+    const ventasAggregate = await this.prisma.venta.aggregate({
+      where: { empresaId, clienteId: { not: null }, estado: 'completada' },
+      _sum: { total: true },
+    });
+
     return {
       total,
       activos,
       inactivos: total - activos,
       conCredito,
+      montoTotalVentas: Number(ventasAggregate._sum.total ?? 0),
       porTipo: porTipo.map((n) => ({
         tipo: n.tipoCliente,
         cantidad: n._count.id,

@@ -38,8 +38,9 @@ export default function EntradaInventarioPage() {
   const { data: searchResults } = useProductoSearch(searchQuery);
 
   const handleAddProduct = (producto: ProductoListItem) => {
-    // Si tiene variantes, usar la primera
-    const varianteId = producto.variantes?.[0]?.id || producto.id;
+    // Usar la primera variante; para productos variables sin variantes cargadas, no agregar
+    const varianteId = producto.variantes?.[0]?.id;
+    if (!varianteId) return;
 
     const existing = items.find(item => item.varianteId === varianteId);
     if (existing) {
@@ -164,9 +165,7 @@ export default function EntradaInventarioPage() {
                 >
                   <option value="compra">Compra a proveedor</option>
                   <option value="devolucion_cliente">Devolucion de cliente</option>
-                  <option value="produccion">Produccion</option>
-                  <option value="bonificacion">Bonificacion</option>
-                  <option value="otro">Otro</option>
+                  <option value="inventario_inicial">Inventario inicial / Ajuste</option>
                 </select>
               </div>
             </div>

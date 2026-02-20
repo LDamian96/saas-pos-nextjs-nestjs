@@ -20,6 +20,7 @@ import { RedisService } from '../../../infrastructure/cache/redis.service';
 import { CreateVentaDto, VentaFiltersDto, AnularVentaDto } from '../dto/venta';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 import { LoteService } from './lote.service';
+import { NotificacionService } from './notificacion.service';
 
 const CACHE_TTL = 1800; // 30 minutos
 const CACHE_PREFIX = 'ventas';
@@ -30,6 +31,7 @@ export class VentaService {
     private prisma: PrismaService,
     private redis: RedisService,
     private loteService: LoteService,
+    private notificacionService: NotificacionService,
   ) {}
 
   /**
@@ -144,11 +146,14 @@ export class VentaService {
       success: true,
       data: ventas.map((v) => ({
         id: v.id,
+        numero: v.numeroVenta,
         numeroVenta: v.numeroVenta,
+        createdAt: v.createdAt,
         fecha: v.createdAt,
         sucursal: v.sucursal,
         usuario: v.usuario,
         cliente: v.cliente,
+        clienteNombre: v.cliente?.nombre || null,
         subtotal: v.subtotal,
         descuento: v.descuento,
         impuesto: v.impuesto,
@@ -156,6 +161,7 @@ export class VentaService {
         tipoComprobante: v.tipoComprobante,
         estado: v.estado,
         itemsCount: v._count.detalles,
+        items: Array(v._count.detalles).fill({}), // Para compatibilidad con items.length
       })),
       meta: {
         total,
@@ -247,9 +253,58 @@ export class VentaService {
       throw new NotFoundException(ERROR_MESSAGES.SALE_NOT_FOUND);
     }
 
+    // Transformar datos al formato que espera el frontend
     return {
       success: true,
-      data: venta,
+      data: {
+        id: venta.id,
+        numero: venta.numeroVenta,
+        numeroVenta: venta.numeroVenta,
+        sucursalId: venta.sucursalId,
+        sucursalNombre: venta.sucursal?.nombre,
+        cajaId: venta.cajaId,
+        cajaNombre: venta.caja?.nombre,
+        clienteId: venta.clienteId,
+        clienteNombre: venta.cliente?.nombre || (venta as any).clienteNombreTemporal,
+        clienteDocumento: venta.cliente?.numeroDocumento || (venta as any).clienteDocumentoTemporal,
+        usuarioId: venta.usuarioId,
+        usuarioNombre: venta.usuario?.nombre,
+        subtotal: venta.subtotal,
+        descuento: venta.descuento,
+        descuentoTotal: venta.descuento,
+        impuesto: venta.impuesto,
+        impuestoTotal: venta.impuesto,
+        total: venta.total,
+        estado: venta.estado,
+        tipoComprobante: venta.tipoComprobante,
+        serieComprobante: null,
+        numeroComprobante: null,
+        observaciones: venta.notas,
+        motivoAnulacion: null,
+        createdAt: venta.createdAt,
+        updatedAt: venta.updatedAt,
+        // Items transformados
+        items: venta.detalles?.map((d: any) => ({
+          id: d.id,
+          varianteId: d.varianteId,
+          productoNombre: d.variante?.producto?.nombre || 'Producto',
+          varianteSku: d.variante?.sku || '',
+          cantidad: d.cantidad,
+          precioUnitario: d.precioUnidad,
+          descuento: d.descuento || 0,
+          subtotal: d.subtotal,
+          loteId: d.loteId,
+          loteNumero: d.lote?.codigoLote,
+        })) || [],
+        // Pagos transformados
+        pagos: venta.pagos?.map((p: any) => ({
+          id: p.id,
+          metodoPagoId: p.metodoPagoId,
+          metodoPagoNombre: p.metodoPago?.nombre || 'Método de pago',
+          monto: p.monto,
+          referencia: p.referencia,
+        })) || [],
+      },
     };
   }
 
@@ -270,14 +325,26 @@ export class VentaService {
       throw new BadRequestException(ERROR_MESSAGES.CASH_REGISTER_CLOSED);
     }
 
-    // 2. Validar items y calcular totales
+    // 2. Verificar si el cliente es mayorista
+    let clienteData: any = null;
+    let esMayorista = false;
+    if (dto.clienteId) {
+      clienteData = await this.prisma.cliente.findFirst({
+        where: { id: dto.clienteId, empresaId },
+        select: { id: true, nombre: true, apellido: true, email: true, tipoCliente: true },
+      });
+      esMayorista = clienteData?.tipoCliente === 'mayorista';
+    }
+
+    // 3. Validar items y calcular totales (con precios mayoristas si aplica)
     const itemsConPrecios = await this.validarYCalcularItems(
       empresaId,
       dto.sucursalId,
       dto.items,
+      esMayorista,
     );
 
-    // 3. Calcular totales de la venta
+    // 4. Calcular totales de la venta
     const subtotal = itemsConPrecios.reduce((sum, item) => sum + item.subtotal, 0);
     const descuentoItems = itemsConPrecios.reduce(
       (sum, item) => sum + item.descuentoMonto,
@@ -286,7 +353,7 @@ export class VentaService {
     const descuentoGeneral = dto.descuentoGeneralMonto || 0;
     const descuentoTotal = descuentoItems + descuentoGeneral;
 
-    // Obtener configuracion de impuestos de la empresa
+    // 5. Obtener configuracion de impuestos de la empresa
     const empresa = await this.prisma.empresa.findUnique({
       where: { id: empresaId },
       select: {
@@ -305,7 +372,7 @@ export class VentaService {
 
     const total = subtotal - descuentoTotal + impuesto;
 
-    // 4. Validar que los pagos cubran el total
+    // 6. Validar que los pagos cubran el total
     const totalPagos = dto.pagos.reduce((sum, p) => sum + p.monto, 0);
     if (totalPagos < total) {
       throw new BadRequestException(ERROR_MESSAGES.PAYMENT_INSUFFICIENT);
@@ -313,10 +380,10 @@ export class VentaService {
 
     const vuelto = totalPagos - total;
 
-    // 5. Generar numero de venta
+    // 7. Generar numero de venta
     const numeroVenta = await this.generarNumeroVenta(empresaId, dto.sucursalId);
 
-    // 6. Crear venta en transaccion
+    // 8. Crear venta en transaccion
     const venta = await this.prisma.$transaction(async (tx) => {
       // Crear venta principal
       const nuevaVenta = await tx.venta.create({
@@ -326,6 +393,8 @@ export class VentaService {
           cajaId: dto.cajaId,
           usuarioId,
           clienteId: dto.clienteId || null,
+          clienteNombreTemporal: dto.clienteId ? null : dto.clienteNombre || null,
+          clienteDocumentoTemporal: dto.clienteId ? null : dto.clienteDocumento || null,
           numeroVenta,
           subtotal,
           descuento: descuentoTotal,
@@ -419,11 +488,53 @@ export class VentaService {
       return nuevaVenta;
     });
 
-    // 7. Invalidar cache
+    // 9. Invalidar cache
     await this.invalidateCache(empresaId);
 
-    // 8. Obtener venta completa para respuesta
+    // 10. Obtener venta completa para respuesta
     const ventaCompleta = await this.findOne(empresaId, venta.id);
+
+    // 11. Enviar notificacion a cliente mayorista (async, no bloquea)
+    if (esMayorista && clienteData?.email) {
+      const empresaInfo = await this.prisma.empresa.findUnique({
+        where: { id: empresaId },
+        select: { nombreComercial: true },
+      });
+      const vendedor = await this.prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { nombre: true },
+      });
+
+      this.notificacionService
+        .enviarNotificacionVentaMayorista({
+          clienteNombre: clienteData.apellido
+            ? `${clienteData.nombre} ${clienteData.apellido}`
+            : clienteData.nombre,
+          clienteEmail: clienteData.email,
+          numeroVenta: numeroVenta,
+          items: itemsConPrecios.map((item) => ({
+            nombre: item.productoNombre || 'Producto',
+            cantidad: item.cantidad,
+            precioOriginal: item.precioOriginal || item.precioUnitario,
+            precioMayorista: item.precioUnitario,
+          })),
+          subtotalOriginal: itemsConPrecios.reduce(
+            (sum, item) => sum + (item.precioOriginal || item.precioUnitario) * item.cantidad,
+            0,
+          ),
+          subtotalMayorista: subtotal,
+          ahorro: itemsConPrecios.reduce(
+            (sum, item) =>
+              sum + ((item.precioOriginal || item.precioUnitario) - item.precioUnitario) * item.cantidad,
+            0,
+          ),
+          total,
+          vendedorNombre: vendedor?.nombre || 'Vendedor',
+          empresaNombre: empresaInfo?.nombreComercial || 'Empresa',
+          fecha: new Date(),
+        })
+        .catch(() => {}); // No bloquear si falla el email
+    }
 
     return {
       success: true,
@@ -636,7 +747,7 @@ export class VentaService {
   }
 
   /**
-   * GET /ventas/metodos-pago - Obtener métodos de pago activos
+   * GET /ventas/metodos-pago - Obtener métodos de pago activos (incluye pasarelas)
    */
   async getMetodosPago(empresaId: string) {
     const metodosPago = await this.prisma.metodoPago.findMany({
@@ -651,7 +762,11 @@ export class VentaService {
         nombre: true,
         tipo: true,
         icono: true,
-        comision: true,
+        comisionPorcentaje: true,
+        comisionFija: true,
+        requiereReferencia: true,
+        esPasarelaIntegrada: true,
+        pasarelaCodigo: true,
       },
     });
 
@@ -672,11 +787,12 @@ export class VentaService {
     empresaId: string,
     sucursalId: string,
     items: CreateVentaDto['items'],
+    esMayorista = false,
   ) {
     const itemsCalculados = [];
 
     for (const item of items) {
-      // Obtener variante con stock
+      // Obtener variante con stock y precios
       const variante = await this.prisma.variante.findFirst({
         where: {
           id: item.varianteId,
@@ -686,6 +802,8 @@ export class VentaService {
           producto: {
             select: {
               nombre: true,
+              precioVenta: true,
+              precioMayorista: true,
             },
           },
         },
@@ -731,10 +849,24 @@ export class VentaService {
         }
       }
 
+      // Determinar precio: si es mayorista, usar precioMayorista si existe
+      const precioVentaNormal = Number(variante.precioVenta) || Number(variante.producto.precioVenta);
+      let precioUnitarioFinal = item.precioUnitario;
+      let precioOriginal = precioVentaNormal;
+
+      if (esMayorista) {
+        const precioMayorista =
+          Number(variante.precioMayorista) || Number(variante.producto.precioMayorista) || 0;
+        if (precioMayorista > 0) {
+          precioUnitarioFinal = precioMayorista;
+          precioOriginal = precioVentaNormal;
+        }
+      }
+
       // Calcular descuento
       const descuentoPorcentaje = item.descuentoPorcentaje || 0;
       const descuentoMontoManual = item.descuentoMonto || 0;
-      const precioBase = item.precioUnitario * item.cantidad;
+      const precioBase = precioUnitarioFinal * item.cantidad;
       const descuentoPorcentajeMonto = precioBase * (descuentoPorcentaje / 100);
       const descuentoMonto = descuentoPorcentajeMonto + descuentoMontoManual;
       const subtotal = precioBase - descuentoMonto;
@@ -743,7 +875,9 @@ export class VentaService {
         varianteId: item.varianteId,
         loteId,
         cantidad: item.cantidad,
-        precioUnitario: item.precioUnitario,
+        precioUnitario: precioUnitarioFinal,
+        precioOriginal,
+        productoNombre: variante.producto.nombre,
         descuentoPorcentaje,
         descuentoMonto,
         subtotal,

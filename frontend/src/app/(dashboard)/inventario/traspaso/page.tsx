@@ -35,7 +35,8 @@ export default function TraspasoInventarioPage() {
   const { data: searchResults } = useProductoSearch(searchQuery);
 
   const handleAddProduct = (producto: ProductoListItem) => {
-    const varianteId = producto.variantes?.[0]?.id || producto.id;
+    const varianteId = producto.variantes?.[0]?.id;
+    if (!varianteId) return;
 
     const existing = items.find(item => item.varianteId === varianteId);
     if (existing) {

@@ -2,7 +2,11 @@
 
 /**
  * @file page.tsx
- * @description Página de gestión de usuarios
+ * @description Pagina de gestion de usuarios
+ *
+ * @references
+ * - Service: ver frontend/src/application/services/usuarios.service.ts
+ * - Endpoints: ver docs/arquitectura/06-API-ENDPOINTS.md (seccion: USUARIOS)
  */
 
 import { useState } from 'react';
@@ -17,80 +21,92 @@ import {
   MoreVertical,
   Mail,
   Phone,
+  Edit,
+  Trash2,
+  Key,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/presentation/components/ui/button';
 import { Input } from '@/presentation/components/ui/input';
 import { Card, CardContent } from '@/presentation/components/ui/card';
 import { Badge } from '@/presentation/components/ui/badge';
+import { Skeleton } from '@/presentation/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/presentation/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/presentation/components/ui/alert-dialog';
 
-// Datos demo estáticos (reemplazar con hook cuando exista el endpoint)
-const usuariosDemo = [
-  {
-    id: '1',
-    nombre: 'Carlos',
-    apellido: 'Mendoza',
-    email: 'admin@demo.com',
-    telefono: '999888777',
-    rol: 'Administrador',
-    rolColor: 'bg-purple-100 text-purple-800',
-    activo: true,
-    ultimoAcceso: '2026-01-15 10:30',
-  },
-  {
-    id: '2',
-    nombre: 'Maria',
-    apellido: 'Garcia',
-    email: 'supervisor@demo.com',
-    telefono: '999777666',
-    rol: 'Supervisor',
-    rolColor: 'bg-blue-100 text-blue-800',
-    activo: true,
-    ultimoAcceso: '2026-01-15 09:15',
-  },
-  {
-    id: '3',
-    nombre: 'Juan',
-    apellido: 'Lopez',
-    email: 'cajero@demo.com',
-    telefono: '999666555',
-    rol: 'Cajero',
-    rolColor: 'bg-green-100 text-green-800',
-    activo: true,
-    ultimoAcceso: '2026-01-14 18:00',
-  },
-  {
-    id: '4',
-    nombre: 'Pedro',
-    apellido: 'Sanchez',
-    email: 'almacen@demo.com',
-    telefono: '999555444',
-    rol: 'Almacenero',
-    rolColor: 'bg-orange-100 text-orange-800',
-    activo: true,
-    ultimoAcceso: '2026-01-14 17:30',
-  },
-  {
-    id: '5',
-    nombre: 'Ana',
-    apellido: 'Martinez',
-    email: 'vendedor@demo.com',
-    telefono: '999444333',
-    rol: 'Vendedor',
-    rolColor: 'bg-teal-100 text-teal-800',
-    activo: false,
-    ultimoAcceso: '2026-01-10 12:00',
-  },
-];
+import { useUsuarios } from '@/application/hooks/queries/use-usuarios';
+import { useDeleteUsuario } from '@/application/hooks/mutations/use-usuarios-mutations';
+import { useRoles } from '@/application/hooks/queries/use-roles';
+import { Usuario } from '@/application/services/usuarios.service';
+import { UsuarioDialog } from '@/presentation/components/features/usuarios';
+
+// Colores para los roles
+const rolColors: Record<string, string> = {
+  admin: 'bg-purple-100 text-purple-800',
+  supervisor: 'bg-blue-100 text-blue-800',
+  cajero: 'bg-green-100 text-green-800',
+  almacenero: 'bg-orange-100 text-orange-800',
+  vendedor: 'bg-teal-100 text-teal-800',
+};
 
 export default function UsuariosPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [usuarioToDelete, setUsuarioToDelete] = useState<Usuario | null>(null);
 
-  const filteredUsuarios = usuariosDemo.filter(
-    (u) =>
-      u.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.apellido.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Queries
+  const { data: usuariosData, isLoading } = useUsuarios({ search: searchQuery || undefined });
+  const { data: roles } = useRoles();
+  const deleteMutation = useDeleteUsuario();
+
+  const usuarios = usuariosData?.data || [];
+  const totalUsuarios = usuariosData?.meta?.total || usuarios.length;
+  const activos = usuarios.filter((u) => u.activo).length;
+  const inactivos = usuarios.filter((u) => !u.activo).length;
+
+  const handleCreate = () => {
+    setSelectedUsuario(null);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (usuario: Usuario) => {
+    setSelectedUsuario(usuario);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (usuario: Usuario) => {
+    setUsuarioToDelete(usuario);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (usuarioToDelete) {
+      await deleteMutation.mutateAsync(usuarioToDelete.id);
+      setDeleteDialogOpen(false);
+      setUsuarioToDelete(null);
+    }
+  };
+
+  const getRolColor = (codigo: string) => {
+    return rolColors[codigo] || 'bg-gray-100 text-gray-800';
+  };
 
   return (
     <div className="space-y-6">
@@ -100,13 +116,13 @@ export default function UsuariosPage() {
           <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
           <p className="text-gray-500 mt-1">Gestiona los usuarios de tu empresa</p>
         </div>
-        <Button size="lg" className="gap-2">
+        <Button size="lg" className="gap-2" onClick={handleCreate}>
           <Plus size={20} />
           Nuevo Usuario
         </Button>
       </div>
 
-      {/* Estadísticas */}
+      {/* Estadisticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -118,7 +134,9 @@ export default function UsuariosPage() {
               <Users className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{usuariosDemo.length}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {isLoading ? <Skeleton className="h-8 w-12" /> : totalUsuarios}
+              </p>
               <p className="text-sm text-gray-500">Total usuarios</p>
             </div>
           </div>
@@ -136,7 +154,7 @@ export default function UsuariosPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {usuariosDemo.filter((u) => u.activo).length}
+                {isLoading ? <Skeleton className="h-8 w-12" /> : activos}
               </p>
               <p className="text-sm text-gray-500">Activos</p>
             </div>
@@ -155,7 +173,7 @@ export default function UsuariosPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {usuariosDemo.filter((u) => !u.activo).length}
+                {isLoading ? <Skeleton className="h-8 w-12" /> : inactivos}
               </p>
               <p className="text-sm text-gray-500">Inactivos</p>
             </div>
@@ -173,7 +191,9 @@ export default function UsuariosPage() {
               <Shield className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">5</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {roles?.length || 0}
+              </p>
               <p className="text-sm text-gray-500">Roles</p>
             </div>
           </div>
@@ -206,10 +226,10 @@ export default function UsuariosPage() {
                   </th>
                   <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Rol</th>
                   <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">
-                    Estado
+                    Sucursal
                   </th>
                   <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">
-                    Ultimo acceso
+                    Estado
                   </th>
                   <th className="text-right px-6 py-4 text-sm font-medium text-gray-500">
                     Acciones
@@ -217,62 +237,171 @@ export default function UsuariosPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsuarios.map((usuario, index) => (
-                  <motion.tr
-                    key={usuario.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {usuario.nombre.charAt(0)}
+                {isLoading ? (
+                  // Skeleton loading
+                  [...Array(5)].map((_, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-10 h-10 rounded-full" />
+                          <div>
+                            <Skeleton className="h-4 w-32 mb-2" />
+                            <Skeleton className="h-3 w-40" />
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {usuario.nombre} {usuario.apellido}
-                          </p>
-                          <p className="text-sm text-gray-500">{usuario.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Mail className="h-4 w-4" />
-                          {usuario.email}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Phone className="h-4 w-4" />
-                          {usuario.telefono}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge className={usuario.rolColor}>{usuario.rol}</Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      {usuario.activo ? (
-                        <Badge className="bg-green-100 text-green-800">Activo</Badge>
-                      ) : (
-                        <Badge className="bg-gray-100 text-gray-800">Inactivo</Badge>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{usuario.ultimoAcceso}</td>
-                    <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-4 w-36" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-4 w-28" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-8 w-8 ml-auto" />
+                      </td>
+                    </tr>
+                  ))
+                ) : usuarios.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <Users className="mx-auto h-12 w-12 text-gray-300" />
+                      <p className="mt-4 text-gray-500">No se encontraron usuarios</p>
+                      <Button className="mt-4" onClick={handleCreate}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Crear primer usuario
                       </Button>
                     </td>
-                  </motion.tr>
-                ))}
+                  </tr>
+                ) : (
+                  usuarios.map((usuario, index) => (
+                    <motion.tr
+                      key={usuario.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="border-b border-gray-100 hover:bg-gray-50"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            {usuario.nombre.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {usuario.nombre} {usuario.apellido}
+                            </p>
+                            <p className="text-sm text-gray-500">{usuario.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            {usuario.email}
+                          </div>
+                          {usuario.telefono && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Phone className="h-4 w-4" />
+                              {usuario.telefono}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={getRolColor(usuario.rol.codigo)}>
+                          {usuario.rol.nombre}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Building2 className="h-4 w-4 text-gray-400" />
+                          {usuario.todasSucursales ? (
+                            <span className="text-blue-600 font-medium">Todas</span>
+                          ) : usuario.sucursal ? (
+                            usuario.sucursal.nombre
+                          ) : (
+                            <span className="text-gray-400">Sin asignar</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {usuario.activo ? (
+                          <Badge className="bg-green-100 text-green-800">Activo</Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800">Inactivo</Badge>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(usuario)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Key className="mr-2 h-4 w-4" />
+                              Cambiar contrasena
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteClick(usuario)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog crear/editar */}
+      <UsuarioDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        usuario={selectedUsuario}
+      />
+
+      {/* Dialog confirmar eliminacion */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta accion desactivara al usuario "{usuarioToDelete?.nombre} {usuarioToDelete?.apellido}".
+              El usuario no podra iniciar sesion pero su historial se conservara.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Si, eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

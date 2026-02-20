@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { authService, LoginDto, RegisterDto } from '@/application/services/auth.service';
+import { authService, LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto } from '@/application/services/auth.service';
 import { useAuthStore } from '@/application/stores/auth.store';
 
 export const useLogin = () => {
@@ -63,6 +63,34 @@ export const useLogout = () => {
       logout();
       queryClient.clear();
       router.push('/login');
+    },
+  });
+};
+
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: (dto: ForgotPasswordDto) => authService.forgotPassword(dto),
+    onSuccess: () => {
+      toast.success('Si el correo existe, recibiras instrucciones para recuperar tu contrasena');
+    },
+    onError: () => {
+      toast.error('No se pudo enviar el correo. Intenta de nuevo');
+    },
+  });
+};
+
+export const useResetPassword = () => {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (dto: ResetPasswordDto) => authService.resetPassword(dto),
+    onSuccess: () => {
+      toast.success('Contrasena actualizada correctamente');
+      router.push('/login');
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'No se pudo cambiar la contrasena. El enlace puede haber expirado';
+      toast.error(message);
     },
   });
 };

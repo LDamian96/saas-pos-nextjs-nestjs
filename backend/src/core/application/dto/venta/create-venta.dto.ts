@@ -89,6 +89,16 @@ export class CreateVentaDto {
 
   @IsOptional()
   @IsString()
+  @Transform(({ value }) => value ? sanitizeHtml(value, { allowedTags: [] }) : value)
+  clienteNombre?: string; // Nombre del cliente temporal (no registrado)
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value ? sanitizeHtml(value, { allowedTags: [] }) : value)
+  clienteDocumento?: string; // Documento del cliente temporal
+
+  @IsOptional()
+  @IsString()
   tipoComprobante?: string; // boleta, factura, ticket
 
   @IsArray()

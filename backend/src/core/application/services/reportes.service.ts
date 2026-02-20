@@ -643,24 +643,32 @@ export class ReportesService {
       },
     });
 
-    // Alertas de stock - productos con stock bajo (menor o igual a stockMinimo)
+    // Alertas de stock - productos con stock bajo (StockSucursal tiene los minimos reales)
     const variantesConStockBajo = await this.prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*) as count FROM variantes v
+      SELECT COUNT(*) as count FROM stock_sucursal ss
+      INNER JOIN variantes v ON ss.variante_id = v.id
       INNER JOIN productos p ON v.producto_id = p.id
+      INNER JOIN sucursales s ON ss.sucursal_id = s.id
       WHERE p.empresa_id = ${empresaId}::uuid
       AND p.activo = true
-      AND v.stock > 0
-      AND v.stock <= v.stock_minimo
+      AND v.activo = true
+      AND s.activo = true
+      AND ss.stock_minimo > 0
+      AND ss.stock > 0
+      AND ss.stock <= ss.stock_minimo
     `;
     const stockBajo = Number(variantesConStockBajo[0]?.count || 0);
 
-    // Productos sin stock
-    const sinStock = await this.prisma.variante.count({
-      where: {
-        producto: { empresaId, activo: true },
-        stock: { lte: 0 },
-      },
-    });
+    // Productos sin stock (stock = 0 en StockSucursal o en variante)
+    const sinStockResult = await this.prisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(DISTINCT v.id) as count FROM variantes v
+      INNER JOIN productos p ON v.producto_id = p.id
+      WHERE p.empresa_id = ${empresaId}::uuid
+      AND p.activo = true
+      AND v.activo = true
+      AND v.stock <= 0
+    `;
+    const sinStock = Number(sinStockResult[0]?.count || 0);
 
     // Top productos hoy
     const topProductosHoy = await this.prisma.ventaDetalle.groupBy({
