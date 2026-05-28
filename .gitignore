@@ -93,3 +93,5 @@ verificar.js
 vender-ahora.js
 PRUEBA-STOCK-MANUAL.md
 
+*.pyc
+__pycache__/

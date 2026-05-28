@@ -32,10 +32,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // Mostrar loading mientras verifica autenticacion
   if (isLoading || isCheckingUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Cargando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-[3px] border-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-body-s text-ink-muted">Cargando…</p>
         </div>
       </div>
     );

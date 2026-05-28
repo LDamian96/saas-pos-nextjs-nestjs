@@ -1,16 +1,6 @@
-/**
- * @file (pos)/layout.tsx
- * @description Layout para el Punto de Venta
- * - Admin/Super Admin/Supervisor: Muestra el mismo sidebar del dashboard
- * - Vendedor/Cajero: Solo POS (sin sidebar)
- *
- * @references
- * - Rutas: docs/arquitectura/07-FRONTEND-RUTAS.md
- */
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,19 +21,15 @@ import {
   Moon,
   Calculator,
   Sparkles,
-  Truck,
   Tag,
-  Wallet,
   Shield,
-  ClipboardList,
-  FileSpreadsheet,
   Crown,
+  ArrowLeft,
 } from 'lucide-react';
 import { AuthGuard } from '@/presentation/components/common/auth-guard';
 import { useLogout, useCurrentUser } from '@/application/hooks/mutations/use-auth';
 import { useThemeStore } from '@/application/stores/theme.store';
 
-// Roles del sistema con niveles de jerarquia
 type RolCodigo = 'super_admin' | 'admin' | 'supervisor' | 'cajero' | 'almacenero' | 'vendedor';
 
 interface MenuItem {
@@ -51,93 +37,76 @@ interface MenuItem {
   href: string;
   icon: React.ElementType;
   roles?: RolCodigo[];
-  submenu?: { label: string; href: string; roles?: RolCodigo[] }[];
+  submenu?: { label: string; href: string }[];
 }
+interface MenuSection { title: string; items: MenuItem[]; }
 
-interface MenuSection {
-  title: string;
-  roles?: RolCodigo[];
-  items: MenuItem[];
-}
-
-// Menu organizado por secciones - SINCRONIZADO con dashboard layout
 const menuSections: MenuSection[] = [
   {
-    title: 'Principal',
+    title: 'Inicio',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'supervisor'] },
+      { label: 'Resumen', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'supervisor'] },
+      { label: 'Reportes', href: '/reportes', icon: BarChart3, roles: ['super_admin', 'admin', 'supervisor'] },
     ],
   },
   {
-    title: 'Ventas',
+    title: 'Vender',
     items: [
-      { label: 'Historial Ventas', href: '/ventas', icon: ShoppingCart, roles: ['super_admin', 'admin', 'supervisor', 'cajero'] },
       { label: 'Caja', href: '/caja', icon: Calculator, roles: ['super_admin', 'admin', 'supervisor', 'cajero'] },
+      { label: 'Ventas', href: '/ventas', icon: ShoppingCart, roles: ['super_admin', 'admin', 'supervisor', 'cajero'] },
       { label: 'Clientes', href: '/clientes', icon: Users, roles: ['super_admin', 'admin', 'supervisor', 'cajero'] },
+    ],
+  },
+  {
+    title: 'Productos',
+    items: [
+      { label: 'Mis Productos', href: '/productos', icon: Package, roles: ['super_admin', 'admin', 'supervisor', 'almacenero'] },
+      { label: 'Categorías', href: '/catalogos/categorias', icon: FolderTree, roles: ['super_admin', 'admin', 'supervisor'] },
+      { label: 'Marcas', href: '/catalogos/marcas', icon: Tag, roles: ['super_admin', 'admin', 'supervisor'] },
     ],
   },
   {
     title: 'Inventario',
     items: [
-      { label: 'Productos', href: '/productos', icon: Package, roles: ['super_admin', 'admin', 'supervisor', 'almacenero'] },
-      { label: 'Stock', href: '/inventario', icon: Warehouse, roles: ['super_admin', 'admin', 'supervisor', 'almacenero'] },
-      {
-        label: 'Catalogos', href: '/catalogos', icon: FolderTree,
-        roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
-        submenu: [
-          { label: 'Categorias', href: '/catalogos/categorias' },
-          { label: 'Marcas', href: '/catalogos/marcas' },
-          { label: 'Atributos', href: '/catalogos/atributos' },
-          { label: 'Unidades', href: '/catalogos/unidades-medida' },
-        ],
-      },
+      { label: 'Control de stock', href: '/inventario', icon: Warehouse, roles: ['super_admin', 'admin', 'supervisor', 'almacenero'] },
+      { label: 'Promociones', href: '/promociones', icon: Sparkles, roles: ['super_admin', 'admin', 'supervisor'] },
     ],
   },
   {
-    title: 'Proveedores',
+    title: 'Mi negocio',
     items: [
       {
-        label: 'Proveedores', href: '/proveedores', icon: Truck,
-        roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
+        label: 'Configuración', href: '/configuracion', icon: Settings, roles: ['super_admin', 'admin'],
         submenu: [
-          { label: 'Lista Proveedores', href: '/proveedores' },
-          { label: 'Compras al Proveedor', href: '/compras' },
-          { label: 'Pagos al Proveedor', href: '/pagos-proveedor' },
-        ],
-      },
-    ],
-  },
-  {
-    title: 'Negocio',
-    items: [
-      { label: 'Promociones', href: '/promociones', icon: Tag, roles: ['super_admin', 'admin', 'supervisor'] },
-      { label: 'Reportes', href: '/reportes', icon: BarChart3, roles: ['super_admin', 'admin', 'supervisor'] },
-      { label: 'Auditoria', href: '/auditoria', icon: Shield, roles: ['super_admin', 'admin'] },
-    ],
-  },
-  {
-    title: 'Sistema',
-    items: [
-      {
-        label: 'Configuracion', href: '/configuracion', icon: Settings,
-        roles: ['super_admin', 'admin'],
-        submenu: [
-          { label: 'Empresa', href: '/configuracion/empresa' },
+          { label: 'Datos del negocio', href: '/configuracion/negocio' },
           { label: 'Sucursales', href: '/configuracion/sucursales' },
           { label: 'Usuarios', href: '/configuracion/usuarios' },
-          { label: 'Roles', href: '/configuracion/roles' },
-          { label: 'Metodos de Pago', href: '/configuracion/metodos-pago' },
-          { label: 'Impresion', href: '/configuracion/impresion' },
-          { label: 'Facturacion', href: '/configuracion/facturacion' },
+          { label: 'Roles y permisos', href: '/configuracion/roles' },
+          { label: 'Formas de pago', href: '/configuracion/metodos-pago' },
+          { label: 'Facturación', href: '/configuracion/facturacion' },
+          { label: 'Impresión', href: '/configuracion/impresion' },
         ],
       },
-      { label: 'Super Admin', href: '/superadmin', icon: Crown, roles: ['super_admin'] },
+      { label: 'Historial', href: '/auditoria', icon: Shield, roles: ['super_admin', 'admin'] },
+      { label: 'Super admin', href: '/superadmin', icon: Crown, roles: ['super_admin'] },
     ],
   },
 ];
 
-// Roles que ven el sidebar completo
 const rolesConSidebar: RolCodigo[] = ['super_admin', 'admin', 'supervisor'];
+
+function BrandMark({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <rect width="36" height="36" rx="9" fill="hsl(var(--brand))" />
+      <path
+        d="M9 12.5C9 11.1193 10.1193 10 11.5 10H22.5C25.5376 10 28 12.4624 28 15.5C28 18.5376 25.5376 21 22.5 21H14V25.5C14 26.3284 13.3284 27 12.5 27H11.5C10.1193 27 9 25.8807 9 24.5V12.5Z"
+        fill="hsl(var(--accent))"
+      />
+      <circle cx="22" cy="15.5" r="1.5" fill="hsl(var(--brand))" />
+    </svg>
+  );
+}
 
 export default function POSLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -150,351 +119,277 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
   const { data: usuario, isLoading } = useCurrentUser();
   const { isDark, toggleTheme } = useThemeStore();
 
-  useEffect(() => {
-    setMounted(true);
-    const check = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setSidebarOpen(true);
-      else setSidebarOpen(false);
-    };
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+  const checkMobile = useCallback(() => {
+    const mobile = window.innerWidth < 768;
+    setIsMobile(mobile);
+    setSidebarOpen(!mobile);
   }, []);
 
-  // Obtener el codigo del rol del usuario
+  useEffect(() => {
+    setMounted(true);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [checkMobile]);
+
   const userRol = (usuario?.rol?.codigo || 'vendedor') as RolCodigo;
   const mostrarSidebar = rolesConSidebar.includes(userRol);
 
-  // Funcion para verificar si el usuario puede ver un item del menu
-  const canViewMenuItem = (item: MenuItem): boolean => {
-    if (!item.roles || item.roles.length === 0) return true;
-    return item.roles.includes(userRol);
-  };
+  const filteredSections = useMemo(() => menuSections
+    .map(s => ({ ...s, items: s.items.filter(i => !i.roles?.length || i.roles.includes(userRol)) }))
+    .filter(s => s.items.length > 0), [userRol]);
 
-  // Filtrar secciones y sus items segun el rol
-  const filteredSections = menuSections
-    .filter(section => {
-      if (section.roles && !section.roles.includes(userRol)) return false;
-      return true;
-    })
-    .map(section => ({
-      ...section,
-      items: section.items.filter(canViewMenuItem),
-    }))
-    .filter(section => section.items.length > 0);
+  const userInitial = usuario?.nombre?.charAt(0)?.toUpperCase() || '·';
 
-  const toggleSubmenu = (label: string) => {
-    setExpandedMenu(expandedMenu === label ? null : label);
-  };
-
-  const handleLogout = () => {
-    logoutMutation.mutate();
-  };
-
-  // Loading state
   if (!mounted || isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 border-[3px] border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  // Vendedor/Cajero: Solo POS sin sidebar
+  /* — Vendedor / Cajero: POS limpio con mini-topbar — */
   if (!mostrarSidebar) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-background">{children}</div>
+        <div className="min-h-screen bg-surface flex flex-col">
+          <header className="h-14 flex-shrink-0 flex items-center justify-between px-4 glass border-b border-border/60 sticky top-0 z-40">
+            <div className="flex items-center gap-2.5">
+              <BrandMark size={28} />
+              <div className="leading-tight">
+                <p className="font-display font-semibold text-sm text-ink">POS Shop</p>
+                <p className="caps text-[9px]">{usuario?.empresa?.nombre || 'Mi negocio'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={toggleTheme}
+                aria-label={isDark ? 'Modo claro' : 'Modo oscuro'}
+                className="p-2 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-3 transition-colors"
+              >
+                {isDark ? <Sun size={18} strokeWidth={1.75} /> : <Moon size={18} strokeWidth={1.75} />}
+              </button>
+              <div className="flex items-center gap-2 pl-2">
+                <span className="text-body-s font-medium text-ink hidden sm:inline">{usuario?.nombre}</span>
+                <div className="w-8 h-8 rounded-sm bg-brand text-brand-foreground font-display font-semibold text-xs flex items-center justify-center">
+                  {userInitial}
+                </div>
+              </div>
+              <button
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+                aria-label="Cerrar sesión"
+                className="ml-1 p-2 rounded-sm text-ink-muted hover:text-danger hover:bg-danger/10 transition-colors"
+              >
+                {logoutMutation.isPending
+                  ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  : <LogOut size={18} strokeWidth={1.75} />}
+              </button>
+            </div>
+          </header>
+          <div className="flex-1">{children}</div>
+        </div>
       </AuthGuard>
     );
   }
 
-  // Admin/Super Admin/Supervisor: POS con sidebar completo (igual al dashboard)
+  /* — Admin/Supervisor: mismo shell que dashboard, con "Cerrar POS" — */
+  const sidebarWidth = isMobile ? 280 : sidebarOpen ? 256 : 72;
+
   return (
     <AuthGuard>
-      <div className={`min-h-screen transition-colors duration-300 ${
-        isDark ? 'bg-zinc-950' : 'bg-slate-50'
-      }`}>
-        {/* Mobile Backdrop */}
+      <div className="min-h-screen bg-surface text-ink">
         <AnimatePresence>
           {isMobile && sidebarOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[60] glass-overlay"
               onClick={() => setSidebarOpen(false)}
             />
           )}
         </AnimatePresence>
 
-        {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-[70] transition-all duration-300 flex flex-col ${
-            isMobile
-              ? `w-72 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
-              : sidebarOpen ? 'w-64' : 'w-20'
-          } ${
-            isDark
-              ? 'bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-800'
-              : 'bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-lg'
-          }`}
+          style={{ width: sidebarWidth }}
+          className={`fixed inset-y-0 left-0 z-[70] flex flex-col bg-surface-2 border-r border-border transition-[width,transform] duration-300 ease-out-quart
+            ${isMobile ? (sidebarOpen ? 'translate-x-0 shadow-3' : '-translate-x-full') : 'translate-x-0'}
+          `}
         >
-          {/* Logo */}
-          <div className={`h-16 flex items-center justify-between px-4 border-b flex-shrink-0 ${
-            isDark ? 'border-zinc-800' : 'border-slate-200'
-          }`}>
-            {sidebarOpen && (
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/20">
-                  <Sparkles className="h-5 w-5 text-white" />
+          <div className="h-16 flex items-center justify-between px-3 border-b border-border flex-shrink-0">
+            <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
+              <BrandMark size={32} />
+              {(sidebarOpen || isMobile) && (
+                <div className="min-w-0 flex flex-col leading-tight">
+                  <span className="font-display font-bold text-[15px] tracking-tight text-ink truncate">POS Shop</span>
+                  <span className="caps text-[9px]">{usuario?.empresa?.nombre || 'Mi negocio'}</span>
                 </div>
-                <span className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  POS SaaS
-                </span>
-              </Link>
+              )}
+            </Link>
+            {!isMobile && (
+              <button
+                onClick={() => setSidebarOpen(v => !v)}
+                aria-label={sidebarOpen ? 'Colapsar menú' : 'Expandir menú'}
+                className="p-1.5 rounded-sm text-ink-muted hover:bg-surface-3 hover:text-ink transition-colors"
+              >
+                {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
             )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={`p-2 rounded-lg transition-colors ${
-                isDark
-                  ? 'hover:bg-zinc-800 text-zinc-400'
-                  : 'hover:bg-slate-100 text-slate-600'
-              }`}
-            >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
 
-          {/* Menu con secciones */}
-          <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-            {filteredSections.map((section, sectionIdx) => (
+          <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3 space-y-4">
+            {filteredSections.map((section, idx) => (
               <div key={section.title}>
-                {/* Titulo de seccion */}
-                {sidebarOpen && sectionIdx > 0 && (
-                  <div className={`px-3 pt-2 pb-1 ${isDark ? 'text-zinc-600' : 'text-slate-400'}`}>
-                    <p className="text-[10px] font-bold uppercase tracking-widest">{section.title}</p>
-                  </div>
+                {(sidebarOpen || isMobile) && (
+                  <p className="caps px-3 mb-1.5 select-none">{section.title}</p>
                 )}
-                {!sidebarOpen && sectionIdx > 0 && (
-                  <div className={`mx-3 my-1 border-t ${isDark ? 'border-zinc-800' : 'border-slate-200'}`} />
+                {!sidebarOpen && !isMobile && idx > 0 && (
+                  <div className="mx-3 my-2 border-t border-border" />
                 )}
-                <div className="space-y-0.5">
+                <ul className="space-y-0.5">
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                    const hasSubmenu = item.submenu && item.submenu.length > 0;
+                    const hasSubmenu = !!item.submenu?.length;
                     const isExpanded = expandedMenu === item.label;
 
+                    const baseRow = `relative flex items-center gap-3 px-3 h-10 rounded-sm text-body-m font-medium transition-colors
+                      ${isActive ? 'text-ink bg-surface-3' : 'text-ink-muted hover:text-ink hover:bg-surface-3/60'}`;
+
                     return (
-                      <div key={item.href + item.label}>
+                      <li key={item.href + item.label}>
                         {hasSubmenu ? (
-                          <button
-                            onClick={() => toggleSubmenu(item.label)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                              isActive
-                                ? isDark
-                                  ? 'bg-purple-500/10 text-purple-400'
-                                  : 'bg-purple-50 text-purple-600'
-                                : isDark
-                                  ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                                  : 'text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            <Icon size={20} />
-                            {sidebarOpen && (
+                          <button onClick={() => setExpandedMenu(isExpanded ? null : item.label)} className={`${baseRow} w-full text-left`}>
+                            {isActive && <span aria-hidden className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r bg-accent" />}
+                            <Icon size={18} strokeWidth={1.75} className="flex-shrink-0" />
+                            {(sidebarOpen || isMobile) && (
                               <>
-                                <span className="flex-1 text-left font-medium text-sm">
-                                  {item.label}
-                                </span>
-                                <ChevronDown
-                                  size={16}
-                                  className={`transition-transform duration-200 ${
-                                    isExpanded ? 'rotate-180' : ''
-                                  }`}
-                                />
+                                <span className="flex-1 truncate">{item.label}</span>
+                                <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                               </>
                             )}
                           </button>
                         ) : (
-                          <Link
-                            href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                              isActive
-                                ? isDark
-                                  ? 'bg-purple-500/10 text-purple-400 shadow-lg shadow-purple-500/5'
-                                  : 'bg-purple-50 text-purple-600'
-                                : isDark
-                                  ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                                  : 'text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            <Icon size={20} />
-                            {sidebarOpen && (
-                              <span className="font-medium text-sm">{item.label}</span>
-                            )}
+                          <Link href={item.href} onClick={() => isMobile && setSidebarOpen(false)} className={baseRow} title={!sidebarOpen && !isMobile ? item.label : undefined}>
+                            {isActive && <span aria-hidden className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r bg-accent" />}
+                            <Icon size={18} strokeWidth={1.75} className="flex-shrink-0" />
+                            {(sidebarOpen || isMobile) && <span className="truncate">{item.label}</span>}
                           </Link>
                         )}
-
-                        {/* Submenu */}
                         <AnimatePresence>
-                          {hasSubmenu && isExpanded && sidebarOpen && (
-                            <motion.div
+                          {hasSubmenu && isExpanded && (sidebarOpen || isMobile) && (
+                            <motion.ul
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden"
+                              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden ml-5 mt-0.5 border-l border-border"
                             >
-                              <div className={`ml-7 mt-1 space-y-1 border-l-2 pl-3 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
-                                {item.submenu?.map((subitem) => (
-                                  <Link
-                                    key={subitem.href}
-                                    href={subitem.href}
-                                    className={`block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                                      pathname === subitem.href
-                                        ? isDark
-                                          ? 'bg-purple-500/10 text-purple-400'
-                                          : 'bg-purple-50 text-purple-600'
-                                        : isDark
-                                          ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
-                                          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                                    }`}
-                                  >
-                                    {subitem.label}
-                                  </Link>
-                                ))}
-                              </div>
-                            </motion.div>
+                              {item.submenu!.map((sub) => {
+                                const subActive = pathname === sub.href;
+                                return (
+                                  <li key={sub.href}>
+                                    <Link
+                                      href={sub.href}
+                                      onClick={() => isMobile && setSidebarOpen(false)}
+                                      className={`relative block pl-4 pr-3 h-9 leading-[2.25rem] text-body-s transition-colors
+                                        ${subActive ? 'text-ink' : 'text-ink-muted hover:text-ink'}
+                                      `}
+                                    >
+                                      {subActive && <span aria-hidden className="absolute left-[-1px] top-2 bottom-2 w-[2px] bg-accent" />}
+                                      {sub.label}
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                            </motion.ul>
                           )}
                         </AnimatePresence>
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               </div>
             ))}
           </nav>
 
-          {/* Bottom section */}
-          <div className={`flex-shrink-0 p-3 border-t ${
-            isDark ? 'border-zinc-800' : 'border-slate-200'
-          }`}>
-            {/* Cerrar POS */}
+          <div className="flex-shrink-0 p-3 border-t border-border space-y-1.5">
             <Link
               href="/dashboard"
-              className="mb-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-medium text-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300"
+              onClick={() => isMobile && setSidebarOpen(false)}
+              className="flex items-center justify-center gap-2 h-11 rounded-sm border border-border bg-surface-2 hover:bg-surface-3 text-ink font-medium text-body-m transition-colors"
             >
-              <X size={18} />
-              {sidebarOpen && <span>Cerrar POS</span>}
+              <ArrowLeft size={18} strokeWidth={2} />
+              {(sidebarOpen || isMobile) && <span>Salir del POS</span>}
             </Link>
-
-            {/* Logout */}
             <button
-              onClick={handleLogout}
+              onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 ${
-                isDark
-                  ? 'text-zinc-400 hover:bg-red-500/10 hover:text-red-400'
-                  : 'text-slate-600 hover:bg-red-50 hover:text-red-600'
-              }`}
+              className="w-full flex items-center gap-3 px-3 h-10 rounded-sm text-ink-muted hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
             >
-              {logoutMutation.isPending ? (
-                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <LogOut size={20} />
-              )}
-              {sidebarOpen && <span className="font-medium text-sm">Cerrar Sesion</span>}
+              {logoutMutation.isPending
+                ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : <LogOut size={18} strokeWidth={1.75} />}
+              {(sidebarOpen || isMobile) && <span className="font-medium text-body-s">Cerrar sesión</span>}
             </button>
           </div>
         </aside>
 
-        {/* Main content */}
         <main
-          className={`transition-all duration-300 ${
-            isMobile ? 'ml-0' : sidebarOpen ? 'ml-64' : 'ml-20'
-          }`}
+          style={{ marginLeft: isMobile ? 0 : sidebarWidth }}
+          className="transition-[margin] duration-300 ease-out-quart"
         >
-          {/* Header */}
-          <header className={`sticky top-0 z-40 h-14 md:h-16 flex items-center justify-between px-4 md:px-6 transition-colors duration-300 ${
-            isDark
-              ? 'bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-800'
-              : 'bg-white/80 backdrop-blur-xl border-b border-slate-200'
-          }`}>
-            <div className="flex items-center gap-3">
+          <header className="sticky top-0 z-40 h-14 md:h-16 flex items-center justify-between gap-3 px-4 md:px-6 glass border-b border-border/60">
+            <div className="flex items-center gap-2.5 min-w-0">
               {isMobile && (
                 <button
                   onClick={() => setSidebarOpen(true)}
-                  className={`p-2 -ml-1 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-slate-100 text-slate-600'}`}
+                  aria-label="Abrir menú"
+                  className="p-2 -ml-1.5 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-3 transition-colors"
                 >
-                  <Menu size={22} />
+                  <Menu size={20} />
                 </button>
               )}
-              <h1 className={`text-base md:text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Punto de Venta
+              <h1 className="font-display font-semibold text-base md:text-lg tracking-tight text-ink truncate">
+                Punto de venta
               </h1>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Theme Toggle */}
+            <div className="flex items-center gap-1.5 md:gap-2">
               <button
                 onClick={toggleTheme}
-                className={`p-2.5 rounded-lg transition-all duration-300 ${
-                  isDark
-                    ? 'bg-zinc-800 hover:bg-zinc-700 text-yellow-400'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
+                aria-label={isDark ? 'Modo claro' : 'Modo oscuro'}
+                className="p-2 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-3 transition-colors"
               >
-                <AnimatePresence mode="wait">
-                  {isDark ? (
-                    <motion.div
-                      key="sun"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Sun className="w-5 h-5" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="moon"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Moon className="w-5 h-5" />
-                    </motion.div>
-                  )}
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={isDark ? 'sun' : 'moon'}
+                    initial={{ rotate: -90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    className="block"
+                  >
+                    {isDark ? <Sun size={18} strokeWidth={1.75} /> : <Moon size={18} strokeWidth={1.75} />}
+                  </motion.span>
                 </AnimatePresence>
               </button>
-
-              {/* User Info */}
-              <div className={`flex items-center gap-2 md:gap-3 px-2 md:px-3 py-1.5 md:py-2 rounded-lg ${
-                isDark ? 'bg-zinc-800/50' : 'bg-slate-100'
-              }`}>
-                <div className="text-right hidden sm:block">
-                  <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {usuario?.nombre} {usuario?.apellido}
-                  </p>
-                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>
-                    {usuario?.empresa?.nombre || 'Cargando...'}
-                  </p>
+              <div className="flex items-center gap-2 pl-2 md:pl-3">
+                <div className="text-right hidden sm:block leading-tight">
+                  <p className="text-body-s font-semibold text-ink truncate max-w-[150px]">{usuario?.nombre} {usuario?.apellido}</p>
+                  <p className="text-[11px] text-ink-muted truncate max-w-[150px]">{usuario?.empresa?.nombre || '—'}</p>
                 </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold text-sm md:text-base shadow-lg shadow-purple-500/20">
-                  {usuario?.nombre?.charAt(0) || '?'}
+                <div className="w-9 h-9 rounded-sm bg-brand text-brand-foreground font-display font-semibold text-sm flex items-center justify-center select-none">
+                  {userInitial}
                 </div>
               </div>
             </div>
           </header>
 
-          {/* Page content - El POS ocupa todo el espacio disponible */}
-          <div className={`h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] ${
-            isDark ? 'text-zinc-100' : 'text-slate-900'
-          }`}>
+          <div className="h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-4rem)] overflow-hidden">
             {children}
           </div>
         </main>

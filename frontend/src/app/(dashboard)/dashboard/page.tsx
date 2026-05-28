@@ -1,358 +1,281 @@
 'use client';
 
-/**
- * @file page.tsx
- * @description Dashboard principal conectado a la API de reportes
- */
-
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
-  DollarSign,
   ShoppingCart,
   Package,
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
-  PackageX,
-  BarChart3,
   ChevronRight,
   Plus,
   Calculator,
   Receipt,
   ArrowRight,
 } from 'lucide-react';
-import { Card, CardContent } from '@/presentation/components/ui/card';
-import { Badge } from '@/presentation/components/ui/badge';
 import { Skeleton } from '@/presentation/components/ui/skeleton';
 import { useDashboard } from '@/application/hooks/queries/use-reportes';
+import { useAuthStore } from '@/application/stores/auth.store';
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN',
-  }).format(amount);
+const PEN = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+
+function money(n: number | undefined) {
+  return PEN.format(n ?? 0);
 }
 
-function formatPercent(value: number) {
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${value.toFixed(1)}%`;
+function pct(value: number) {
+  const s = value >= 0 ? '+' : '';
+  return `${s}${value.toFixed(1)}%`;
+}
+
+function firstName(full?: string) {
+  if (!full) return '';
+  return full.split(' ')[0];
+}
+
+/* Tarjeta KPI sin coloured icon box (anti-IA-genérico) */
+function KpiCard({
+  label, value, delta, deltaLabel, loading, href,
+}: {
+  label: string;
+  value: string;
+  delta?: number;
+  deltaLabel?: string;
+  loading?: boolean;
+  href?: string;
+}) {
+  const body = (
+    <div className="card-solid p-4 md:p-5 h-full flex flex-col justify-between transition-colors hover:border-border-strong">
+      <p className="caps">{label}</p>
+      {loading ? (
+        <Skeleton className="h-8 w-28 mt-2" />
+      ) : (
+        <div className="mt-1">
+          <p className="font-display font-bold text-display-m tabular text-ink leading-none">
+            {value}
+          </p>
+          {delta !== undefined && delta !== 0 && (
+            <div className={`mt-2 inline-flex items-center gap-1 text-body-s font-medium ${delta >= 0 ? 'text-success' : 'text-danger'}`}>
+              {delta >= 0 ? <TrendingUp size={13} strokeWidth={2.25} /> : <TrendingDown size={13} strokeWidth={2.25} />}
+              <span className="tabular">{pct(delta)}</span>
+              {deltaLabel && <span className="text-ink-soft font-normal">· {deltaLabel}</span>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+  return href ? <Link href={href} className="block">{body}</Link> : body;
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const usuario = useAuthStore((s) => s.usuario);
   const { data: dashboard, isLoading, error } = useDashboard();
 
+  const ventasHoy = dashboard?.hoy?.ventas ?? 0;
+  const sinStock = dashboard?.alertas?.sinStock ?? 0;
+  const stockBajo = dashboard?.alertas?.stockBajo ?? 0;
+  const alertasTotal = sinStock + stockBajo;
+
   return (
-    <div className="space-y-4 md:space-y-6 px-1 md:px-0">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Bienvenido 👋</h1>
-        <p className="text-sm md:text-base text-gray-500 mt-1">Asi va tu negocio hoy</p>
-      </div>
-
-      {/* Acciones Rapidas */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-      >
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
-          <button
-            onClick={() => router.push('/pos')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/20 transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-              <ShoppingCart className="h-5 w-5" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm">Abrir POS</p>
-              <p className="text-xs text-white/70 hidden sm:block">Vender ahora</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push('/productos/nuevo')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors shrink-0">
-              <Plus className="h-5 w-5 text-blue-600" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm text-gray-900 truncate">Nuevo Producto</p>
-              <p className="text-xs text-gray-400 hidden sm:block">Agregar al catalogo</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push('/ventas')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors shrink-0">
-              <Receipt className="h-5 w-5 text-green-600" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm text-gray-900">Ver Ventas</p>
-              <p className="text-xs text-gray-400 hidden sm:block">Historial de hoy</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push('/caja')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white border border-gray-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-orange-50 rounded-lg flex items-center justify-center group-hover:bg-orange-100 transition-colors shrink-0">
-              <Calculator className="h-5 w-5 text-orange-600" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm text-gray-900">Caja</p>
-              <p className="text-xs text-gray-400 hidden sm:block">Abrir o cerrar</p>
-            </div>
-          </button>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-5 md:space-y-6"
+    >
+      {/* Saludo concreto */}
+      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+          <p className="caps">Resumen · hoy</p>
+          <h1 className="font-display text-display-l text-ink leading-tight mt-1">
+            Hola, {firstName(usuario?.nombre) || 'Equipo'}.
+          </h1>
+          <p className="text-body-m text-ink-muted mt-1">
+            {isLoading
+              ? 'Cargando datos del día…'
+              : ventasHoy === 0
+                ? 'Aún no se han registrado ventas hoy. Abre el POS para comenzar.'
+                : <>Llevas <span className="font-mono tabular text-ink font-semibold">{money(ventasHoy)}</span> vendidos en {dashboard?.hoy?.cantidad ?? 0} {(dashboard?.hoy?.cantidad ?? 0) === 1 ? 'venta' : 'ventas'}.</>}
+          </p>
         </div>
-      </motion.div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        {/* Ventas Hoy */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0 }}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden"
+        {/* CTA principal */}
+        <Link
+          href="/pos"
+          className="self-start sm:self-auto inline-flex items-center gap-2 h-11 px-4 rounded-sm bg-accent text-accent-foreground font-medium text-body-m
+            hover:bg-accent-hover active:scale-[0.985] transition-[background,transform] duration-150 shadow-1"
         >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Ventas Hoy</p>
-            <div className="bg-green-500 p-2 rounded-lg">
-              <DollarSign className="h-4 w-4 text-white" />
-            </div>
-          </div>
-          {isLoading ? (
-            <Skeleton className="h-8 w-28" />
-          ) : (
-            <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900">
-                {formatCurrency(dashboard?.hoy?.ventas || 0)}
-              </p>
-              {dashboard?.hoy?.comparacionAyer !== undefined && dashboard.hoy.comparacionAyer !== 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  {dashboard.hoy.comparacionAyer >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-green-600 shrink-0" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600 shrink-0" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      dashboard.hoy.comparacionAyer >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {formatPercent(dashboard.hoy.comparacionAyer)} vs ayer
-                  </span>
-                </div>
-              )}
-            </>
-          )}
-        </motion.div>
+          <ShoppingCart size={18} strokeWidth={2} />
+          Abrir POS
+          <ArrowRight size={16} strokeWidth={2} className="opacity-75" />
+        </Link>
+      </header>
 
-        {/* Transacciones Hoy */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Transacciones</p>
-            <div className="bg-blue-500 p-2 rounded-lg">
-              <ShoppingCart className="h-4 w-4 text-white" />
+      {/* Acciones rápidas (outlined consistentes, sin gradientes ni colored boxes) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {[
+          { label: 'Nuevo producto', hint: 'Al catálogo', href: '/productos/nuevo', Icon: Plus },
+          { label: 'Ventas del día', hint: 'Historial hoy', href: '/ventas', Icon: Receipt },
+          { label: 'Caja', hint: 'Abrir o cerrar', href: '/caja', Icon: Calculator },
+          { label: 'Alertas de stock', hint: `${alertasTotal} pendientes`, href: '/inventario/alertas', Icon: Package },
+        ].map(({ label, hint, href, Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className="group flex items-center gap-3 h-14 px-3.5 rounded-sm border border-border bg-surface-2 hover:bg-surface-3 hover:border-border-strong transition-colors"
+          >
+            <div className="w-9 h-9 rounded-sm bg-surface-3 border border-border flex items-center justify-center text-ink-muted group-hover:text-ink group-hover:border-border-strong transition-colors">
+              <Icon size={17} strokeWidth={1.75} />
             </div>
-          </div>
-          {isLoading ? (
-            <Skeleton className="h-8 w-16" />
-          ) : (
-            <p className="text-xl md:text-2xl font-bold text-gray-900">
-              {dashboard?.hoy?.cantidad || 0}
-            </p>
-          )}
-        </motion.div>
-
-        {/* Ventas del Mes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Ventas del Mes</p>
-            <div className="bg-purple-500 p-2 rounded-lg">
-              <BarChart3 className="h-4 w-4 text-white" />
+            <div className="min-w-0 leading-tight">
+              <p className="text-body-s font-medium text-ink truncate">{label}</p>
+              <p className="text-[11px] text-ink-muted truncate">{hint}</p>
             </div>
-          </div>
-          {isLoading ? (
-            <Skeleton className="h-8 w-28" />
-          ) : (
-            <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900">
-                {formatCurrency(dashboard?.mes?.ventas || 0)}
-              </p>
-              {dashboard?.mes?.comparacionMesAnterior !== undefined && dashboard.mes.comparacionMesAnterior !== 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  {dashboard.mes.comparacionMesAnterior >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-green-600 shrink-0" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600 shrink-0" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      dashboard.mes.comparacionMesAnterior >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {formatPercent(dashboard.mes.comparacionMesAnterior)} vs mes ant.
-                  </span>
-                </div>
-              )}
-            </>
-          )}
-        </motion.div>
-
-        {/* Alertas de Stock - Clickeable */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          onClick={() => router.push('/inventario/alertas')}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden cursor-pointer hover:shadow-md hover:ring-1 hover:ring-orange-200 transition-all active:scale-[0.98] min-h-[44px]"
-        >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Alertas Stock</p>
-            <div className="bg-orange-500 p-2 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-white" />
-            </div>
-          </div>
-          {isLoading ? (
-            <Skeleton className="h-8 w-20" />
-          ) : (
-            <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-                {(dashboard?.alertas?.sinStock || 0) + (dashboard?.alertas?.stockBajo || 0)}
-              </p>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Badge variant="destructive" className="text-xs">
-                  {dashboard?.alertas?.sinStock || 0} sin stock
-                </Badge>
-                <Badge variant="secondary" className="text-xs">
-                  {dashboard?.alertas?.stockBajo || 0} bajo
-                </Badge>
-              </div>
-              <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 font-medium">
-                <span>Ver alertas</span>
-                <ChevronRight className="h-3 w-3" />
-              </div>
-            </>
-          )}
-        </motion.div>
+          </Link>
+        ))}
       </div>
 
-      {/* Second Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Caja Actual */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card>
-            <CardContent className="p-4 md:p-6">
-              <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Estado de Caja</h2>
-              {isLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-6 w-full" />
-                  <Skeleton className="h-6 w-3/4" />
-                </div>
-              ) : (
-                <div className="space-y-3 md:space-y-3">
-                  <div className="flex items-center justify-between min-h-[44px] md:min-h-0">
-                    <span className="text-sm md:text-base text-gray-500">Estado:</span>
-                    <Badge variant={dashboard?.cajaActual?.abierta ? 'default' : 'secondary'}>
-                      {dashboard?.cajaActual?.abierta ? 'Abierta' : 'Cerrada'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between min-h-[44px] md:min-h-0">
-                    <span className="text-sm md:text-base text-gray-500">Efectivo actual:</span>
-                    <span className="text-sm md:text-base font-semibold">
-                      {formatCurrency(dashboard?.cajaActual?.efectivoActual || 0)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between min-h-[44px] md:min-h-0">
-                    <span className="text-sm md:text-base text-gray-500">Ventas en caja:</span>
-                    <span className="text-sm md:text-base font-semibold">
-                      {formatCurrency(dashboard?.cajaActual?.ventasHoy || 0)}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Top Productos Hoy */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card>
-            <CardContent className="p-4 md:p-6">
-              <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">
-                Top Productos Hoy
-              </h2>
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-8 w-full" />
-                  ))}
-                </div>
-              ) : dashboard?.topProductosHoy && dashboard.topProductosHoy.length > 0 ? (
-                <div className="space-y-2 md:space-y-3">
-                  {dashboard.topProductosHoy.map((producto: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between gap-3 min-h-[44px] md:min-h-0 py-1 md:py-0">
-                      <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-600 shrink-0">
-                          {index + 1}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{producto.nombre}</p>
-                          <p className="text-xs text-gray-500">{producto.cantidad} vendidos</p>
-                        </div>
-                      </div>
-                      <span className="text-sm font-semibold text-gray-900 shrink-0">
-                        {formatCurrency(producto.monto)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Package className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Sin ventas hoy</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          label="Ventas hoy"
+          value={money(ventasHoy)}
+          delta={dashboard?.hoy?.comparacionAyer}
+          deltaLabel="vs ayer"
+          loading={isLoading}
+        />
+        <KpiCard
+          label="Transacciones"
+          value={String(dashboard?.hoy?.cantidad ?? 0)}
+          loading={isLoading}
+        />
+        <KpiCard
+          label="Ventas del mes"
+          value={money(dashboard?.mes?.ventas)}
+          delta={dashboard?.mes?.comparacionMesAnterior}
+          deltaLabel="vs mes ant."
+          loading={isLoading}
+        />
+        <KpiCard
+          label="Alertas de stock"
+          value={String(alertasTotal)}
+          loading={isLoading}
+          href="/inventario/alertas"
+        />
       </div>
 
-      {/* Error State */}
-      {error && !isLoading && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <PackageX className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-            <p className="text-gray-500">
-              No se pudieron cargar los datos del dashboard
+      {/* Doble columna: caja + top productos */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+        {/* Estado caja */}
+        <section className="card-solid p-5 lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display font-semibold text-body-l text-ink">Caja</h2>
+            <Link href="/caja" className="text-body-s text-ink-muted hover:text-accent transition-colors inline-flex items-center gap-1">
+              Detalle <ChevronRight size={14} />
+            </Link>
+          </div>
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-6 w-2/3" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-body-s text-ink-muted">Estado</span>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2 h-6 rounded-xs text-[11px] font-semibold caps
+                    ${dashboard?.cajaActual?.abierta
+                      ? 'bg-success/15 text-success'
+                      : 'bg-surface-3 text-ink-muted'}
+                  `}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${dashboard?.cajaActual?.abierta ? 'bg-success' : 'bg-ink-soft'}`} />
+                  {dashboard?.cajaActual?.abierta ? 'Abierta' : 'Cerrada'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-body-s text-ink-muted">Efectivo actual</span>
+                <span className="font-mono tabular text-body-m text-ink font-semibold">
+                  {money(dashboard?.cajaActual?.efectivoActual)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-body-s text-ink-muted">Ventas en caja</span>
+                <span className="font-mono tabular text-body-m text-ink font-semibold">
+                  {money(dashboard?.cajaActual?.ventasHoy)}
+                </span>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Top productos */}
+        <section className="card-solid p-5 lg:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display font-semibold text-body-l text-ink">Top productos · hoy</h2>
+            <Link href="/reportes/productos" className="text-body-s text-ink-muted hover:text-accent transition-colors inline-flex items-center gap-1">
+              Ver todos <ChevronRight size={14} />
+            </Link>
+          </div>
+          {isLoading ? (
+            <div className="space-y-2.5">
+              {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : dashboard?.topProductosHoy?.length ? (
+            <ul className="divide-y divide-border -mx-1">
+              {dashboard.topProductosHoy.slice(0, 5).map((p: any, idx: number) => (
+                <li key={idx} className="flex items-center gap-3 px-1 h-11 row-hover">
+                  <span className="w-6 text-center font-mono tabular text-[12px] text-ink-soft font-semibold">
+                    {String(idx + 1).padStart(2, '0')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-body-s text-ink font-medium truncate">{p.nombre}</p>
+                    <p className="text-[11px] text-ink-soft tabular font-mono">{p.cantidad} unidad{p.cantidad === 1 ? '' : 'es'}</p>
+                  </div>
+                  <span className="font-mono tabular text-body-s text-ink font-semibold whitespace-nowrap">
+                    {money(p.monto)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="py-8 text-center">
+              <Package size={32} strokeWidth={1.25} className="mx-auto text-ink-soft mb-2" />
+              <p className="text-body-s text-ink-muted">Sin ventas registradas hoy.</p>
+              <Link href="/pos" className="mt-3 inline-flex items-center gap-1.5 text-body-s text-accent font-medium hover:underline">
+                Ir al POS <ArrowRight size={14} />
+              </Link>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Alertas inline si hay sin stock */}
+      {sinStock > 0 && !isLoading && (
+        <Link
+          href="/inventario/alertas"
+          className="group flex items-center justify-between gap-3 p-4 rounded-md bg-danger/8 border border-danger/30 hover:bg-danger/12 transition-colors"
+        >
+          <div className="min-w-0">
+            <p className="font-display font-semibold text-body-m text-ink">
+              {sinStock} producto{sinStock === 1 ? '' : 's'} sin stock
             </p>
-          </CardContent>
-        </Card>
+            <p className="text-body-s text-ink-muted mt-0.5">
+              {stockBajo > 0 && <>Además {stockBajo} con stock bajo. </>}Revisa el inventario para evitar quiebres.
+            </p>
+          </div>
+          <ChevronRight size={18} className="text-danger flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+        </Link>
       )}
-    </div>
+
+      {error && !isLoading && (
+        <div className="card-solid p-5 text-center">
+          <p className="text-body-s text-ink-muted">No se pudieron cargar los datos del resumen.</p>
+        </div>
+      )}
+    </motion.div>
   );
 }
