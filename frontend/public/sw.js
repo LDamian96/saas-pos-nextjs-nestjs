@@ -1,74 +1,43 @@
-const CACHE_NAME = 'pos-shop-v1';
+/**
+ * SW KILL-SWITCH
+ *
+ * El Service Worker anterior (pos-shop-v1) cacheaba assets agresivamente y
+ * servía la versión vieja del POS tras cada deploy. Este SW se auto-desinstala,
+ * borra TODOS los caches y fuerza un reload limpio. Tras esta visita el cliente
+ * verá la versión actual y futuras versiones sin intervención manual.
+ */
 
-// Assets to cache for offline
-const PRECACHE_URLS = [
-  '/login',
-  '/dashboard',
-  '/pos',
-  '/productos',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-];
-
-// Install: cache essential assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_URLS).catch(() => {
-        // Ignore cache failures for individual URLs
-      });
-    })
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    })
+    (async () => {
+      // 1. Borrar TODOS los caches existentes
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+
+      // 2. Desregistrarse a sí mismo
+      try {
+        await self.registration.unregister();
+      } catch {
+        // ignore
+      }
+
+      // 3. Forzar reload de todas las pestañas controladas
+      const clients = await self.clients.matchAll({ type: 'window' });
+      for (const client of clients) {
+        try {
+          client.navigate(client.url);
+        } catch {
+          // ignore: el siguiente refresh manual igual mostrará versión nueva
+        }
+      }
+    })()
   );
   self.clients.claim();
 });
 
-// Fetch: network first, cache fallback
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-
-  // Skip non-GET requests
-  if (request.method !== 'GET') return;
-
-  // Skip API calls (always go to network)
-  if (request.url.includes('/api/')) return;
-
-  // Skip chrome-extension and other non-http
-  if (!request.url.startsWith('http')) return;
-
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // Cache successful responses
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, clone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(request).then((cached) => {
-          if (cached) return cached;
-          // Return offline page for navigation requests
-          if (request.mode === 'navigate') {
-            return caches.match('/login');
-          }
-          return new Response('Offline', { status: 503 });
-        });
-      })
-  );
-});
+// Nunca interceptar peticiones — todo va directo a la red
+self.addEventListener('fetch', () => {});

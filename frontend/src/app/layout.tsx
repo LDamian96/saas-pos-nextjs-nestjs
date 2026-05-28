@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        {/* Prevent flash + fix Android nav bar color */}
+        {/* Prevent flash + fix Android nav bar color + purge stale Service Worker */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){
             var d=false;
@@ -29,7 +29,16 @@ export default function RootLayout({
             h.style.cssText='color-scheme:'+(d?'dark':'light')+';background-color:'+c;
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=c});
           })();
-          if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}
+          // Service Worker: registramos el kill-switch para limpiar SW antiguo y caches.
+          // Tras activarse se auto-desinstala y nunca volverá a interceptar peticiones.
+          if('serviceWorker' in navigator){
+            navigator.serviceWorker.getRegistrations().then(function(regs){
+              regs.forEach(function(r){r.unregister()});
+            }).catch(function(){});
+            if('caches' in window){
+              caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})}).catch(function(){});
+            }
+          }
         `}} />
         <meta name="theme-color" content="#f8fafc" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
