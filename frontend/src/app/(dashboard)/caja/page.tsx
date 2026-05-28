@@ -104,27 +104,34 @@ export default function CajaPage() {
   // Sin caja abierta - mostrar vista rica
   return (
     <div className="space-y-3 md:space-y-4 lg:space-y-6">
-      {/* Hero — sin gradient genérico, panel brand con marker accent */}
+      {/* Hero Section */}
       <motion.div
-        initial={{ opacity: 0, y: -6 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-md bg-brand text-brand-foreground p-5 md:p-7 border border-border"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-500 p-5 md:p-8 text-white"
       >
-        <div className="absolute top-0 left-5 right-5 h-px bg-accent/40" aria-hidden />
-        <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="max-w-xl">
-            <p className="caps text-brand-foreground/60 mb-2">Caja del día</p>
-            <h2 className="font-display text-display-l leading-tight tracking-tight">
-              Aún no abres caja.
-            </h2>
-            <p className="mt-2 text-body-m text-brand-foreground/75 max-w-md">
-              Cuenta el efectivo físico de tu turno, declara el monto inicial y comienza a registrar ventas.
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+
+        <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 md:gap-6">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <Calculator className="h-5 w-5 md:h-6 md:w-6" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Caja</h1>
+                <p className="text-white/70 text-xs md:text-sm">No hay caja abierta</p>
+              </div>
+            </div>
+            <p className="text-white/80 mt-3 max-w-md text-sm md:text-base">
+              Abre una caja para comenzar a registrar ventas. Define el monto inicial de efectivo con el que comienzas el turno.
             </p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
+
+          <div className="flex gap-3 w-full sm:w-auto">
             <Link href="/caja/historial" className="flex-1 sm:flex-initial">
-              <Button variant="secondary" className="gap-2 bg-brand-foreground/10 hover:bg-brand-foreground/20 text-brand-foreground border-0 h-11 w-full sm:w-auto">
+              <Button variant="secondary" className="gap-2 bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm h-11 md:h-10 w-full sm:w-auto">
                 <History className="h-4 w-4" />
                 Historial
               </Button>
@@ -142,18 +149,47 @@ export default function CajaPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"
         >
-          <div className="card-solid p-4 md:p-5">
-            <p className="caps">Total ventas <span className="text-ink-soft normal-case tracking-normal">· últimas {totalCajasCerradas}</span></p>
-            <p className="mt-2 font-display font-bold text-display-m tabular text-ink leading-none">{fmt(totalVentasHistorial)}</p>
-          </div>
-          <div className="card-solid p-4 md:p-5">
-            <p className="caps">Promedio por caja</p>
-            <p className="mt-2 font-display font-bold text-display-m tabular text-ink leading-none">{fmt(promedioVentas)}</p>
-          </div>
-          <div className="card-solid p-4 md:p-5">
-            <p className="caps">Cajas registradas</p>
-            <p className="mt-2 font-display font-bold text-display-m tabular text-ink leading-none">{historial?.total || totalCajasCerradas}</p>
-          </div>
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-4 md:pt-5 md:pb-4 md:px-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Total Ventas (ultimas {totalCajasCerradas})</p>
+                  <p className="text-lg md:text-xl font-bold text-green-600">{fmt(totalVentasHistorial)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4 md:pt-5 md:pb-4 md:px-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Promedio por Caja</p>
+                  <p className="text-lg md:text-xl font-bold text-blue-600">{fmt(promedioVentas)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-purple-500">
+            <CardContent className="p-4 md:pt-5 md:pb-4 md:px-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Cajas Registradas</p>
+                  <p className="text-lg md:text-xl font-bold text-purple-600">{historial?.total || totalCajasCerradas}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       )}
 

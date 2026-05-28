@@ -1068,15 +1068,11 @@ export default function POSPage() {
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="max-w-sm mx-auto p-0 gap-0 overflow-hidden">
           {/* Total grande arriba */}
-          <div className="bg-brand text-brand-foreground p-5 text-center relative overflow-hidden">
-            <p className="caps text-brand-foreground/70 mb-1">Total a cobrar</p>
-            <p className="font-display font-bold text-display-l tabular text-accent leading-none">
-              {formatCurrency(Math.max(0, total - promoDescuento))}
-            </p>
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white text-center">
+            <p className="text-sm opacity-80">Total a cobrar</p>
+            <p className="text-3xl font-bold">{formatCurrency(Math.max(0, total - promoDescuento))}</p>
             {promoDescuento > 0 && (
-              <p className="text-body-s text-brand-foreground/70 mt-2 tabular">
-                Descuento promo: −{formatCurrency(promoDescuento)}
-              </p>
+              <p className="text-xs opacity-80 mt-1">Descuento promo: -{formatCurrency(promoDescuento)}</p>
             )}
           </div>
 
@@ -1340,14 +1336,14 @@ export default function POSPage() {
               <button
                 disabled={getSaldoPendienteConPromo() > 0.01 || createVentaMutation.isPending || emitiendo}
                 onClick={handleCompletarVenta}
-                className="w-full h-14 flex items-center justify-center gap-2 bg-accent text-accent-foreground font-display text-display-m font-bold rounded-md hover:bg-accent-hover active:scale-[0.985] transition-[background,transform] duration-150 shadow-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-14 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-lg font-bold rounded-2xl hover:from-green-700 hover:to-emerald-700 active:scale-[0.98] transition-all shadow-xl shadow-green-500/25 disabled:opacity-50"
               >
                 {createVentaMutation.isPending || emitiendo ? (
-                  <div className="w-5 h-5 border-2 border-current/40 border-t-current rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Receipt className="h-5 w-5" strokeWidth={2} />
+                  <Receipt className="h-5 w-5" />
                 )}
-                {createVentaMutation.isPending ? 'Procesando…' : emitiendo ? 'Emitiendo…' : 'Cobrar'}
+                {createVentaMutation.isPending ? 'Procesando...' : emitiendo ? 'Emitiendo...' : 'Cobrar'}
               </button>
               <button
                 onClick={() => setShowPaymentModal(false)}
