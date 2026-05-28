@@ -65,6 +65,18 @@ export class PromocionController {
   }
 
   /**
+   * POST /promociones/evaluar - Evaluate promotions for cart items
+   * Must be before :id routes to avoid param conflict
+   */
+  @Post('evaluar')
+  async evaluateCart(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { items: Array<{ varianteId: string; productoId: string; cantidad: number; precioUnitario: number }>; sucursalId?: string },
+  ) {
+    return this.promocionService.evaluateCart(user.empresaId, body.items, body.sucursalId);
+  }
+
+  /**
    * GET /promociones/:id - Obtener promoción
    */
   @Get(':id')
@@ -119,4 +131,5 @@ export class PromocionController {
   ) {
     return this.promocionService.calcularDescuento(id, dto.cantidad, dto.precioUnitario);
   }
+
 }

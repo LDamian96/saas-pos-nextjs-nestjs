@@ -1,0 +1,127 @@
+# docker-compose.prod.yml
+# Sistema POS SaaS - Produccion
+# IMPORTANTE: No interfiere con otros servicios del VPS
+
+version: '3.8'
+
+services:
+  # PostgreSQL
+  pos-postgres:
+    image: postgres:16-alpine
+    container_name: pos_prod_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pos_user
+      POSTGRES_PASSWORD: pos_password_2024
+      POSTGRES_DB: pos_saas_db
+    volumes:
+      - pos_prod_pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pos_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pos_prod_network
+
+  # Redis
+  pos-redis:
+    image: redis:7-alpine
+    container_name: pos_prod_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis_password_2024
+    volumes:
+      - pos_prod_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_password_2024", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pos_prod_network
+
+  # Backend NestJS
+  pos-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pos_prod_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://pos_user:pos_password_2024@pos-postgres:5432/pos_saas_db?schema=public
+      REDIS_HOST: pos-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_password_2024
+      JWT_SECRET: super_secret_jwt_key_change_in_production_2024
+      JWT_EXPIRES_IN: 24h
+      PORT: 4000
+      NODE_ENV: production
+      FRONTEND_URL: https://poshop.duckdns.org
+      SUNAT_BETA: "false"
+      USE_NUBEFACT: "true"
+      NUBEFACT_DEMO: "true"
+      NUBEFACT_FULL_URL: https://api.nubefact.com/api/v1/9227f84d-a6f4-41ad-8915-5ec6d4f3d906
+      NUBEFACT_TOKEN: 6ce1b933f1774c92afa897af1c951f7208a7e9fe93cd4bf9bfe7436a35cf2548
+      CLOUDINARY_CLOUD_NAME: dnqkkd5nj
+      CLOUDINARY_API_KEY: "388425642996986"
+      CLOUDINARY_API_SECRET: r_S3rJO1yYVeEKgaIKQad44DWGQ
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: ldamianmachaca@gmail.com
+      SMTP_PASS: pqsvxyxpjnfbxuhr
+      EMPRESA_EMAIL: ldamianmachaca@gmail.com
+    volumes:
+      - pos_prod_uploads:/app/uploads
+    depends_on:
+      pos-postgres:
+        condition: service_healthy
+      pos-redis:
+        condition: service_healthy
+    networks:
+      - pos_prod_network
+
+  # Frontend NextJS
+  pos-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://poshop.duckdns.org
+    container_name: pos_prod_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: https://poshop.duckdns.org
+      NEXT_PUBLIC_APP_NAME: POS SaaS
+    depends_on:
+      - pos-backend
+    networks:
+      - pos_prod_network
+
+  # Nginx Reverse Proxy
+  pos-nginx:
+    image: nginx:alpine
+    container_name: pos_prod_nginx
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - pos-frontend
+      - pos-backend
+    networks:
+      - pos_prod_network
+
+volumes:
+  pos_prod_pgdata:
+    name: pos_prod_pgdata
+  pos_prod_redis:
+    name: pos_prod_redis
+  pos_prod_uploads:
+    name: pos_prod_uploads
+
+networks:
+  pos_prod_network:
+    name: pos_prod_network
+    driver: bridge

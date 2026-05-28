@@ -52,6 +52,7 @@ import {
 import { useUsuarios } from '@/application/hooks/queries/use-usuarios';
 import { useDeleteUsuario } from '@/application/hooks/mutations/use-usuarios-mutations';
 import { useRoles } from '@/application/hooks/queries/use-roles';
+import { useEmpresa } from '@/application/hooks/queries/use-empresa';
 import { Usuario } from '@/application/services/usuarios.service';
 import { UsuarioDialog } from '@/presentation/components/features/usuarios';
 
@@ -74,12 +75,15 @@ export default function UsuariosPage() {
   // Queries
   const { data: usuariosData, isLoading } = useUsuarios({ search: searchQuery || undefined });
   const { data: roles } = useRoles();
+  const { data: empresa } = useEmpresa();
   const deleteMutation = useDeleteUsuario();
 
   const usuarios = usuariosData?.data || [];
   const totalUsuarios = usuariosData?.meta?.total || usuarios.length;
   const activos = usuarios.filter((u) => u.activo).length;
   const inactivos = usuarios.filter((u) => !u.activo).length;
+  const maxUsuarios = empresa?.maxUsuarios ?? Infinity;
+  const limiteAlcanzado = activos >= maxUsuarios;
 
   const handleCreate = () => {
     setSelectedUsuario(null);
@@ -109,25 +113,42 @@ export default function UsuariosPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-gray-500 mt-1">Gestiona los usuarios de tu empresa</p>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Usuarios</h1>
+          <p className="text-sm md:text-base text-gray-500 mt-1">
+            Gestiona los usuarios de tu empresa
+            {empresa && (
+              <span className={`ml-2 font-medium ${limiteAlcanzado ? 'text-red-600' : 'text-blue-600'}`}>
+                ({activos}/{maxUsuarios} usuarios)
+              </span>
+            )}
+          </p>
         </div>
-        <Button size="lg" className="gap-2" onClick={handleCreate}>
-          <Plus size={20} />
-          Nuevo Usuario
-        </Button>
+        <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
+          <Button
+            size="lg"
+            className="gap-2 h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]"
+            onClick={handleCreate}
+            disabled={limiteAlcanzado}
+          >
+            <Plus size={20} />
+            {limiteAlcanzado ? 'Limite alcanzado' : 'Nuevo Usuario'}
+          </Button>
+          {limiteAlcanzado && (
+            <p className="text-xs text-red-500">Tu plan permite maximo {maxUsuarios} usuarios</p>
+          )}
+        </div>
       </div>
 
       {/* Estadisticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-white rounded-xl border border-gray-200 p-3 md:p-4"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -146,7 +167,7 @@ export default function UsuariosPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-white rounded-xl border border-gray-200 p-3 md:p-4"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -165,7 +186,7 @@ export default function UsuariosPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-white rounded-xl border border-gray-200 p-3 md:p-4"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
@@ -184,7 +205,7 @@ export default function UsuariosPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-white rounded-xl border border-gray-200 p-3 md:p-4"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -201,13 +222,13 @@ export default function UsuariosPage() {
       </div>
 
       {/* Buscador */}
-      <div className="relative max-w-md">
+      <div className="relative w-full md:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
         <Input
           placeholder="Buscar usuario..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-12"
+          className="pl-10 h-11 md:h-10"
         />
       </div>
 
@@ -215,7 +236,7 @@ export default function UsuariosPage() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">
@@ -272,9 +293,9 @@ export default function UsuariosPage() {
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <Users className="mx-auto h-12 w-12 text-gray-300" />
                       <p className="mt-4 text-gray-500">No se encontraron usuarios</p>
-                      <Button className="mt-4" onClick={handleCreate}>
+                      <Button className="mt-4" onClick={handleCreate} disabled={limiteAlcanzado}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Crear primer usuario
+                        {limiteAlcanzado ? 'Limite alcanzado' : 'Crear primer usuario'}
                       </Button>
                     </td>
                   </tr>
@@ -391,11 +412,11 @@ export default function UsuariosPage() {
               El usuario no podra iniciar sesion pero su historial se conservara.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]"
             >
               Si, eliminar
             </AlertDialogAction>

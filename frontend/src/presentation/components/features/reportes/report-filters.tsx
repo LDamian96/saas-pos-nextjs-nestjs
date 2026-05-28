@@ -49,7 +49,7 @@ export function ReportFilters({
     inicioMes.toISOString().split('T')[0]
   );
   const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
-  const [sucursalId, setSucursalId] = useState<string>('');
+  const [sucursalId, setSucursalId] = useState<string>('__all__');
   const [agruparPor, setAgruparPor] = useState<AgruparPor>('dia');
 
   const { data: sucursales } = useSucursales();
@@ -58,7 +58,7 @@ export function ReportFilters({
     onFilter({
       fechaInicio,
       fechaFin,
-      sucursalId: sucursalId || undefined,
+      sucursalId: sucursalId === '__all__' ? undefined : sucursalId,
       agruparPor: showAgruparPor ? agruparPor : undefined,
     });
   };
@@ -119,7 +119,7 @@ export function ReportFilters({
                   <SelectValue placeholder="Todas las sucursales" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas las sucursales</SelectItem>
+                  <SelectItem value="__all__">Todas las sucursales</SelectItem>
                   {sucursales.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.nombre}

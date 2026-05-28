@@ -132,6 +132,8 @@ export class AuthService {
     return {
       success: true,
       data: {
+        accessToken,
+        refreshToken,
         usuario: {
           id: usuario.id,
           email: usuario.email,

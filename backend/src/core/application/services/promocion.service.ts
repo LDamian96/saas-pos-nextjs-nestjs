@@ -286,17 +286,101 @@ export class PromocionService {
       return { descuento: 0, aplicable: false };
     }
 
+    const result = this.calcularDescuentoPromo(promocion, cantidad, precioUnitario);
+    return result;
+  }
+
+  /**
+   * Evaluate promotions for a set of cart items.
+   * Returns an array of applicable promo results.
+   */
+  evaluatePromotions(
+    items: Array<{ varianteId: string; productoId: string; cantidad: number; precioUnitario: number }>,
+    activePromotions: any[],
+  ) {
+    const results: Array<{
+      varianteId: string;
+      productoId: string;
+      descuento: number;
+      promocionId: string;
+      descripcion: string;
+    }> = [];
+
+    for (const promo of activePromotions) {
+      for (const item of items) {
+        // Check if promotion applies to this product
+        if (!this.promoAppliesToProduct(promo, item.productoId)) {
+          continue;
+        }
+
+        const result = this.calcularDescuentoPromo(promo, item.cantidad, item.precioUnitario);
+        if (result.aplicable && result.descuento > 0) {
+          results.push({
+            varianteId: item.varianteId,
+            productoId: item.productoId,
+            descuento: result.descuento,
+            promocionId: promo.id,
+            descripcion: result.descripcion || promo.nombre,
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * POST /promociones/evaluar - Evaluate promotions for cart items
+   */
+  async evaluateCart(
+    empresaId: string,
+    items: Array<{ varianteId: string; productoId: string; cantidad: number; precioUnitario: number }>,
+    sucursalId?: string,
+  ) {
+    const { data: activePromos } = await this.findVigentes(empresaId, sucursalId);
+    const results = this.evaluatePromotions(items, activePromos);
+    return { success: true, data: results };
+  }
+
+  /**
+   * Check if a promotion applies to a specific product
+   */
+  private promoAppliesToProduct(promo: any, productoId: string): boolean {
+    if (promo.aplicaA === 'todos') return true;
+    if (promo.aplicaA === 'productos' && promo.productosIds?.length > 0) {
+      return promo.productosIds.includes(productoId);
+    }
+    // For categories and marcas, we'd need to look up the product - for now, if no specific filter, apply to all
+    if ((!promo.productosIds || promo.productosIds.length === 0) &&
+        (!promo.categoriasIds || promo.categoriasIds.length === 0) &&
+        (!promo.marcasIds || promo.marcasIds.length === 0)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Core discount calculation logic for a single promotion + item
+   */
+  private calcularDescuentoPromo(
+    promocion: any,
+    cantidad: number,
+    precioUnitario: number,
+  ): { descuento: number; aplicable: boolean; descripcion: string } {
     let descuento = 0;
     let aplicable = false;
+    let descripcion = promocion.nombre || '';
 
     switch (promocion.tipo) {
       case 'cantidad_gratis':
         // Compra X lleva Y gratis
         if (promocion.cantidadComprar && promocion.cantidadBeneficio) {
           if (cantidad >= promocion.cantidadComprar) {
-            const grupos = Math.floor(cantidad / (promocion.cantidadComprar + promocion.cantidadBeneficio));
+            const grupoSize = promocion.cantidadComprar + promocion.cantidadBeneficio;
+            const grupos = Math.floor(cantidad / grupoSize);
             descuento = grupos * promocion.cantidadBeneficio * precioUnitario;
             aplicable = true;
+            descripcion = `Lleva ${grupoSize}, paga ${promocion.cantidadComprar}`;
           }
         }
         break;
@@ -307,6 +391,61 @@ export class PromocionService {
           if (cantidad >= promocion.cantidadComprar) {
             descuento = (cantidad * precioUnitario * Number(promocion.descuentoPorcentaje)) / 100;
             aplicable = true;
+            descripcion = `${Number(promocion.descuentoPorcentaje)}% dcto x ${promocion.cantidadComprar}+`;
+          }
+        }
+        break;
+
+      case 'descuento_porcentaje':
+        // Simple percentage discount on product
+        if (promocion.descuentoPorcentaje) {
+          descuento = (cantidad * precioUnitario * Number(promocion.descuentoPorcentaje)) / 100;
+          aplicable = true;
+          descripcion = `${Number(promocion.descuentoPorcentaje)}% de descuento`;
+        }
+        break;
+
+      case 'nth_precio':
+        // Buy N, the (N+1)th at special price
+        if (promocion.cantidadComprar && promocion.precioFijo !== null && promocion.precioFijo !== undefined) {
+          const required = promocion.cantidadComprar;
+          if (cantidad > required) {
+            const extraItems = cantidad - required;
+            const discountPerExtra = precioUnitario - Number(promocion.precioFijo);
+            if (discountPerExtra > 0) {
+              descuento = extraItems * discountPerExtra;
+              aplicable = true;
+              descripcion = `${required + 1}ra unidad a S/${Number(promocion.precioFijo).toFixed(2)}`;
+            }
+          }
+        }
+        break;
+
+      case 'nth_gratis':
+        // Buy N, get extra ones free
+        if (promocion.cantidadComprar) {
+          const required = promocion.cantidadComprar;
+          if (cantidad > required) {
+            const freeItems = cantidad - required;
+            descuento = freeItems * precioUnitario;
+            aplicable = true;
+            descripcion = `${required + 1}ra unidad gratis`;
+          }
+        }
+        break;
+
+      case 'nxm':
+        // Buy N pay M
+        if (promocion.cantidadComprar && promocion.cantidadBeneficio) {
+          const n = promocion.cantidadComprar; // e.g. 3 (buy 3)
+          const m = promocion.cantidadBeneficio; // e.g. 2 (pay 2)
+          if (cantidad >= n && m < n) {
+            const grupos = Math.floor(cantidad / n);
+            const resto = cantidad % n;
+            const itemsPagados = grupos * m + resto;
+            descuento = (cantidad - itemsPagados) * precioUnitario;
+            aplicable = true;
+            descripcion = `Lleva ${n} paga ${m}`;
           }
         }
         break;
@@ -317,6 +456,7 @@ export class PromocionService {
           descuento = cantidad * (precioUnitario - Number(promocion.precioFijo));
           if (descuento < 0) descuento = 0;
           aplicable = descuento > 0;
+          descripcion = `Precio especial: S/${Number(promocion.precioFijo).toFixed(2)}`;
         }
         break;
 
@@ -330,16 +470,16 @@ export class PromocionService {
             descuento = Number(promocion.descuentoMonto);
           }
           aplicable = true;
+          descripcion = `Dcto por compra +S/${Number(promocion.montoMinimoCompra).toFixed(2)}`;
         }
         break;
 
       case 'combo':
-        // Precio especial por combo (se maneja a nivel de venta)
         aplicable = false;
         break;
     }
 
-    return { descuento: Math.round(descuento * 100) / 100, aplicable };
+    return { descuento: Math.round(descuento * 100) / 100, aplicable, descripcion };
   }
 
   // =====================================================

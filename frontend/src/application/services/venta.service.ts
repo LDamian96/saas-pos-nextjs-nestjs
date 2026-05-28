@@ -115,6 +115,28 @@ export interface AnularVentaDto {
   motivo: string;
 }
 
+export interface DevolucionItemDto {
+  detalleId: string;
+  cantidad: number;
+}
+
+export interface DevolucionVentaDto {
+  items: DevolucionItemDto[];
+  motivo?: string;
+}
+
+export interface DevolucionResult {
+  ventaId: string;
+  montoDevolucion: number;
+  esDevolucionTotal: boolean;
+  itemsDevueltos: {
+    detalleId: string;
+    productoNombre: string;
+    cantidadDevuelta: number;
+    montoDevuelto: number;
+  }[];
+}
+
 export interface VentaFilters {
   search?: string;
   sucursalId?: string;
@@ -170,8 +192,16 @@ export const ventaService = {
   /**
    * Anular una venta
    */
-  anular: async (id: string, dto: AnularVentaDto): Promise<Venta> => {
+  anular: async (id: string, dto: AnularVentaDto): Promise<{ numero?: string }> => {
     const { data } = await api.post(`/ventas/${id}/anular`, dto);
+    return data.data || data;
+  },
+
+  /**
+   * Procesar devolucion parcial o total
+   */
+  devolucion: async (id: string, dto: DevolucionVentaDto): Promise<DevolucionResult> => {
+    const { data } = await api.post(`/ventas/${id}/devolucion`, dto);
     return data.data;
   },
 

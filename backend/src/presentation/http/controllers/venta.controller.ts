@@ -29,6 +29,7 @@ import {
   CreateVentaDto,
   VentaFiltersDto,
   AnularVentaDto,
+  DevolucionVentaDto,
 } from '../../../core/application/dto/venta';
 
 // Tipo local con empresaId garantizado (TenantGuard valida esto)
@@ -137,5 +138,20 @@ export class VentaController {
     @Body() dto: AnularVentaDto,
   ) {
     return this.ventaService.anular(user.empresaId, id, user.id, dto);
+  }
+
+  /**
+   * POST /ventas/:id/devolucion
+   * Procesar devolucion parcial o total de una venta
+   */
+  @Post(':id/devolucion')
+  @Permissions('ventas.anular')
+  @HttpCode(HttpStatus.OK)
+  async devolucion(
+    @CurrentUser() user: UserWithEmpresa,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DevolucionVentaDto,
+  ) {
+    return this.ventaService.procesarDevolucion(user.empresaId, id, user.id, dto);
   }
 }

@@ -77,6 +77,86 @@ export class ExportImportService {
   }
 
   /**
+   * Exportar ventas a Excel
+   */
+  async exportVentas(
+    empresaId: string,
+    filters: { estado?: string; fechaInicio?: string; fechaFin?: string; search?: string },
+  ): Promise<Buffer> {
+    const where: any = { empresaId };
+
+    if (filters.estado) {
+      where.estado = filters.estado;
+    }
+    if (filters.fechaInicio) {
+      where.createdAt = { ...(where.createdAt || {}), gte: new Date(filters.fechaInicio) };
+    }
+    if (filters.fechaFin) {
+      const endDate = new Date(filters.fechaFin);
+      endDate.setHours(23, 59, 59, 999);
+      where.createdAt = { ...(where.createdAt || {}), lte: endDate };
+    }
+    if (filters.search) {
+      where.numeroVenta = { contains: filters.search, mode: 'insensitive' };
+    }
+
+    const ventas = await this.prisma.venta.findMany({
+      where,
+      include: {
+        cliente: { select: { nombre: true, apellido: true } },
+        detalles: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Ventas');
+
+    sheet.columns = [
+      { header: 'Numero', key: 'numero', width: 18 },
+      { header: 'Fecha', key: 'fecha', width: 20 },
+      { header: 'Cliente', key: 'cliente', width: 30 },
+      { header: 'Items', key: 'items', width: 10 },
+      { header: 'Subtotal', key: 'subtotal', width: 14 },
+      { header: 'Descuento', key: 'descuento', width: 14 },
+      { header: 'Impuesto', key: 'impuesto', width: 14 },
+      { header: 'Total', key: 'total', width: 14 },
+      { header: 'Estado', key: 'estado', width: 14 },
+      { header: 'Tipo Comprobante', key: 'tipoComprobante', width: 18 },
+    ];
+
+    // Style header
+    sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    sheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF3B82F6' },
+    };
+
+    for (const v of ventas) {
+      const clienteNombre = v.cliente
+        ? `${v.cliente.nombre || ''} ${v.cliente.apellido || ''}`.trim()
+        : v.clienteNombreTemporal || 'Consumidor Final';
+
+      sheet.addRow({
+        numero: v.numeroVenta,
+        fecha: v.createdAt.toISOString().replace('T', ' ').substring(0, 19),
+        cliente: clienteNombre,
+        items: v.detalles?.length || 0,
+        subtotal: Number(v.subtotal),
+        descuento: Number(v.descuento),
+        impuesto: Number(v.impuesto),
+        total: Number(v.total),
+        estado: v.estado,
+        tipoComprobante: v.tipoComprobante,
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
+
+  /**
    * Importar productos desde Excel
    */
   async importProductos(empresaId: string, fileBuffer: Buffer, userId: string): Promise<{

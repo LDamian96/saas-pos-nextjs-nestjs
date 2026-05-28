@@ -7,6 +7,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   UseGuards,
   Res,
   UseInterceptors,
@@ -52,6 +53,29 @@ export class ExportImportController {
     const buffer = await this.exportImportService.exportPlantilla();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=plantilla-productos.xlsx');
+    res.send(buffer);
+  }
+
+  /**
+   * GET /excel/exportar-ventas - Exportar ventas a Excel
+   */
+  @Get('exportar-ventas')
+  async exportarVentas(
+    @CurrentUser() user: JwtPayload,
+    @Query('estado') estado?: string,
+    @Query('fechaInicio') fechaInicio?: string,
+    @Query('fechaFin') fechaFin?: string,
+    @Query('search') search?: string,
+    @Res() res?: Response,
+  ) {
+    const buffer = await this.exportImportService.exportVentas(user.empresaId, {
+      estado,
+      fechaInicio,
+      fechaFin,
+      search,
+    });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=ventas.xlsx');
     res.send(buffer);
   }
 

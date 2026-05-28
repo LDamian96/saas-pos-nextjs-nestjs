@@ -136,11 +136,11 @@ export default function LotesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Lotes de Inventario</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Lotes de Inventario</h1>
           <p className="text-gray-500">
             {meta ? `${meta.total} lote${meta.total !== 1 ? 's' : ''}` : 'Gestión FEFO de lotes'}
           </p>
@@ -148,24 +148,24 @@ export default function LotesPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <div className="space-y-3 md:space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 sm:max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
               value={filters.search || ''}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar por código de lote..."
-              className="w-full h-12 pl-12 pr-4 text-base border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full h-11 md:h-12 pl-12 pr-4 text-base border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
             />
           </div>
 
           {/* Toggle Filters */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 h-12 px-4 border-2 rounded-xl font-medium transition-colors ${
+            className={`flex items-center justify-center gap-2 h-11 md:h-12 px-4 border-2 rounded-xl font-medium transition-colors active:scale-[0.98] ${
               showFilters
                 ? 'border-blue-500 bg-blue-50 text-blue-700'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -182,9 +182,9 @@ export default function LotesPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-4 bg-gray-50 rounded-xl border"
+            className="p-3 md:p-4 bg-gray-50 rounded-xl border"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               {/* Sucursal */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -193,7 +193,7 @@ export default function LotesPage() {
                 <select
                   value={filters.sucursalId || ''}
                   onChange={(e) => handleFilterChange('sucursalId', e.target.value)}
-                  className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Todas</option>
                   {sucursales?.map((suc) => (
@@ -212,7 +212,7 @@ export default function LotesPage() {
                 <select
                   value={filters.estado || ''}
                   onChange={(e) => handleFilterChange('estado', e.target.value)}
-                  className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Todos</option>
                   <option value="activo">Activo</option>
@@ -230,7 +230,7 @@ export default function LotesPage() {
                 <select
                   value={filters.diasVencimiento || ''}
                   onChange={(e) => handleFilterChange('diasVencimiento', e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Todos</option>
                   <option value="7">Próximos 7 días</option>
@@ -248,7 +248,7 @@ export default function LotesPage() {
                 <select
                   value={filters.conStock ? 'true' : 'false'}
                   onChange={(e) => handleFilterChange('conStock', e.target.value === 'true')}
-                  className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                 >
                   <option value="true">Solo con stock</option>
                   <option value="false">Todos</option>
@@ -272,28 +272,28 @@ export default function LotesPage() {
             className="bg-white rounded-xl shadow-sm border overflow-hidden"
           >
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[700px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">
+                    <th className="text-left px-3 md:px-6 py-3 md:py-4 text-sm font-semibold text-gray-600">
                       Código Lote
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">
+                    <th className="text-left px-3 md:px-6 py-3 md:py-4 text-sm font-semibold text-gray-600">
                       Producto
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">
+                    <th className="text-left px-3 md:px-6 py-3 md:py-4 text-sm font-semibold text-gray-600">
                       Sucursal
                     </th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">
+                    <th className="text-center px-3 md:px-6 py-3 md:py-4 text-sm font-semibold text-gray-600">
                       Stock
                     </th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">
+                    <th className="text-center px-3 md:px-6 py-3 md:py-4 text-sm font-semibold text-gray-600">
                       Vencimiento
                     </th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">
+                    <th className="text-center px-3 md:px-6 py-3 md:py-4 text-sm font-semibold text-gray-600">
                       Estado
                     </th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-gray-600">
+                    <th className="text-right px-3 md:px-6 py-3 md:py-4 text-sm font-semibold text-gray-600">
                       Acciones
                     </th>
                   </tr>
@@ -307,10 +307,10 @@ export default function LotesPage() {
                       transition={{ delay: index * 0.03 }}
                       className="hover:bg-gray-50"
                     >
-                      <td className="px-6 py-4 font-mono text-sm font-medium text-gray-900">
+                      <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-sm font-medium text-gray-900">
                         {lote.codigoLote}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 md:px-6 py-3 md:py-4">
                         <div className="flex items-center gap-3">
                           {lote.variante?.producto?.imagenPrincipal ? (
                             <img
@@ -333,24 +333,24 @@ export default function LotesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-gray-600">
                         {lote.sucursal?.nombre || '-'}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-center">
                         <span className={`font-semibold ${lote.stock <= 5 ? 'text-red-600' : 'text-gray-900'}`}>
                           {lote.stock}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center text-gray-600">
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-center text-gray-600">
                         {formatDate(lote.fechaVencimiento)}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-center">
                         {getEstadoBadge(lote.estado, lote.diasRestantes)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 md:px-6 py-3 md:py-4">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2.5 md:p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors active:scale-[0.98]"
                             title="Ver detalle"
                           >
                             <Eye className="h-5 w-5" />
@@ -361,7 +361,7 @@ export default function LotesPage() {
                                 setSelectedLote(lote);
                                 setActionType('desbloquear');
                               }}
-                              className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              className="p-2.5 md:p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors active:scale-[0.98]"
                               title="Desbloquear"
                             >
                               <Unlock className="h-5 w-5" />
@@ -372,7 +372,7 @@ export default function LotesPage() {
                                 setSelectedLote(lote);
                                 setActionType('bloquear');
                               }}
-                              className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                              className="p-2.5 md:p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors active:scale-[0.98]"
                               title="Bloquear"
                             >
                               <Lock className="h-5 w-5" />
@@ -389,8 +389,8 @@ export default function LotesPage() {
 
           {/* Pagination */}
           {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p className="text-xs md:text-sm text-gray-600">
                 Mostrando {(meta.page - 1) * meta.limit + 1} -{' '}
                 {Math.min(meta.page * meta.limit, meta.total)} de {meta.total}
               </p>
@@ -398,17 +398,17 @@ export default function LotesPage() {
                 <button
                   onClick={() => handlePageChange(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2.5 md:p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-[0.98]"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <span className="px-4 py-2 text-sm font-medium">
-                  Página {meta.page} de {meta.totalPages}
+                <span className="px-3 md:px-4 py-2 text-xs md:text-sm font-medium">
+                  Pag. {meta.page} de {meta.totalPages}
                 </span>
                 <button
                   onClick={() => handlePageChange(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2.5 md:p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-[0.98]"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>

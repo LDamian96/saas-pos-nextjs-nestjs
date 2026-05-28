@@ -117,72 +117,72 @@ export default function ComprasPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-3 md:space-y-6"
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6" />
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
             Compras
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Ordenes de compra a proveedores</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">Ordenes de compra a proveedores</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
+        <Button onClick={() => setShowCreate(true)} className="gap-2 h-11 md:h-10 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Nueva Compra
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 md:pt-4 md:px-6">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="h-5 w-5 text-blue-600" />
+                <FileText className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-500">Total Compras</p>
-                <p className="text-xl font-bold">{resumen?.totalCompras || 0}</p>
+                <p className="text-lg md:text-xl font-bold">{resumen?.totalCompras || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 md:pt-4 md:px-6">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-5 w-5 text-yellow-600" />
+                <Clock className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Pendientes Pago</p>
-                <p className="text-xl font-bold">{resumen?.pendientesPago || 0}</p>
+                <p className="text-xs text-gray-500">Pendientes</p>
+                <p className="text-lg md:text-xl font-bold">{resumen?.pendientesPago || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 md:pt-4 md:px-6">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600" />
+                <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Total Pagado</p>
-                <p className="text-xl font-bold">S/. {Number(resumen?.montoPagado || 0).toFixed(2)}</p>
+                <p className="text-xs text-gray-500">Pagado</p>
+                <p className="text-lg md:text-xl font-bold">S/. {Number(resumen?.montoPagado || 0).toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 md:pt-4 md:px-6">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Deuda Pendiente</p>
-                <p className="text-xl font-bold">S/. {Number(resumen?.montoPendiente || 0).toFixed(2)}</p>
+                <p className="text-xs text-gray-500">Deuda</p>
+                <p className="text-lg md:text-xl font-bold">S/. {Number(resumen?.montoPendiente || 0).toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -190,9 +190,9 @@ export default function ComprasPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px] h-11 md:h-10">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -203,7 +203,7 @@ export default function ComprasPage() {
           </SelectContent>
         </Select>
         <Select value={filtroEstadoPago} onValueChange={setFiltroEstadoPago}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px] h-11 md:h-10">
             <SelectValue placeholder="Estado Pago" />
           </SelectTrigger>
           <SelectContent>
@@ -215,63 +215,113 @@ export default function ComprasPage() {
         </Select>
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Numero</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Proveedor</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Pagado</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Pago</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {compras?.length === 0 && (
+      {/* Table / Cards */}
+      {isLoading ? (
+        <div className="p-4 md:p-6 space-y-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+        </div>
+      ) : compras?.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 md:p-12 text-center">
+            <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-base md:text-lg font-medium">No hay compras registradas</h3>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <Card className="hidden md:block">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      No hay compras registradas
-                    </TableCell>
+                    <TableHead>Numero</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Proveedor</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Pagado</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Pago</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
-                )}
-                {compras?.map((compra) => (
-                  <TableRow key={compra.id}>
-                    <TableCell className="font-medium">{compra.numero}</TableCell>
-                    <TableCell>{new Date(compra.fecha).toLocaleDateString()}</TableCell>
-                    <TableCell>{compra.proveedor.nombreComercial || compra.proveedor.razonSocial}</TableCell>
-                    <TableCell>S/. {Number(compra.total).toFixed(2)}</TableCell>
-                    <TableCell>S/. {Number(compra.montoPagado).toFixed(2)}</TableCell>
-                    <TableCell>{getEstadoBadge(compra.estado)}</TableCell>
-                    <TableCell>{getEstadoPagoBadge(compra.estadoPago)}</TableCell>
-                    <TableCell>
-                      {compra.estado !== 'anulada' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setAnularId(compra.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {compras?.map((compra) => (
+                    <TableRow key={compra.id}>
+                      <TableCell className="font-medium">{compra.numero}</TableCell>
+                      <TableCell>{new Date(compra.fecha).toLocaleDateString()}</TableCell>
+                      <TableCell>{compra.proveedor.nombreComercial || compra.proveedor.razonSocial}</TableCell>
+                      <TableCell>S/. {Number(compra.total).toFixed(2)}</TableCell>
+                      <TableCell>S/. {Number(compra.montoPagado).toFixed(2)}</TableCell>
+                      <TableCell>{getEstadoBadge(compra.estado)}</TableCell>
+                      <TableCell>{getEstadoPagoBadge(compra.estadoPago)}</TableCell>
+                      <TableCell>
+                        {compra.estado !== 'anulada' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAnularId(compra.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {compras?.map((compra) => (
+              <Card key={compra.id} className="active:scale-[0.98] transition-transform">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">
+                        {compra.proveedor.nombreComercial || compra.proveedor.razonSocial}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {compra.numero} - {new Date(compra.fecha).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      {getEstadoBadge(compra.estado)}
+                      {getEstadoPagoBadge(compra.estadoPago)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t">
+                    <div className="flex gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="font-bold">S/. {Number(compra.total).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pagado</p>
+                        <p className="font-medium">S/. {Number(compra.montoPagado).toFixed(2)}</p>
+                      </div>
+                    </div>
+                    {compra.estado !== 'anulada' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-11 px-4 text-red-600 hover:text-red-800 border-red-200"
+                        onClick={() => setAnularId(compra.id)}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Anular
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
@@ -284,7 +334,7 @@ export default function ComprasPage() {
 
           <div className="space-y-4">
             {/* Proveedor */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <div>
                 <Label>Proveedor *</Label>
                 <Select value={formData.proveedorId} onValueChange={(v) => setFormData({ ...formData, proveedorId: v })}>
@@ -315,7 +365,7 @@ export default function ComprasPage() {
             </div>
 
             {/* Documento ref */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <div>
                 <Label>Tipo Documento</Label>
                 <Select value={formData.tipoDocumentoRef} onValueChange={(v) => setFormData({ ...formData, tipoDocumentoRef: v })}>
@@ -348,54 +398,60 @@ export default function ComprasPage() {
                   <Plus className="h-3 w-3" /> Agregar Item
                 </Button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3 md:space-y-2">
                 {detalles.map((detalle, index) => (
-                  <div key={index} className="flex gap-2 items-end">
+                  <div key={index} className="flex flex-col sm:flex-row gap-2 sm:items-end p-3 sm:p-0 bg-muted/30 sm:bg-transparent rounded-lg sm:rounded-none">
                     <div className="flex-1">
-                      {index === 0 && <Label className="text-xs">Descripcion</Label>}
+                      <Label className="text-xs">Descripcion</Label>
                       <Input
                         placeholder="Nombre del producto"
                         value={detalle.descripcion}
                         onChange={(e) => handleDetalleChange(index, 'descripcion', e.target.value)}
+                        className="h-11 md:h-10"
                       />
                     </div>
-                    <div className="w-24">
-                      {index === 0 && <Label className="text-xs">Cantidad</Label>}
-                      <Input
-                        type="number"
-                        min="0.001"
-                        step="0.001"
-                        value={detalle.cantidad}
-                        onChange={(e) => handleDetalleChange(index, 'cantidad', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="w-32">
-                      {index === 0 && <Label className="text-xs">Precio Unit.</Label>}
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={detalle.precioUnitario}
-                        onChange={(e) => handleDetalleChange(index, 'precioUnitario', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="w-28">
-                      {index === 0 && <Label className="text-xs">Subtotal</Label>}
-                      <Input
-                        readOnly
-                        value={`S/. ${(Number(detalle.cantidad) * Number(detalle.precioUnitario)).toFixed(2)}`}
-                        className="bg-gray-50"
-                      />
+                    <div className="flex gap-2">
+                      <div className="flex-1 sm:w-24 sm:flex-none">
+                        <Label className="text-xs">Cantidad</Label>
+                        <Input
+                          type="number"
+                          min="0.001"
+                          step="0.001"
+                          value={detalle.cantidad}
+                          onChange={(e) => handleDetalleChange(index, 'cantidad', parseFloat(e.target.value) || 0)}
+                          className="h-11 md:h-10"
+                        />
+                      </div>
+                      <div className="flex-1 sm:w-32 sm:flex-none">
+                        <Label className="text-xs">Precio Unit.</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={detalle.precioUnitario}
+                          onChange={(e) => handleDetalleChange(index, 'precioUnitario', parseFloat(e.target.value) || 0)}
+                          className="h-11 md:h-10"
+                        />
+                      </div>
+                      <div className="flex-1 sm:w-28 sm:flex-none">
+                        <Label className="text-xs">Subtotal</Label>
+                        <Input
+                          readOnly
+                          value={`S/. ${(Number(detalle.cantidad) * Number(detalle.precioUnitario)).toFixed(2)}`}
+                          className="bg-gray-50 h-11 md:h-10"
+                        />
+                      </div>
                     </div>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveDetalle(index)}
-                      className="text-red-500"
+                      className="text-red-500 h-11 md:h-9 w-full sm:w-auto"
                       disabled={detalles.length <= 1}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 mr-1 sm:mr-0" />
+                      <span className="sm:hidden">Eliminar item</span>
                     </Button>
                   </div>
                 ))}
@@ -418,9 +474,10 @@ export default function ComprasPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" className="h-11 md:h-10 w-full sm:w-auto" onClick={() => setShowCreate(false)}>Cancelar</Button>
             <Button
+              className="h-11 md:h-10 w-full sm:w-auto"
               onClick={handleSubmit}
               disabled={!formData.proveedorId || detalles.every(d => !d.descripcion) || createMutation.isPending}
             >

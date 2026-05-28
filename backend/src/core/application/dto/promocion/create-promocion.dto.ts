@@ -41,7 +41,7 @@ export class CreatePromocionDto {
 
   @IsString()
   @MaxLength(30)
-  @IsIn(['cantidad_gratis', 'cantidad_descuento', 'precio_fijo', 'monto_minimo', 'combo'])
+  @IsIn(['cantidad_gratis', 'cantidad_descuento', 'precio_fijo', 'monto_minimo', 'combo', 'descuento_porcentaje', 'nth_precio', 'nth_gratis', 'nxm'])
   tipo: string;
 
   @IsOptional()

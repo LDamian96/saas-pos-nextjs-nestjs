@@ -85,7 +85,7 @@ export default function ReportesPage() {
   const isLoading = loadingDashboard || loadingProductos;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -93,11 +93,11 @@ export default function ReportesPage() {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <BarChart3 className="h-8 w-8 text-primary" />
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold flex items-center gap-2 md:gap-3">
+            <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             Reportes
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             Analiza el rendimiento de tu negocio
           </p>
         </div>
@@ -105,16 +105,16 @@ export default function ReportesPage() {
 
       {/* KPIs principales */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
+            <Skeleton key={i} className="h-28 md:h-32" />
           ))}
         </div>
       ) : dashboard ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
         >
           <KpiCard
             title="Ventas Hoy"
@@ -155,7 +155,7 @@ export default function ReportesPage() {
         </motion.div>
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
         {/* Links a reportes detallados */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -171,22 +171,22 @@ export default function ReportesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 {reportLinks.map((link) => (
                   <Link key={link.href} href={link.href}>
-                    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className={`p-3 rounded-lg ${link.color}`}>
-                            <link.icon className="h-6 w-6" />
+                    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50 active:scale-[0.98]">
+                      <CardContent className="p-3 md:p-4">
+                        <div className="flex items-center gap-3 md:gap-4 min-h-[44px]">
+                          <div className={`p-2.5 md:p-3 rounded-lg ${link.color} shrink-0`}>
+                            <link.icon className="h-5 w-5 md:h-6 md:w-6" />
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{link.title}</h3>
-                            <p className="text-sm text-muted-foreground">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm md:text-base">{link.title}</h3>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">
                               {link.description}
                             </p>
                           </div>
-                          <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                          <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
                         </div>
                       </CardContent>
                     </Card>
@@ -205,7 +205,7 @@ export default function ReportesPage() {
         >
           <Card className="h-full">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                 <Package className="h-5 w-5" />
                 Top Productos Hoy
               </CardTitle>
@@ -222,7 +222,7 @@ export default function ReportesPage() {
                   {dashboard.topProductosHoy.map((producto, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50"
+                      className="flex items-center gap-3 p-2 md:p-2 rounded-lg hover:bg-muted/50 min-h-[44px]"
                     >
                       <Badge
                         variant={i < 3 ? 'default' : 'secondary'}
@@ -231,12 +231,12 @@ export default function ReportesPage() {
                         {i + 1}
                       </Badge>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{producto.nombre}</p>
+                        <p className="font-medium text-sm md:text-base truncate">{producto.nombre}</p>
                         <p className="text-xs text-muted-foreground">
                           {producto.cantidad} unidades
                         </p>
                       </div>
-                      <p className="font-medium text-green-600">
+                      <p className="font-medium text-sm md:text-base text-green-600 shrink-0">
                         {formatCurrency(producto.monto)}
                       </p>
                     </div>

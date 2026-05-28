@@ -20,14 +20,14 @@ export const jwtConfig = {
 export const cookieConfig = {
   accessToken: {
     httpOnly: true, // NO accesible desde JavaScript
-    secure: process.env.NODE_ENV === 'production', // HTTPS solo en produccion
+    secure: process.env.COOKIE_SECURE === 'true', // HTTPS only when explicitly enabled
     sameSite: 'lax' as const,
     maxAge: 15 * 60 * 1000, // 15 minutos
     path: '/',
   },
   refreshToken: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE === 'true',
     sameSite: 'lax' as const,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
     path: '/api/v1/auth/refresh',

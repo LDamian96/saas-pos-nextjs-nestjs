@@ -36,6 +36,7 @@ import {
   Wallet,
   Shield,
   ClipboardList,
+  FileSpreadsheet,
   Crown,
 } from 'lucide-react';
 import { AuthGuard } from '@/presentation/components/common/auth-guard';
@@ -53,99 +54,85 @@ interface MenuItem {
   submenu?: { label: string; href: string; roles?: RolCodigo[] }[];
 }
 
-const menuItems: MenuItem[] = [
+interface MenuSection {
+  title: string;
+  roles?: RolCodigo[];
+  items: MenuItem[];
+}
+
+// Menu organizado por secciones - SINCRONIZADO con dashboard layout
+const menuSections: MenuSection[] = [
   {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Catalogos',
-    href: '/catalogos',
-    icon: FolderTree,
-    roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
-    submenu: [
-      { label: 'Categorias', href: '/catalogos/categorias' },
-      { label: 'Marcas', href: '/catalogos/marcas' },
-      { label: 'Atributos', href: '/catalogos/atributos' },
-      { label: 'Unidades', href: '/catalogos/unidades-medida' },
+    title: 'Principal',
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'supervisor'] },
     ],
   },
   {
-    label: 'Productos',
-    href: '/productos',
-    icon: Package,
-  },
-  {
-    label: 'Inventario',
-    href: '/inventario',
-    icon: Warehouse,
-    roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
-  },
-  {
-    label: 'Ventas',
-    href: '/ventas',
-    icon: ShoppingCart,
-    roles: ['super_admin', 'admin', 'supervisor', 'cajero', 'vendedor'],
-    submenu: [
-      { label: 'Historial', href: '/ventas' },
-      { label: 'Caja', href: '/caja' },
-      { label: 'Clientes', href: '/clientes' },
+    title: 'Ventas',
+    items: [
+      { label: 'Historial Ventas', href: '/ventas', icon: ShoppingCart, roles: ['super_admin', 'admin', 'supervisor', 'cajero'] },
+      { label: 'Caja', href: '/caja', icon: Calculator, roles: ['super_admin', 'admin', 'supervisor', 'cajero'] },
+      { label: 'Clientes', href: '/clientes', icon: Users, roles: ['super_admin', 'admin', 'supervisor', 'cajero'] },
     ],
   },
   {
-    label: 'Proveedores',
-    href: '/proveedores',
-    icon: Truck,
-    roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
-    submenu: [
-      { label: 'Lista Proveedores', href: '/proveedores' },
-      { label: 'Compras', href: '/compras' },
-      { label: 'Pagos', href: '/pagos-proveedor' },
+    title: 'Inventario',
+    items: [
+      { label: 'Productos', href: '/productos', icon: Package, roles: ['super_admin', 'admin', 'supervisor', 'almacenero'] },
+      { label: 'Stock', href: '/inventario', icon: Warehouse, roles: ['super_admin', 'admin', 'supervisor', 'almacenero'] },
+      {
+        label: 'Catalogos', href: '/catalogos', icon: FolderTree,
+        roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
+        submenu: [
+          { label: 'Categorias', href: '/catalogos/categorias' },
+          { label: 'Marcas', href: '/catalogos/marcas' },
+          { label: 'Atributos', href: '/catalogos/atributos' },
+          { label: 'Unidades', href: '/catalogos/unidades-medida' },
+        ],
+      },
     ],
   },
   {
-    label: 'Promociones',
-    href: '/promociones',
-    icon: Tag,
-    roles: ['super_admin', 'admin', 'supervisor'],
-  },
-  {
-    label: 'Reportes',
-    href: '/reportes',
-    icon: BarChart3,
-    roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
-  },
-  {
-    label: 'Auditoria',
-    href: '/auditoria',
-    icon: Shield,
-    roles: ['super_admin', 'admin'],
-  },
-  {
-    label: 'Configuracion',
-    href: '/configuracion',
-    icon: Settings,
-    roles: ['super_admin', 'admin'],
-    submenu: [
-      { label: 'Empresa', href: '/configuracion/empresa' },
-      { label: 'Sucursales', href: '/configuracion/sucursales' },
-      { label: 'Usuarios', href: '/configuracion/usuarios' },
-      { label: 'Roles', href: '/configuracion/roles' },
-      { label: 'Importar/Exportar', href: '/configuracion/importar-exportar' },
-      { label: 'Impresion', href: '/configuracion/impresion' },
-      { label: 'QR Productos', href: '/configuracion/qr-productos' },
-      { label: 'Landing Page', href: '/configuracion/landing' },
-      { label: 'SEO', href: '/configuracion/seo' },
-      { label: 'Metodos de Pago', href: '/configuracion/metodos-pago' },
-      { label: 'Planes y Facturacion', href: '/configuracion/billing' },
+    title: 'Proveedores',
+    items: [
+      {
+        label: 'Proveedores', href: '/proveedores', icon: Truck,
+        roles: ['super_admin', 'admin', 'supervisor', 'almacenero'],
+        submenu: [
+          { label: 'Lista Proveedores', href: '/proveedores' },
+          { label: 'Compras al Proveedor', href: '/compras' },
+          { label: 'Pagos al Proveedor', href: '/pagos-proveedor' },
+        ],
+      },
     ],
   },
   {
-    label: 'Super Admin',
-    href: '/superadmin',
-    icon: Crown,
-    roles: ['super_admin'],
+    title: 'Negocio',
+    items: [
+      { label: 'Promociones', href: '/promociones', icon: Tag, roles: ['super_admin', 'admin', 'supervisor'] },
+      { label: 'Reportes', href: '/reportes', icon: BarChart3, roles: ['super_admin', 'admin', 'supervisor'] },
+      { label: 'Auditoria', href: '/auditoria', icon: Shield, roles: ['super_admin', 'admin'] },
+    ],
+  },
+  {
+    title: 'Sistema',
+    items: [
+      {
+        label: 'Configuracion', href: '/configuracion', icon: Settings,
+        roles: ['super_admin', 'admin'],
+        submenu: [
+          { label: 'Empresa', href: '/configuracion/empresa' },
+          { label: 'Sucursales', href: '/configuracion/sucursales' },
+          { label: 'Usuarios', href: '/configuracion/usuarios' },
+          { label: 'Roles', href: '/configuracion/roles' },
+          { label: 'Metodos de Pago', href: '/configuracion/metodos-pago' },
+          { label: 'Impresion', href: '/configuracion/impresion' },
+          { label: 'Facturacion', href: '/configuracion/facturacion' },
+        ],
+      },
+      { label: 'Super Admin', href: '/superadmin', icon: Crown, roles: ['super_admin'] },
+    ],
   },
 ];
 
@@ -154,7 +141,8 @@ const rolesConSidebar: RolCodigo[] = ['super_admin', 'admin', 'supervisor'];
 
 export default function POSLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -164,6 +152,15 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+      else setSidebarOpen(false);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
   // Obtener el codigo del rol del usuario
@@ -176,8 +173,17 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
     return item.roles.includes(userRol);
   };
 
-  // Filtrar items del menu segun el rol
-  const filteredMenuItems = menuItems.filter(canViewMenuItem);
+  // Filtrar secciones y sus items segun el rol
+  const filteredSections = menuSections
+    .filter(section => {
+      if (section.roles && !section.roles.includes(userRol)) return false;
+      return true;
+    })
+    .map(section => ({
+      ...section,
+      items: section.items.filter(canViewMenuItem),
+    }))
+    .filter(section => section.items.length > 0);
 
   const toggleSubmenu = (label: string) => {
     setExpandedMenu(expandedMenu === label ? null : label);
@@ -211,14 +217,29 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
       <div className={`min-h-screen transition-colors duration-300 ${
         isDark ? 'bg-zinc-950' : 'bg-slate-50'
       }`}>
-        {/* Sidebar - IGUAL AL DEL DASHBOARD */}
+        {/* Mobile Backdrop */}
+        <AnimatePresence>
+          {isMobile && sidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 flex flex-col ${
-            sidebarOpen ? 'w-64' : 'w-20'
+          className={`fixed inset-y-0 left-0 z-[70] transition-all duration-300 flex flex-col ${
+            isMobile
+              ? `w-72 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+              : sidebarOpen ? 'w-64' : 'w-20'
           } ${
             isDark
-              ? 'bg-zinc-900/80 backdrop-blur-xl border-r border-zinc-800'
-              : 'bg-white/80 backdrop-blur-xl border-r border-slate-200 shadow-lg'
+              ? 'bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-800'
+              : 'bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-lg'
           }`}
         >
           {/* Logo */}
@@ -247,99 +268,114 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          {/* Menu */}
-          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-            {filteredMenuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              const hasSubmenu = item.submenu && item.submenu.length > 0;
-              const isExpanded = expandedMenu === item.label;
+          {/* Menu con secciones */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+            {filteredSections.map((section, sectionIdx) => (
+              <div key={section.title}>
+                {/* Titulo de seccion */}
+                {sidebarOpen && sectionIdx > 0 && (
+                  <div className={`px-3 pt-2 pb-1 ${isDark ? 'text-zinc-600' : 'text-slate-400'}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest">{section.title}</p>
+                  </div>
+                )}
+                {!sidebarOpen && sectionIdx > 0 && (
+                  <div className={`mx-3 my-1 border-t ${isDark ? 'border-zinc-800' : 'border-slate-200'}`} />
+                )}
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    const hasSubmenu = item.submenu && item.submenu.length > 0;
+                    const isExpanded = expandedMenu === item.label;
 
-              return (
-                <div key={item.href}>
-                  {hasSubmenu ? (
-                    <button
-                      onClick={() => toggleSubmenu(item.label)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? isDark
-                            ? 'bg-purple-500/10 text-purple-400'
-                            : 'bg-purple-50 text-purple-600'
-                          : isDark
-                            ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                            : 'text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <Icon size={20} />
-                      {sidebarOpen && (
-                        <>
-                          <span className="flex-1 text-left font-medium text-sm">
-                            {item.label}
-                          </span>
-                          <ChevronDown
-                            size={16}
-                            className={`transition-transform duration-200 ${
-                              isExpanded ? 'rotate-180' : ''
+                    return (
+                      <div key={item.href + item.label}>
+                        {hasSubmenu ? (
+                          <button
+                            onClick={() => toggleSubmenu(item.label)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                              isActive
+                                ? isDark
+                                  ? 'bg-purple-500/10 text-purple-400'
+                                  : 'bg-purple-50 text-purple-600'
+                                : isDark
+                                  ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                                  : 'text-slate-600 hover:bg-slate-100'
                             }`}
-                          />
-                        </>
-                      )}
-                    </button>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? isDark
-                            ? 'bg-purple-500/10 text-purple-400 shadow-lg shadow-purple-500/5'
-                            : 'bg-purple-50 text-purple-600'
-                          : isDark
-                            ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                            : 'text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <Icon size={20} />
-                      {sidebarOpen && (
-                        <span className="font-medium text-sm">{item.label}</span>
-                      )}
-                    </Link>
-                  )}
+                          >
+                            <Icon size={20} />
+                            {sidebarOpen && (
+                              <>
+                                <span className="flex-1 text-left font-medium text-sm">
+                                  {item.label}
+                                </span>
+                                <ChevronDown
+                                  size={16}
+                                  className={`transition-transform duration-200 ${
+                                    isExpanded ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                              isActive
+                                ? isDark
+                                  ? 'bg-purple-500/10 text-purple-400 shadow-lg shadow-purple-500/5'
+                                  : 'bg-purple-50 text-purple-600'
+                                : isDark
+                                  ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                                  : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            <Icon size={20} />
+                            {sidebarOpen && (
+                              <span className="font-medium text-sm">{item.label}</span>
+                            )}
+                          </Link>
+                        )}
 
-                  {/* Submenu */}
-                  <AnimatePresence>
-                    {hasSubmenu && isExpanded && sidebarOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="ml-7 mt-1 space-y-1 border-l-2 border-zinc-800 pl-3">
-                          {item.submenu?.map((subitem) => (
-                            <Link
-                              key={subitem.href}
-                              href={subitem.href}
-                              className={`block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                                pathname === subitem.href
-                                  ? isDark
-                                    ? 'bg-purple-500/10 text-purple-400'
-                                    : 'bg-purple-50 text-purple-600'
-                                  : isDark
-                                    ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
-                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                              }`}
+                        {/* Submenu */}
+                        <AnimatePresence>
+                          {hasSubmenu && isExpanded && sidebarOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
                             >
-                              {subitem.label}
-                            </Link>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                              <div className={`ml-7 mt-1 space-y-1 border-l-2 pl-3 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
+                                {item.submenu?.map((subitem) => (
+                                  <Link
+                                    key={subitem.href}
+                                    href={subitem.href}
+                                    className={`block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                                      pathname === subitem.href
+                                        ? isDark
+                                          ? 'bg-purple-500/10 text-purple-400'
+                                          : 'bg-purple-50 text-purple-600'
+                                        : isDark
+                                          ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
+                                          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {subitem.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </nav>
 
           {/* Bottom section */}
@@ -378,17 +414,25 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
         {/* Main content */}
         <main
           className={`transition-all duration-300 ${
-            sidebarOpen ? 'ml-64' : 'ml-20'
+            isMobile ? 'ml-0' : sidebarOpen ? 'ml-64' : 'ml-20'
           }`}
         >
           {/* Header */}
-          <header className={`sticky top-0 z-40 h-16 flex items-center justify-between px-6 transition-colors duration-300 ${
+          <header className={`sticky top-0 z-40 h-14 md:h-16 flex items-center justify-between px-4 md:px-6 transition-colors duration-300 ${
             isDark
               ? 'bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-800'
               : 'bg-white/80 backdrop-blur-xl border-b border-slate-200'
           }`}>
-            <div>
-              <h1 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <div className="flex items-center gap-3">
+              {isMobile && (
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className={`p-2 -ml-1 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-slate-100 text-slate-600'}`}
+                >
+                  <Menu size={22} />
+                </button>
+              )}
+              <h1 className={`text-base md:text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Punto de Venta
               </h1>
             </div>
@@ -429,10 +473,10 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
               </button>
 
               {/* User Info */}
-              <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
+              <div className={`flex items-center gap-2 md:gap-3 px-2 md:px-3 py-1.5 md:py-2 rounded-lg ${
                 isDark ? 'bg-zinc-800/50' : 'bg-slate-100'
               }`}>
-                <div className="text-right">
+                <div className="text-right hidden sm:block">
                   <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {usuario?.nombre} {usuario?.apellido}
                   </p>
@@ -440,7 +484,7 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
                     {usuario?.empresa?.nombre || 'Cargando...'}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold shadow-lg shadow-purple-500/20">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold text-sm md:text-base shadow-lg shadow-purple-500/20">
                   {usuario?.nombre?.charAt(0) || '?'}
                 </div>
               </div>
@@ -448,7 +492,7 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* Page content - El POS ocupa todo el espacio disponible */}
-          <div className={`h-[calc(100vh-4rem)] ${
+          <div className={`h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] ${
             isDark ? 'text-zinc-100' : 'text-slate-900'
           }`}>
             {children}

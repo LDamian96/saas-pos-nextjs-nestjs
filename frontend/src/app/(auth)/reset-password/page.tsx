@@ -5,7 +5,7 @@
  * @description Reset Password Page - Restablecer contrasena con token
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,14 @@ import { Lock, Eye, EyeOff, ArrowLeft, Moon, Sun, Sparkles, CheckCircle, AlertTr
 import { useResetPassword } from '@/application/hooks/mutations/use-auth';
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-black"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
 

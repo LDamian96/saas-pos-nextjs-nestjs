@@ -1103,7 +1103,16 @@ async function main() {
     parseFloat((Math.random() * (max - min) + min).toFixed(2));
 
   // Helper para generar stock aleatorio
-  const randomStock = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const randomStock = (_min: number, _max: number) => 200; // Stock fijo 200 para todos
+
+  // Imágenes por categoría usando picsum.photos con seeds fijos para consistencia
+  const getProductImage = (categoria: string, index: number): string => {
+    const categorySeeds: Record<string, number> = {
+      'ropa': 100, 'electronica': 200, 'deporte': 300, 'hogar': 400, 'alimento': 500,
+    };
+    const baseSeed = categorySeeds[categoria] || 600;
+    return `https://picsum.photos/seed/${baseSeed + index}/400/400`;
+  };
 
   // Helper para obtener categoría por slug
   const getCategoriaBySlug = (slug: string) => todasCategorias.find((c) => c.slug === slug);
@@ -1115,7 +1124,280 @@ async function main() {
   let totalVariantes = 0;
 
   // =====================================================
-  // PRODUCTOS DE ROPA (25 productos, ~150 variantes)
+  // HELPER: Crear producto simple con 1 variante
+  // =====================================================
+  const crearProductoSimple = async (params: {
+    codigo: string;
+    nombre: string;
+    categoriaId: string;
+    marcaId: string;
+    precioVenta: number;
+    precioCompra: number;
+    precioMayorista?: number;
+    codigoBarras: string;
+    imagen: string;
+    descripcion?: string;
+  }) => {
+    const slug = params.nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    const producto = await prisma.producto.upsert({
+      where: {
+        empresaId_codigoInterno: { empresaId: empresaDemo.id, codigoInterno: params.codigo },
+      },
+      update: { imagenPrincipal: params.imagen },
+      create: {
+        empresaId: empresaDemo.id,
+        categoriaId: params.categoriaId,
+        marcaId: params.marcaId,
+        sku: params.codigo,
+        codigoInterno: params.codigo,
+        codigoBarras: params.codigoBarras,
+        nombre: params.nombre,
+        slug,
+        imagenPrincipal: params.imagen,
+        descripcionCorta: params.descripcion || params.nombre,
+        tipo: 'simple',
+        precioVenta: params.precioVenta,
+        precioCompra: params.precioCompra,
+        precioMayorista: params.precioMayorista,
+        activo: true,
+        visiblePos: true,
+      },
+    });
+
+    // Crear variante única para el producto
+    const varianteExistente = await prisma.variante.findFirst({
+      where: { productoId: producto.id },
+    });
+
+    if (!varianteExistente) {
+      await prisma.variante.create({
+        data: {
+          productoId: producto.id,
+          sku: params.codigo,
+          codigoBarras: params.codigoBarras,
+          nombreVariante: 'Principal',
+          precioVenta: params.precioVenta,
+          precioCompra: params.precioCompra,
+          precioMayorista: params.precioMayorista,
+          stock: 200,
+          stockMinimo: 10,
+          activo: true,
+        },
+      });
+    }
+
+    totalProductos++;
+    totalVariantes++;
+    return producto;
+  };
+
+  // Generar EAN-13 secuencial
+  const generarEAN = (index: number): string => {
+    const base = `775${String(index).padStart(9, '0')}`;
+    // Simple checksum
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(base[i]) * (i % 2 === 0 ? 1 : 3);
+    }
+    const check = (10 - (sum % 10)) % 10;
+    return base + check;
+  };
+
+  // =====================================================
+  // PRODUCTOS SIMPLES (100 productos - estilo POS real)
+  // Cada producto = 1 ítem con su precio, código barras, stock
+  // =====================================================
+
+  console.log('\nCreando 100 productos simples...');
+
+  // URLs de imágenes en Cloudinary
+  const img: Record<string, string> = {
+    'zapatilla-running-nike': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612421/pos-productos/zapatilla-running-nike.jpg',
+    'zapatilla-running-adidas': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612422/pos-productos/zapatilla-running-adidas.jpg',
+    'zapatilla-urbana-blanca': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612423/pos-productos/zapatilla-urbana-blanca.jpg',
+    'zapatilla-urbana-negra': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612424/pos-productos/zapatilla-urbana-negra.jpg',
+    'zapatilla-jordan': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612425/pos-productos/zapatilla-jordan.jpg',
+    'zapatilla-training': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612426/pos-productos/zapatilla-training.jpg',
+    'zapatilla-futbol': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612427/pos-productos/zapatilla-futbol.jpg',
+    'zapatilla-basket': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612428/pos-productos/zapatilla-basket.jpg',
+    'sandalia-deportiva': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612429/pos-productos/sandalia-deportiva.jpg',
+    'bota-casual': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612430/pos-productos/bota-casual.jpg',
+    'polo-basico-negro': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612431/pos-productos/polo-basico-negro.jpg',
+    'polo-basico-blanco': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612432/pos-productos/polo-basico-blanco.jpg',
+    'polo-deportivo': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612434/pos-productos/polo-deportivo.jpg',
+    'camiseta-estampada': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612435/pos-productos/camiseta-estampada.jpg',
+    'polo-oversize': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612436/pos-productos/polo-oversize.jpg',
+    'polo-manga-larga': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612437/pos-productos/polo-manga-larga.jpg',
+    'jean-azul': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612438/pos-productos/jean-azul.jpg',
+    'jean-negro': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612439/pos-productos/jean-negro.jpg',
+    'jogger-deportivo': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612440/pos-productos/jogger-deportivo.jpg',
+    'pantalon-chino': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612442/pos-productos/pantalon-chino.jpg',
+    'short-deportivo': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612443/pos-productos/short-deportivo.jpg',
+    'bermuda-casual': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612445/pos-productos/bermuda-casual.jpg',
+    'casaca-cortaviento': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612446/pos-productos/casaca-cortaviento.jpg',
+    'casaca-deportiva': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612446/pos-productos/casaca-deportiva.jpg',
+    'hoodie-negro': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612447/pos-productos/hoodie-negro.jpg',
+    'hoodie-gris': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612449/pos-productos/hoodie-gris.jpg',
+    'chaqueta-denim': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612451/pos-productos/chaqueta-denim.jpg',
+    'chaleco-puffer': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612452/pos-productos/chaleco-puffer.jpg',
+    'gorro-beanie': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612454/pos-productos/gorro-beanie.jpg',
+    'mochila-deportiva': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612455/pos-productos/mochila-deportiva.jpg',
+    'bolso-gym': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612456/pos-productos/bolso-gym.jpg',
+    'medias-deportivas': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612457/pos-productos/medias-deportivas.jpg',
+    'cinturon-casual': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612458/pos-productos/cinturon-casual.jpg',
+    'leggins-mujer': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612459/pos-productos/leggins-mujer.jpg',
+    'top-deportivo': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612460/pos-productos/top-deportivo.jpg',
+    'shorts-running': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612462/pos-productos/shorts-running.jpg',
+    'conjunto-deportivo': 'https://res.cloudinary.com/dnqkkd5nj/image/upload/v1774612464/pos-productos/conjunto-deportivo.jpg',
+  };
+
+  const productosSimples = [
+    // === ZAPATILLAS (25) ===
+    { nombre: 'Nike Air Max 90 Negro', cat: 'zapatillas-deportivas', marca: 'nike', precio: 449.90, costo: 220, img: img['zapatilla-running-nike'] },
+    { nombre: 'Nike Revolution 7 Running', cat: 'zapatillas-deportivas', marca: 'nike', precio: 299.90, costo: 150, img: img['zapatilla-training'] },
+    { nombre: 'Nike Court Vision Low Blanco', cat: 'zapatillas-deportivas', marca: 'nike', precio: 349.90, costo: 170, img: img['zapatilla-urbana-blanca'] },
+    { nombre: 'Nike Air Force 1 07', cat: 'zapatillas-deportivas', marca: 'nike', precio: 499.90, costo: 250, img: img['zapatilla-urbana-blanca'] },
+    { nombre: 'Nike Phantom GX Fútbol', cat: 'zapatillas-deportivas', marca: 'nike', precio: 399.90, costo: 200, img: img['zapatilla-futbol'] },
+    { nombre: 'Adidas Ultraboost Light', cat: 'zapatillas-deportivas', marca: 'adidas', precio: 549.90, costo: 280, img: img['zapatilla-running-adidas'] },
+    { nombre: 'Adidas Samba OG Clásico', cat: 'zapatillas-deportivas', marca: 'adidas', precio: 449.90, costo: 220, img: img['zapatilla-urbana-negra'] },
+    { nombre: 'Adidas Gazelle Bold', cat: 'zapatillas-deportivas', marca: 'adidas', precio: 399.90, costo: 200, img: img['zapatilla-urbana-negra'] },
+    { nombre: 'Adidas Duramo Speed Running', cat: 'zapatillas-deportivas', marca: 'adidas', precio: 279.90, costo: 140, img: img['zapatilla-running-adidas'] },
+    { nombre: 'Puma Suede Classic XXI', cat: 'zapatillas-deportivas', marca: 'puma', precio: 299.90, costo: 150, img: img['zapatilla-urbana-negra'] },
+    { nombre: 'Puma RS-X Reinvention', cat: 'zapatillas-deportivas', marca: 'puma', precio: 399.90, costo: 200, img: img['zapatilla-training'] },
+    { nombre: 'Under Armour HOVR Phantom', cat: 'zapatillas-deportivas', marca: 'under-armour', precio: 499.90, costo: 250, img: img['zapatilla-running-nike'] },
+    { nombre: 'Under Armour Charged Assert', cat: 'zapatillas-deportivas', marca: 'under-armour', precio: 329.90, costo: 165, img: img['zapatilla-training'] },
+    { nombre: 'Jordan 1 Mid SE Negro/Rojo', cat: 'zapatillas-deportivas', marca: 'nike', precio: 599.90, costo: 300, img: img['zapatilla-jordan'] },
+    { nombre: 'Jordan Max Aura 5 Basket', cat: 'zapatillas-deportivas', marca: 'nike', precio: 449.90, costo: 220, img: img['zapatilla-basket'] },
+    { nombre: 'Nike Dunk Low Retro Blanco', cat: 'zapatillas-deportivas', marca: 'nike', precio: 479.90, costo: 240, img: img['zapatilla-urbana-blanca'] },
+    { nombre: 'Adidas Forum Low Blanco', cat: 'zapatillas-deportivas', marca: 'adidas', precio: 429.90, costo: 210, img: img['zapatilla-urbana-blanca'] },
+    { nombre: 'Puma Palermo Leather', cat: 'zapatillas-deportivas', marca: 'puma', precio: 349.90, costo: 170, img: img['zapatilla-urbana-negra'] },
+    { nombre: 'Sandalia Nike Victori One', cat: 'zapatos', marca: 'nike', precio: 129.90, costo: 60, img: img['sandalia-deportiva'] },
+    { nombre: 'Sandalia Adidas Adilette', cat: 'zapatos', marca: 'adidas', precio: 119.90, costo: 55, img: img['sandalia-deportiva'] },
+    { nombre: 'Bota Timberland 6 Inch', cat: 'zapatos', marca: 'generico', precio: 599.90, costo: 300, img: img['bota-casual'] },
+    { nombre: 'Nike Mercurial Superfly Fútbol', cat: 'zapatillas-deportivas', marca: 'nike', precio: 649.90, costo: 320, img: img['zapatilla-futbol'] },
+    { nombre: 'Adidas Predator Accuracy Fútbol', cat: 'zapatillas-deportivas', marca: 'adidas', precio: 549.90, costo: 270, img: img['zapatilla-futbol'] },
+    { nombre: 'Nike Air Zoom Pegasus 41', cat: 'zapatillas-deportivas', marca: 'nike', precio: 519.90, costo: 260, img: img['zapatilla-running-nike'] },
+    { nombre: 'Adidas Supernova Rise Running', cat: 'zapatillas-deportivas', marca: 'adidas', precio: 479.90, costo: 240, img: img['zapatilla-running-adidas'] },
+    // === POLOS Y CAMISETAS (20) ===
+    { nombre: 'Nike Sportswear Polo Negro', cat: 'camisas', marca: 'nike', precio: 129.90, costo: 60, img: img['polo-basico-negro'] },
+    { nombre: 'Nike Dri-FIT Legend Tee', cat: 'camisas', marca: 'nike', precio: 99.90, costo: 45, img: img['polo-deportivo'] },
+    { nombre: 'Adidas Trefoil Tee Blanco', cat: 'camisas', marca: 'adidas', precio: 119.90, costo: 55, img: img['polo-basico-blanco'] },
+    { nombre: 'Adidas Essentials 3-Rayas Polo', cat: 'camisas', marca: 'adidas', precio: 109.90, costo: 50, img: img['polo-deportivo'] },
+    { nombre: 'Puma ESS Logo Tee Negro', cat: 'camisas', marca: 'puma', precio: 89.90, costo: 40, img: img['polo-basico-negro'] },
+    { nombre: 'Under Armour Tech 2.0 SS', cat: 'camisas', marca: 'under-armour', precio: 119.90, costo: 55, img: img['polo-deportivo'] },
+    { nombre: 'Nike Sportswear Club Blanco', cat: 'camisas', marca: 'nike', precio: 99.90, costo: 45, img: img['polo-basico-blanco'] },
+    { nombre: 'Polo Oversize Urban Street', cat: 'camisas', marca: 'generico', precio: 59.90, costo: 25, img: img['polo-oversize'] },
+    { nombre: 'Camiseta Estampada Graphic', cat: 'camisas', marca: 'generico', precio: 49.90, costo: 20, img: img['camiseta-estampada'] },
+    { nombre: 'Polo Manga Larga Thermal', cat: 'camisas', marca: 'under-armour', precio: 149.90, costo: 70, img: img['polo-manga-larga'] },
+    { nombre: 'Nike Pro Compression Top', cat: 'ropa-deportiva', marca: 'nike', precio: 139.90, costo: 65, img: img['polo-deportivo'] },
+    { nombre: 'Adidas Techfit Training Tee', cat: 'ropa-deportiva', marca: 'adidas', precio: 119.90, costo: 55, img: img['polo-deportivo'] },
+    { nombre: 'Camiseta Running Dry-Fit', cat: 'ropa-deportiva', marca: 'nike', precio: 109.90, costo: 50, img: img['polo-deportivo'] },
+    { nombre: 'Tank Top Training Mujer', cat: 'ropa-deportiva', marca: 'nike', precio: 89.90, costo: 40, img: img['top-deportivo'] },
+    { nombre: 'Leggins Nike One Mujer', cat: 'ropa-deportiva', marca: 'nike', precio: 199.90, costo: 95, img: img['leggins-mujer'] },
+    { nombre: 'Leggins Adidas 3-Rayas Mujer', cat: 'ropa-deportiva', marca: 'adidas', precio: 179.90, costo: 85, img: img['leggins-mujer'] },
+    { nombre: 'Short Running Nike Tempo', cat: 'ropa-deportiva', marca: 'nike', precio: 129.90, costo: 60, img: img['shorts-running'] },
+    { nombre: 'Top Deportivo Under Armour', cat: 'ropa-deportiva', marca: 'under-armour', precio: 109.90, costo: 50, img: img['top-deportivo'] },
+    { nombre: 'Conjunto Deportivo Mujer', cat: 'ropa-deportiva', marca: 'adidas', precio: 249.90, costo: 120, img: img['conjunto-deportivo'] },
+    { nombre: 'Sports Bra Nike Swoosh', cat: 'ropa-deportiva', marca: 'nike', precio: 139.90, costo: 65, img: img['top-deportivo'] },
+    // === PANTALONES (15) ===
+    { nombre: 'Jean Slim Fit Azul Clásico', cat: 'pantalones', marca: 'levis', precio: 199.90, costo: 95, img: img['jean-azul'] },
+    { nombre: 'Jean Skinny Negro', cat: 'pantalones', marca: 'levis', precio: 189.90, costo: 90, img: img['jean-negro'] },
+    { nombre: 'Nike Sportswear Club Jogger', cat: 'pantalones', marca: 'nike', precio: 219.90, costo: 105, img: img['jogger-deportivo'] },
+    { nombre: 'Adidas Essentials Jogger', cat: 'pantalones', marca: 'adidas', precio: 199.90, costo: 95, img: img['jogger-deportivo'] },
+    { nombre: 'Pantalón Chino Slim Beige', cat: 'pantalones', marca: 'generico', precio: 129.90, costo: 60, img: img['pantalon-chino'] },
+    { nombre: 'Short Nike Dri-FIT', cat: 'pantalones', marca: 'nike', precio: 119.90, costo: 55, img: img['short-deportivo'] },
+    { nombre: 'Short Adidas Aeroready', cat: 'pantalones', marca: 'adidas', precio: 109.90, costo: 50, img: img['short-deportivo'] },
+    { nombre: 'Bermuda Cargo Casual', cat: 'pantalones', marca: 'generico', precio: 89.90, costo: 40, img: img['bermuda-casual'] },
+    { nombre: 'Puma Essentials Jogger', cat: 'pantalones', marca: 'puma', precio: 179.90, costo: 85, img: img['jogger-deportivo'] },
+    { nombre: 'Nike Tech Fleece Jogger', cat: 'pantalones', marca: 'nike', precio: 349.90, costo: 170, img: img['jogger-deportivo'] },
+    { nombre: 'Jean Relaxed Fit', cat: 'pantalones', marca: 'levis', precio: 219.90, costo: 105, img: img['jean-azul'] },
+    { nombre: 'Pantalón Cargo Nike SB', cat: 'pantalones', marca: 'nike', precio: 259.90, costo: 125, img: img['pantalon-chino'] },
+    { nombre: 'Short Under Armour Launch', cat: 'pantalones', marca: 'under-armour', precio: 129.90, costo: 60, img: img['short-deportivo'] },
+    { nombre: 'Jogger Under Armour Rival', cat: 'pantalones', marca: 'under-armour', precio: 209.90, costo: 100, img: img['jogger-deportivo'] },
+    { nombre: 'Bermuda Nike Club', cat: 'pantalones', marca: 'nike', precio: 139.90, costo: 65, img: img['bermuda-casual'] },
+    // === CASACAS Y HOODIES (15) ===
+    { nombre: 'Nike Windrunner Cortaviento', cat: 'accesorios', marca: 'nike', precio: 349.90, costo: 170, img: img['casaca-cortaviento'] },
+    { nombre: 'Adidas Own The Run Jacket', cat: 'accesorios', marca: 'adidas', precio: 299.90, costo: 145, img: img['casaca-deportiva'] },
+    { nombre: 'Nike Sportswear Club Hoodie', cat: 'accesorios', marca: 'nike', precio: 279.90, costo: 135, img: img['hoodie-negro'] },
+    { nombre: 'Adidas Essentials Hoodie', cat: 'accesorios', marca: 'adidas', precio: 249.90, costo: 120, img: img['hoodie-gris'] },
+    { nombre: 'Puma ESS Big Logo Hoodie', cat: 'accesorios', marca: 'puma', precio: 219.90, costo: 105, img: img['hoodie-gris'] },
+    { nombre: 'Under Armour Storm Jacket', cat: 'accesorios', marca: 'under-armour', precio: 399.90, costo: 195, img: img['casaca-cortaviento'] },
+    { nombre: 'Chaqueta Denim Clásica', cat: 'accesorios', marca: 'levis', precio: 299.90, costo: 145, img: img['chaqueta-denim'] },
+    { nombre: 'Chaleco Puffer Nike', cat: 'accesorios', marca: 'nike', precio: 329.90, costo: 160, img: img['chaleco-puffer'] },
+    { nombre: 'Nike Tech Fleece Full Zip', cat: 'accesorios', marca: 'nike', precio: 449.90, costo: 220, img: img['hoodie-negro'] },
+    { nombre: 'Adidas Tiro Track Jacket', cat: 'accesorios', marca: 'adidas', precio: 269.90, costo: 130, img: img['casaca-deportiva'] },
+    { nombre: 'Hoodie Oversize Urban', cat: 'accesorios', marca: 'generico', precio: 149.90, costo: 70, img: img['hoodie-gris'] },
+    { nombre: 'Casaca Rompevientos Puma', cat: 'accesorios', marca: 'puma', precio: 279.90, costo: 135, img: img['casaca-cortaviento'] },
+    { nombre: 'Jordan Essentials Hoodie', cat: 'accesorios', marca: 'nike', precio: 349.90, costo: 170, img: img['hoodie-negro'] },
+    { nombre: 'Chaleco Under Armour Storm', cat: 'accesorios', marca: 'under-armour', precio: 359.90, costo: 175, img: img['chaleco-puffer'] },
+    { nombre: 'Casaca Adidas Terrex Trail', cat: 'accesorios', marca: 'adidas', precio: 379.90, costo: 185, img: img['casaca-deportiva'] },
+    // === GORROS Y ACCESORIOS (25) ===
+    { nombre: 'Gorro Beanie Nike Cuffed', cat: 'accesorios', marca: 'nike', precio: 79.90, costo: 35, img: img['gorro-beanie'] },
+    { nombre: 'Gorro Beanie Adidas Trefoil', cat: 'accesorios', marca: 'adidas', precio: 69.90, costo: 30, img: img['gorro-beanie'] },
+    { nombre: 'Gorra Nike Heritage86', cat: 'accesorios', marca: 'nike', precio: 89.90, costo: 40, img: img['gorro-beanie'] },
+    { nombre: 'Gorra Adidas Baseball Cap', cat: 'accesorios', marca: 'adidas', precio: 79.90, costo: 35, img: img['gorro-beanie'] },
+    { nombre: 'Mochila Nike Brasilia', cat: 'accesorios', marca: 'nike', precio: 179.90, costo: 85, img: img['mochila-deportiva'] },
+    { nombre: 'Mochila Adidas Classic', cat: 'accesorios', marca: 'adidas', precio: 159.90, costo: 75, img: img['mochila-deportiva'] },
+    { nombre: 'Bolso Gym Nike', cat: 'accesorios', marca: 'nike', precio: 139.90, costo: 65, img: img['bolso-gym'] },
+    { nombre: 'Bolso Deportivo Adidas', cat: 'accesorios', marca: 'adidas', precio: 129.90, costo: 60, img: img['bolso-gym'] },
+    { nombre: 'Medias Nike Everyday 3-Pack', cat: 'accesorios', marca: 'nike', precio: 59.90, costo: 25, img: img['medias-deportivas'] },
+    { nombre: 'Medias Adidas Cushioned 3-Pack', cat: 'accesorios', marca: 'adidas', precio: 49.90, costo: 20, img: img['medias-deportivas'] },
+    { nombre: 'Medias Puma Crew 3-Pack', cat: 'accesorios', marca: 'puma', precio: 44.90, costo: 18, img: img['medias-deportivas'] },
+    { nombre: 'Cinturón Nike Golf Web', cat: 'accesorios', marca: 'nike', precio: 99.90, costo: 45, img: img['cinturon-casual'] },
+    { nombre: 'Cinturón Under Armour', cat: 'accesorios', marca: 'under-armour', precio: 89.90, costo: 40, img: img['cinturon-casual'] },
+    { nombre: 'Muñequera Nike Swoosh', cat: 'accesorios-deportivos', marca: 'nike', precio: 39.90, costo: 15, img: img['medias-deportivas'] },
+    { nombre: 'Cintillo Nike Head Tie', cat: 'accesorios-deportivos', marca: 'nike', precio: 49.90, costo: 20, img: img['medias-deportivas'] },
+    { nombre: 'Guantes Training Nike', cat: 'accesorios-deportivos', marca: 'nike', precio: 79.90, costo: 35, img: img['medias-deportivas'] },
+    { nombre: 'Mochila Under Armour Hustle', cat: 'accesorios', marca: 'under-armour', precio: 199.90, costo: 95, img: img['mochila-deportiva'] },
+    { nombre: 'Riñonera Nike Heritage', cat: 'accesorios', marca: 'nike', precio: 89.90, costo: 40, img: img['bolso-gym'] },
+    { nombre: 'Riñonera Adidas Originals', cat: 'accesorios', marca: 'adidas', precio: 79.90, costo: 35, img: img['bolso-gym'] },
+    { nombre: 'Gorra Puma ESS Cap', cat: 'accesorios', marca: 'puma', precio: 59.90, costo: 25, img: img['gorro-beanie'] },
+    { nombre: 'Botella Nike HyperFuel 700ml', cat: 'accesorios-deportivos', marca: 'nike', precio: 69.90, costo: 30, img: img['medias-deportivas'] },
+    { nombre: 'Tobillera Nike Pro Ankle', cat: 'accesorios-deportivos', marca: 'nike', precio: 59.90, costo: 25, img: img['medias-deportivas'] },
+    { nombre: 'Rodillera Nike Pro Knee', cat: 'accesorios-deportivos', marca: 'nike', precio: 69.90, costo: 30, img: img['medias-deportivas'] },
+    { nombre: 'Balón Nike Flight Fútbol', cat: 'accesorios-deportivos', marca: 'nike', precio: 149.90, costo: 70, img: img['zapatilla-futbol'] },
+    { nombre: 'Balón Adidas UCL Fútbol', cat: 'accesorios-deportivos', marca: 'adidas', precio: 129.90, costo: 60, img: img['zapatilla-futbol'] },
+  ];
+
+  let eanIndex = 1;
+  for (const prod of productosSimples) {
+    const categoria = getCategoriaBySlug(prod.cat);
+    const marca = getMarcaBySlug(prod.marca);
+    if (!categoria || !marca) {
+      console.log(`  SKIP: ${prod.nombre} (cat: ${prod.cat}, marca: ${prod.marca})`);
+      continue;
+    }
+
+    const codigo = `P-${String(eanIndex).padStart(4, '0')}`;
+    const catLabel = prod.cat.split('-')[0];
+    const imgSeed = catLabel === 'bebidas' || catLabel === 'snacks' || catLabel === 'lacteos' || catLabel === 'conservas' ? 'alimento' :
+                    catLabel === 'smartphones' || catLabel === 'laptops' || catLabel === 'audio' || catLabel === 'tablets' || catLabel === 'accesorios' ? 'electronica' :
+                    catLabel === 'equipos' || catLabel === 'ropa' || catLabel === 'accesorios' ? 'deporte' :
+                    catLabel === 'decoracion' || catLabel === 'cocina' || catLabel === 'bano' || catLabel === 'muebles' ? 'hogar' : 'ropa';
+
+    await crearProductoSimple({
+      codigo,
+      nombre: prod.nombre,
+      categoriaId: categoria.id,
+      marcaId: marca.id,
+      precioVenta: prod.precio,
+      precioCompra: prod.costo,
+      precioMayorista: parseFloat((prod.precio * 0.85).toFixed(2)),
+      codigoBarras: generarEAN(eanIndex),
+      imagen: (prod as any).img || getProductImage('ropa', eanIndex),
+      descripcion: `${prod.nombre} - ${marca.nombre}`,
+    });
+    eanIndex++;
+  }
+
+  console.log(`  ${totalProductos} productos simples creados`);
+
+  // LEGACY: remove old variable products section
+  // (replaced with simple products above)
+  if (false) {
+  // =====================================================
+  // OLD PRODUCTOS DE ROPA (25 productos, ~150 variantes)
   // Atributos: Talla + Color + Material (algunos)
   // =====================================================
   console.log('Creando productos de ROPA...');
@@ -1194,7 +1476,7 @@ async function main() {
       where: {
         empresaId_codigoInterno: { empresaId: empresaDemo.id, codigoInterno },
       },
-      update: {},
+      update: { imagenPrincipal: getProductImage('ropa', i) },
       create: {
         empresaId: empresaDemo.id,
         categoriaId: categoria.id,
@@ -1203,6 +1485,7 @@ async function main() {
         codigoInterno,
         nombre: prodData.nombre,
         slug,
+        imagenPrincipal: getProductImage('ropa', i),
         descripcionCorta: `${prodData.nombre} de ${marca.nombre}`,
         tipo: 'variable',
         precioVenta: prodData.precioBase,
@@ -1298,7 +1581,7 @@ async function main() {
       where: {
         empresaId_codigoInterno: { empresaId: empresaDemo.id, codigoInterno },
       },
-      update: {},
+      update: { imagenPrincipal: getProductImage('electronica', i) },
       create: {
         empresaId: empresaDemo.id,
         categoriaId: categoria.id,
@@ -1426,7 +1709,7 @@ async function main() {
       where: {
         empresaId_codigoInterno: { empresaId: empresaDemo.id, codigoInterno },
       },
-      update: {},
+      update: { imagenPrincipal: getProductImage('deporte', i) },
       create: {
         empresaId: empresaDemo.id,
         categoriaId: categoria.id,
@@ -1435,6 +1718,7 @@ async function main() {
         codigoInterno,
         nombre: prodData.nombre,
         slug,
+        imagenPrincipal: getProductImage('deporte', i),
         descripcionCorta: `${prodData.nombre} de ${marca.nombre}`,
         tipo: 'variable',
         precioVenta: prodData.precioBase,
@@ -1552,7 +1836,7 @@ async function main() {
       where: {
         empresaId_codigoInterno: { empresaId: empresaDemo.id, codigoInterno },
       },
-      update: {},
+      update: { imagenPrincipal: getProductImage('hogar', i) },
       create: {
         empresaId: empresaDemo.id,
         categoriaId: categoria.id,
@@ -1561,6 +1845,7 @@ async function main() {
         codigoInterno,
         nombre: prodData.nombre,
         slug,
+        imagenPrincipal: getProductImage('hogar', i),
         descripcionCorta: `${prodData.nombre} de alta calidad`,
         tipo: 'variable',
         precioVenta: prodData.precioBase,
@@ -1638,7 +1923,7 @@ async function main() {
       where: {
         empresaId_codigoInterno: { empresaId: empresaDemo.id, codigoInterno },
       },
-      update: {},
+      update: { imagenPrincipal: getProductImage('alimento', i) },
       create: {
         empresaId: empresaDemo.id,
         categoriaId: categoria.id,
@@ -1647,6 +1932,7 @@ async function main() {
         codigoInterno,
         nombre: prodData.nombre,
         slug,
+        imagenPrincipal: getProductImage('alimento', i),
         descripcionCorta: `${prodData.nombre} de ${marca.nombre}`,
         tipo: prodData.conTamano ? 'variable' : 'simple',
         precioVenta: prodData.precioBase,
@@ -1703,9 +1989,10 @@ async function main() {
     }
   }
   console.log(`  ${productosAlimentos.length} productos de alimentos con variantes`);
+  } // end if(false) - old variable products
 
   console.log('\n========================================');
-  console.log(`TOTAL: ${totalProductos} PRODUCTOS, ${totalVariantes} VARIANTES`);
+  console.log(`TOTAL: ${totalProductos} PRODUCTOS`);
   console.log('========================================');
 
   // =====================================================

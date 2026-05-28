@@ -172,6 +172,23 @@ export class UsuarioService {
    * POST /usuarios - Crear usuario
    */
   async create(empresaId: string, dto: CreateUsuarioDto, createdBy?: string) {
+    // Verificar límite de usuarios del plan
+    const [empresa, activeUserCount] = await Promise.all([
+      this.prisma.empresa.findUnique({
+        where: { id: empresaId },
+        select: { maxUsuarios: true },
+      }),
+      this.prisma.usuario.count({
+        where: { empresaId, activo: true },
+      }),
+    ]);
+
+    if (empresa && activeUserCount >= empresa.maxUsuarios) {
+      throw new BadRequestException(
+        `Has llegado al límite de usuarios permitidos. Tu plan permite máximo ${empresa.maxUsuarios} usuarios.`,
+      );
+    }
+
     // Verificar email único en la empresa
     const existingEmail = await this.prisma.usuario.findFirst({
       where: { email: dto.email, empresaId },

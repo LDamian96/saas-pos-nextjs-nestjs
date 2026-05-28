@@ -76,46 +76,46 @@ export default function PagosProveedorPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-3 md:space-y-6"
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Wallet className="h-6 w-6" />
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Wallet className="h-5 w-5 md:h-6 md:w-6" />
             Pagos a Proveedores
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Registro de pagos realizados</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">Registro de pagos realizados</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
+        <Button onClick={() => setShowCreate(true)} className="gap-2 h-11 md:h-10 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Registrar Pago
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2 md:gap-4">
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 md:pt-4 md:px-6">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <Hash className="h-5 w-5 text-blue-600" />
+                <Hash className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-500">Total Pagos</p>
-                <p className="text-xl font-bold">{resumen?.totalPagos || 0}</p>
+                <p className="text-lg md:text-xl font-bold">{resumen?.totalPagos || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 md:pt-4 md:px-6">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600" />
+                <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Monto Total Pagado</p>
-                <p className="text-xl font-bold">S/. {Number(resumen?.montoTotal || 0).toFixed(2)}</p>
+                <p className="text-xs text-gray-500">Monto Pagado</p>
+                <p className="text-lg md:text-xl font-bold">S/. {Number(resumen?.montoTotal || 0).toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -125,7 +125,7 @@ export default function PagosProveedorPage() {
       {/* Filter */}
       <div className="flex gap-3">
         <Select value={filtroProveedorId} onValueChange={setFiltroProveedorId}>
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger className="w-full sm:w-[250px] h-11 md:h-10">
             <SelectValue placeholder="Filtrar por proveedor" />
           </SelectTrigger>
           <SelectContent>
@@ -139,73 +139,130 @@ export default function PagosProveedorPage() {
         </Select>
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Numero</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Proveedor</TableHead>
-                  <TableHead>Compra</TableHead>
-                  <TableHead>Monto</TableHead>
-                  <TableHead>Metodo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pagos?.length === 0 && (
+      {/* Table / Cards */}
+      {isLoading ? (
+        <div className="p-4 md:p-6 space-y-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+        </div>
+      ) : pagos?.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 md:p-12 text-center">
+            <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-base md:text-lg font-medium">No hay pagos registrados</h3>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <Card className="hidden md:block">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      No hay pagos registrados
-                    </TableCell>
+                    <TableHead>Numero</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Proveedor</TableHead>
+                    <TableHead>Compra</TableHead>
+                    <TableHead>Monto</TableHead>
+                    <TableHead>Metodo</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
-                )}
-                {pagos?.map((pago) => (
-                  <TableRow key={pago.id}>
-                    <TableCell className="font-medium">{pago.numero}</TableCell>
-                    <TableCell>{new Date(pago.fecha).toLocaleDateString()}</TableCell>
-                    <TableCell>{pago.proveedor.nombreComercial || pago.proveedor.razonSocial}</TableCell>
-                    <TableCell>{pago.compra?.numero || '-'}</TableCell>
-                    <TableCell className="font-semibold">S/. {Number(pago.monto).toFixed(2)}</TableCell>
-                    <TableCell>{getMetodoPagoLabel(pago.metodoPago)}</TableCell>
-                    <TableCell>
-                      {pago.estado === 'completado' ? (
-                        <Badge className="bg-green-100 text-green-800">Completado</Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-800">Anulado</Badge>
+                </TableHeader>
+                <TableBody>
+                  {pagos?.map((pago) => (
+                    <TableRow key={pago.id}>
+                      <TableCell className="font-medium">{pago.numero}</TableCell>
+                      <TableCell>{new Date(pago.fecha).toLocaleDateString()}</TableCell>
+                      <TableCell>{pago.proveedor.nombreComercial || pago.proveedor.razonSocial}</TableCell>
+                      <TableCell>{pago.compra?.numero || '-'}</TableCell>
+                      <TableCell className="font-semibold">S/. {Number(pago.monto).toFixed(2)}</TableCell>
+                      <TableCell>{getMetodoPagoLabel(pago.metodoPago)}</TableCell>
+                      <TableCell>
+                        {pago.estado === 'completado' ? (
+                          <Badge className="bg-green-100 text-green-800">Completado</Badge>
+                        ) : (
+                          <Badge className="bg-red-100 text-red-800">Anulado</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {pago.estado === 'completado' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAnularId(pago.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {pagos?.map((pago) => (
+              <Card key={pago.id} className="active:scale-[0.98] transition-transform">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">
+                        {pago.proveedor.nombreComercial || pago.proveedor.razonSocial}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {pago.numero} - {new Date(pago.fecha).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {pago.estado === 'completado' ? (
+                      <Badge className="bg-green-100 text-green-800 text-xs shrink-0">Completado</Badge>
+                    ) : (
+                      <Badge className="bg-red-100 text-red-800 text-xs shrink-0">Anulado</Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t">
+                    <div className="flex gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Monto</p>
+                        <p className="font-bold">S/. {Number(pago.monto).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Metodo</p>
+                        <p className="font-medium">{getMetodoPagoLabel(pago.metodoPago)}</p>
+                      </div>
+                      {pago.compra?.numero && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Compra</p>
+                          <p className="font-medium">{pago.compra.numero}</p>
+                        </div>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {pago.estado === 'completado' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setAnularId(pago.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                    {pago.estado === 'completado' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-11 px-4 text-red-600 hover:text-red-800 border-red-200"
+                        onClick={() => setAnularId(pago.id)}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Anular
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5" /> Registrar Pago
@@ -296,9 +353,10 @@ export default function PagosProveedorPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" className="h-11 md:h-10 w-full sm:w-auto" onClick={() => setShowCreate(false)}>Cancelar</Button>
             <Button
+              className="h-11 md:h-10 w-full sm:w-auto"
               onClick={handleSubmit}
               disabled={!formData.proveedorId || formData.monto <= 0 || createMutation.isPending}
             >

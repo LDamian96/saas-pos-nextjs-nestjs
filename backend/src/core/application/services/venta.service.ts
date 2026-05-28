@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/persistence/prisma/prisma.service';
 import { RedisService } from '../../../infrastructure/cache/redis.service';
-import { CreateVentaDto, VentaFiltersDto, AnularVentaDto } from '../dto/venta';
+import { CreateVentaDto, VentaFiltersDto, AnularVentaDto, DevolucionVentaDto } from '../dto/venta';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 import { LoteService } from './lote.service';
 import { NotificacionService } from './notificacion.service';
@@ -627,12 +627,18 @@ export class VentaService {
 
       // Revertir montos de la caja si sigue abierta
       if (caja && caja.estado === 'abierta') {
+        // Calcular montos reales por tipo de pago
+        const montoEfectivo = await this.calcularMontoTipoPagoFromPagos(venta.pagos, 'efectivo');
+        const montoTarjeta = await this.calcularMontoTipoPagoFromPagos(venta.pagos, 'tarjeta');
+        const montoOtros = await this.calcularMontoTipoPagoFromPagos(venta.pagos, 'otros');
+
         await tx.caja.update({
           where: { id: venta.cajaId },
           data: {
             montoVentas: { decrement: Number(venta.total) },
-            // Revertir segun tipo de pago (simplificado)
-            montoEfectivo: { decrement: Number(venta.total) * 0.7 }, // Aproximado
+            montoEfectivo: { decrement: montoEfectivo },
+            montoTarjeta: { decrement: montoTarjeta },
+            montoOtros: { decrement: montoOtros },
           },
         });
       }
@@ -644,6 +650,10 @@ export class VentaService {
     return {
       success: true,
       message: 'Venta anulada correctamente',
+      data: {
+        id: ventaId,
+        numero: venta.numeroVenta,
+      },
     };
   }
 
@@ -773,6 +783,202 @@ export class VentaService {
     return {
       success: true,
       data: metodosPago,
+    };
+  }
+
+  /**
+   * POST /ventas/:id/devolucion - Procesar devolucion parcial o total
+   */
+  async procesarDevolucion(
+    empresaId: string,
+    ventaId: string,
+    usuarioId: string,
+    dto: DevolucionVentaDto,
+  ) {
+    // 1. Obtener venta con detalles
+    const venta = await this.prisma.venta.findFirst({
+      where: { id: ventaId, empresaId },
+      include: {
+        detalles: {
+          include: {
+            variante: {
+              select: {
+                id: true,
+                sku: true,
+                producto: { select: { nombre: true } },
+              },
+            },
+          },
+        },
+        pagos: true,
+      },
+    });
+
+    if (!venta) {
+      throw new NotFoundException(ERROR_MESSAGES.SALE_NOT_FOUND);
+    }
+
+    if (venta.estado !== 'completada') {
+      throw new BadRequestException(
+        'Solo se pueden devolver ventas completadas',
+      );
+    }
+
+    // 2. Validar items de devolucion
+    let montoDevolucion = 0;
+    const itemsValidados = [];
+
+    for (const item of dto.items) {
+      const detalle = venta.detalles.find((d) => d.id === item.detalleId);
+      if (!detalle) {
+        throw new NotFoundException(
+          `Detalle de venta ${item.detalleId} no encontrado`,
+        );
+      }
+
+      if (item.cantidad <= 0) {
+        throw new BadRequestException(
+          'La cantidad a devolver debe ser mayor a 0',
+        );
+      }
+
+      if (item.cantidad > detalle.cantidad) {
+        throw new BadRequestException(
+          `No se puede devolver mas de ${detalle.cantidad} unidades de ${detalle.variante?.producto?.nombre || 'producto'}`,
+        );
+      }
+
+      const montoItem =
+        (Number(detalle.precioUnidad) * item.cantidad) -
+        (Number(detalle.descuento || 0) * (item.cantidad / detalle.cantidad));
+
+      itemsValidados.push({
+        detalle,
+        cantidadDevolver: item.cantidad,
+        montoDevolucion: montoItem,
+      });
+
+      montoDevolucion += montoItem;
+    }
+
+    // 3. Verificar si es devolucion total (todos los items, cantidades completas)
+    const totalItemsVenta = venta.detalles.length;
+    const esDevolucionTotal =
+      itemsValidados.length === totalItemsVenta &&
+      itemsValidados.every(
+        (iv) => iv.cantidadDevolver === iv.detalle.cantidad,
+      );
+
+    // 4. Procesar en transaccion
+    await this.prisma.$transaction(async (tx) => {
+      for (const iv of itemsValidados) {
+        // Restaurar stock de variante
+        await tx.variante.update({
+          where: { id: iv.detalle.varianteId },
+          data: {
+            stock: { increment: iv.cantidadDevolver },
+          },
+        });
+
+        // Restaurar stock de sucursal
+        await tx.stockSucursal.update({
+          where: {
+            varianteId_sucursalId: {
+              varianteId: iv.detalle.varianteId,
+              sucursalId: venta.sucursalId,
+            },
+          },
+          data: {
+            stock: { increment: iv.cantidadDevolver },
+          },
+        });
+
+        // Restaurar stock del lote si aplica
+        if (iv.detalle.loteId) {
+          await tx.lote.update({
+            where: { id: iv.detalle.loteId },
+            data: {
+              stock: { increment: iv.cantidadDevolver },
+              estado: 'activo',
+            },
+          });
+        }
+
+        // Actualizar cantidad del detalle si es devolucion parcial del item
+        if (iv.cantidadDevolver < iv.detalle.cantidad) {
+          const nuevaCantidad = iv.detalle.cantidad - iv.cantidadDevolver;
+          const nuevoSubtotal =
+            Number(iv.detalle.precioUnidad) * nuevaCantidad -
+            Number(iv.detalle.descuento || 0) * (nuevaCantidad / iv.detalle.cantidad);
+
+          await tx.ventaDetalle.update({
+            where: { id: iv.detalle.id },
+            data: {
+              cantidad: nuevaCantidad,
+              subtotal: nuevoSubtotal,
+            },
+          });
+        } else {
+          // Devolucion completa del item: marcar cantidad en 0
+          await tx.ventaDetalle.update({
+            where: { id: iv.detalle.id },
+            data: {
+              cantidad: 0,
+              subtotal: 0,
+            },
+          });
+        }
+      }
+
+      // Actualizar venta
+      const nuevoTotal = Number(venta.total) - montoDevolucion;
+      const notaDevolucion = `[DEVOLUCION ${new Date().toLocaleDateString()}] ${dto.motivo || 'Devolucion parcial'} - Monto: ${montoDevolucion.toFixed(2)}`;
+
+      await tx.venta.update({
+        where: { id: ventaId },
+        data: {
+          estado: esDevolucionTotal ? 'anulada' : 'completada',
+          total: esDevolucionTotal ? venta.total : nuevoTotal,
+          notas: venta.notas
+            ? `${venta.notas}\n${notaDevolucion}`
+            : notaDevolucion,
+        },
+      });
+
+      // Revertir montos de la caja si sigue abierta
+      const caja = await tx.caja.findUnique({
+        where: { id: venta.cajaId },
+      });
+
+      if (caja && caja.estado === 'abierta') {
+        await tx.caja.update({
+          where: { id: venta.cajaId },
+          data: {
+            montoVentas: { decrement: montoDevolucion },
+          },
+        });
+      }
+    });
+
+    // 5. Invalidar cache
+    await this.invalidateCache(empresaId);
+
+    return {
+      success: true,
+      message: esDevolucionTotal
+        ? 'Devolucion total procesada. La venta fue anulada.'
+        : 'Devolucion parcial procesada correctamente.',
+      data: {
+        ventaId,
+        montoDevolucion,
+        esDevolucionTotal,
+        itemsDevueltos: itemsValidados.map((iv) => ({
+          detalleId: iv.detalle.id,
+          productoNombre: iv.detalle.variante?.producto?.nombre,
+          cantidadDevuelta: iv.cantidadDevolver,
+          montoDevuelto: iv.montoDevolucion,
+        })),
+      },
     };
   }
 
@@ -942,6 +1148,39 @@ export class VentaService {
       const metodo = metodosPago.find((m) => m.id === pago.metodoPagoId);
       if (metodo && tiposMap[metodo.tipo] === tipo) {
         total += pago.monto;
+      }
+    }
+
+    return total;
+  }
+
+  /**
+   * Calcular monto por tipo de pago desde pagos existentes (para anulaciones)
+   */
+  private async calcularMontoTipoPagoFromPagos(
+    pagos: any[],
+    tipo: 'efectivo' | 'tarjeta' | 'otros',
+  ): Promise<number> {
+    const metodosPago = await this.prisma.metodoPago.findMany({
+      where: {
+        id: { in: pagos.map((p) => p.metodoPagoId) },
+      },
+    });
+
+    const tiposMap: Record<string, 'efectivo' | 'tarjeta' | 'otros'> = {
+      efectivo: 'efectivo',
+      tarjeta_credito: 'tarjeta',
+      tarjeta_debito: 'tarjeta',
+      yape: 'otros',
+      plin: 'otros',
+      transferencia: 'otros',
+    };
+
+    let total = 0;
+    for (const pago of pagos) {
+      const metodo = metodosPago.find((m) => m.id === pago.metodoPagoId);
+      if (metodo && tiposMap[metodo.tipo] === tipo) {
+        total += Number(pago.monto);
       }
     }
 

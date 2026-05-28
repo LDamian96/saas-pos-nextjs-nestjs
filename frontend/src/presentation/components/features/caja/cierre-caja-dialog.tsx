@@ -2,13 +2,13 @@
 
 /**
  * @file cierre-caja-dialog.tsx
- * @description Dialog para cerrar la caja actual
+ * @description Dialog para cerrar la caja actual con conteo de billetes/monedas
  *
  * @references
  * - DTOs: ver backend/src/core/application/dto/caja/cierre-caja.dto.ts
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,13 +39,11 @@ import {
   CreditCard,
   Smartphone,
   Lock,
+  Coins,
 } from 'lucide-react';
 
-// Schema de validación - solo efectivo es input del usuario
+// Schema de validacion
 const cierreCajaSchema = z.object({
-  efectivoContado: z.coerce
-    .number()
-    .min(0, 'El monto no puede ser negativo'),
   observaciones: z.string().optional(),
 });
 
@@ -59,6 +57,24 @@ const formatCurrency = (value: number | undefined) => {
     currency: 'PEN',
   }).format(value);
 };
+
+// Denominaciones del sol peruano
+const BILLETES = [
+  { label: 'S/ 200', value: 200 },
+  { label: 'S/ 100', value: 100 },
+  { label: 'S/ 50', value: 50 },
+  { label: 'S/ 20', value: 20 },
+  { label: 'S/ 10', value: 10 },
+];
+
+const MONEDAS = [
+  { label: 'S/ 5', value: 5 },
+  { label: 'S/ 2', value: 2 },
+  { label: 'S/ 1', value: 1 },
+  { label: 'S/ 0.50', value: 0.5 },
+  { label: 'S/ 0.20', value: 0.2 },
+  { label: 'S/ 0.10', value: 0.1 },
+];
 
 interface CierreCajaDialogProps {
   open?: boolean;
@@ -74,7 +90,17 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
   const dialogOpen = open ?? isOpen;
   const setDialogOpen = onOpenChange ?? setIsOpen;
 
-  // Montos electrónicos del sistema (auto-calculados)
+  // Conteo de denominaciones
+  const [conteo, setConteo] = useState<Record<number, number>>({});
+
+  // Reset conteo when dialog opens
+  useEffect(() => {
+    if (dialogOpen) {
+      setConteo({});
+    }
+  }, [dialogOpen]);
+
+  // Montos electronicos del sistema (auto-calculados)
   const tarjetaSistema = resumen?.totalTarjeta || 0;
   const otrosSistema = resumen?.totalOtros || 0;
   const efectivoEsperado = resumen?.totalEfectivo || 0;
@@ -82,49 +108,75 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
   const form = useForm<CierreCajaForm>({
     resolver: zodResolver(cierreCajaSchema),
     defaultValues: {
-      efectivoContado: 0,
       observaciones: '',
     },
   });
 
-  // Pre-llenar con el monto esperado de efectivo cuando carga el resumen
-  useEffect(() => {
-    if (resumen && dialogOpen) {
-      form.setValue('efectivoContado', resumen.totalEfectivo || 0);
+  // Total contado a partir de denominaciones
+  const totalContado = useMemo(() => {
+    let sum = 0;
+    for (const [denom, qty] of Object.entries(conteo)) {
+      sum += Number(denom) * (qty || 0);
     }
-  }, [resumen, dialogOpen]);
+    // Redondear para evitar errores de punto flotante
+    return Math.round(sum * 100) / 100;
+  }, [conteo]);
 
-  // Calcular diferencia de efectivo en tiempo real
-  const efectivoContado = Number(form.watch('efectivoContado')) || 0;
-  const diferenciaEfectivo = efectivoContado - efectivoEsperado;
+  const diferenciaEfectivo = totalContado - efectivoEsperado;
+  const totalCierre = totalContado + tarjetaSistema + otrosSistema;
 
-  // Total de cierre = efectivo contado + electrónicos (auto)
-  const totalCierre = efectivoContado + tarjetaSistema + otrosSistema;
+  const updateConteo = (denom: number, qty: number) => {
+    setConteo((prev) => ({
+      ...prev,
+      [denom]: Math.max(0, qty),
+    }));
+  };
 
   const onSubmit = async (data: CierreCajaForm) => {
     if (!cajaActual) return;
 
     try {
-      const efectivo = Number(data.efectivoContado) || 0;
       await cerrarCaja.mutateAsync({
         cajaId: cajaActual.id,
         dto: {
-          montoCierre: efectivo + tarjetaSistema + otrosSistema,
-          montoEfectivo: efectivo,
+          montoCierre: totalCierre,
+          montoEfectivo: totalContado,
           montoTarjeta: tarjetaSistema,
           montoOtros: otrosSistema,
           observaciones: data.observaciones || undefined,
         },
       });
       form.reset();
+      setConteo({});
       setDialogOpen(false);
     } catch (error) {
       // Error manejado por el mutation
     }
   };
 
-  // Si no hay caja abierta, deshabilitar el botón
+  // Si no hay caja abierta, deshabilitar el boton
   const noCajaAbierta = !cajaActual;
+
+  const renderDenominationRow = (denom: { label: string; value: number }) => {
+    const qty = conteo[denom.value] || 0;
+    const subtotal = Math.round(qty * denom.value * 100) / 100;
+    return (
+      <div key={denom.value} className="flex items-center gap-2">
+        <span className="text-sm font-medium w-16 shrink-0">{denom.label}</span>
+        <Input
+          type="number"
+          min={0}
+          value={qty || ''}
+          onChange={(e) => updateConteo(denom.value, parseInt(e.target.value) || 0)}
+          className="h-11 w-20 text-center"
+          placeholder="0"
+        />
+        <span className="text-sm text-muted-foreground w-20 text-right shrink-0">
+          {subtotal > 0 ? formatCurrency(subtotal) : '-'}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -139,18 +191,18 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
           Cerrar Caja
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <DoorClosed className="h-5 w-5" />
             Cerrar Caja
           </DialogTitle>
           <DialogDescription>
-            Cuenta el efectivo fisico. Los pagos electronicos se calculan automaticamente.
+            Cuenta el efectivo fisico por denominacion. Los pagos electronicos se calculan automaticamente.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Pagos electrónicos - auto-calculados */}
+        {/* Pagos electronicos - auto-calculados */}
         <div className="space-y-2">
           <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
             <Lock className="h-3 w-3" />
@@ -188,92 +240,113 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
 
         <Separator />
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Conteo de efectivo - único input del usuario */}
-          <div className="space-y-2">
-            <Label htmlFor="efectivoContado" className="flex items-center gap-2">
-              <Banknote className="h-4 w-4 text-green-600" />
-              Efectivo contado en caja
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Esperado: {formatCurrency(efectivoEsperado)}
-            </p>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                S/
-              </span>
-              <Input
-                id="efectivoContado"
-                type="number"
-                step="0.01"
-                min="0"
-                className="pl-10 h-12 text-lg"
-                placeholder="0.00"
-                {...form.register('efectivoContado')}
-              />
-            </div>
-            {form.formState.errors.efectivoContado && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.efectivoContado.message}
+        {/* Conteo de efectivo por denominacion */}
+        <div className="space-y-3">
+          <Label className="flex items-center gap-2 text-base font-semibold">
+            <Banknote className="h-4 w-4 text-green-600" />
+            Conteo de efectivo
+          </Label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+            {/* Billetes */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <Banknote className="h-3.5 w-3.5" />
+                Billetes
               </p>
-            )}
+              <div className="space-y-2">
+                {BILLETES.map(renderDenominationRow)}
+              </div>
+            </div>
+
+            {/* Monedas */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5" />
+                Monedas
+              </p>
+              <div className="space-y-2">
+                {MONEDAS.map(renderDenominationRow)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Resumen de conteo */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Total contado:</span>
+            <span className="text-lg font-bold">{formatCurrency(totalContado)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Sistema dice:</span>
+            <span className="text-sm font-medium">{formatCurrency(efectivoEsperado)}</span>
           </div>
 
-          {/* Indicador de diferencia de efectivo */}
-          {efectivoContado > 0 && (
-            <Card className={diferenciaEfectivo === 0 ? 'border-green-500 bg-green-50' : diferenciaEfectivo > 0 ? 'border-blue-500 bg-blue-50' : 'border-red-500 bg-red-50'}>
-              <CardContent className="py-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Diferencia efectivo:</span>
-                  <div className="flex items-center gap-2">
-                    {diferenciaEfectivo === 0 ? (
-                      <>
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <Badge variant="outline" className="bg-green-100 text-green-700">
-                          Cuadrado
-                        </Badge>
-                      </>
-                    ) : diferenciaEfectivo > 0 ? (
-                      <>
-                        <span className="font-bold text-blue-600">
-                          +{formatCurrency(diferenciaEfectivo)}
-                        </span>
-                        <Badge variant="outline" className="bg-blue-100 text-blue-700">
-                          Sobrante
-                        </Badge>
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="h-4 w-4 text-red-600" />
-                        <span className="font-bold text-red-600">
-                          {formatCurrency(diferenciaEfectivo)}
-                        </span>
-                        <Badge variant="outline" className="bg-red-100 text-red-700">
-                          Faltante
-                        </Badge>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Separator />
-
-          {/* Total de cierre - auto-calculado */}
-          <Card className="bg-muted/50">
+          {/* Diferencia */}
+          <Card className={
+            diferenciaEfectivo === 0
+              ? 'border-green-500 bg-green-50'
+              : diferenciaEfectivo > 0
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-red-500 bg-red-50'
+          }>
             <CardContent className="py-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Total de cierre</span>
-                <span className="text-xl font-bold">{formatCurrency(totalCierre)}</span>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1 text-right">
-                Efectivo {formatCurrency(efectivoContado)} + Tarjeta {formatCurrency(tarjetaSistema)} + Otros {formatCurrency(otrosSistema)}
+                <span className="text-sm font-medium">Diferencia:</span>
+                <div className="flex items-center gap-2">
+                  {diferenciaEfectivo === 0 ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="font-bold text-green-600">{formatCurrency(0)}</span>
+                      <Badge variant="outline" className="bg-green-100 text-green-700">
+                        Cuadra perfecto
+                      </Badge>
+                    </>
+                  ) : diferenciaEfectivo > 0 ? (
+                    <>
+                      <span className="font-bold text-green-600">
+                        +{formatCurrency(diferenciaEfectivo)}
+                      </span>
+                      <Badge variant="outline" className="bg-green-100 text-green-700">
+                        Sobrante
+                      </Badge>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <span className="font-bold text-red-600">
+                        {formatCurrency(diferenciaEfectivo)}
+                      </span>
+                      <Badge variant="outline" className="bg-red-100 text-red-700">
+                        Faltante
+                      </Badge>
+                    </>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
+        </div>
 
+        <Separator />
+
+        {/* Total de cierre - auto-calculado */}
+        <Card className="bg-muted/50">
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">Total de cierre</span>
+              <span className="text-xl font-bold">{formatCurrency(totalCierre)}</span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1 text-right">
+              Efectivo {formatCurrency(totalContado)} + Tarjeta {formatCurrency(tarjetaSistema)} + Otros {formatCurrency(otrosSistema)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="observaciones">Observaciones (opcional)</Label>
             <Textarea
@@ -305,7 +378,7 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
               ) : (
                 <>
                   <DoorClosed className="h-4 w-4" />
-                  Cerrar Caja
+                  Confirmar Cierre
                 </>
               )}
             </Button>

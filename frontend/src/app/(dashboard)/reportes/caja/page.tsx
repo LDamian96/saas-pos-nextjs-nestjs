@@ -30,17 +30,17 @@ export default function ReporteCajaPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Calculator className="h-8 w-8 text-orange-600" />
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold flex items-center gap-2 md:gap-3">
+          <Calculator className="h-6 w-6 md:h-8 md:w-8 text-orange-600" />
           Reporte de Cajas
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm md:text-base text-muted-foreground mt-1">
           Historial y resumen de cajas
         </p>
       </motion.div>

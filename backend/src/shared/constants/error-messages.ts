@@ -75,6 +75,9 @@ export const ERROR_MESSAGES = {
   // =====================================================
   SALE_ALREADY_CANCELLED: 'Esta venta ya fue anulada',
   SALE_CANNOT_CANCEL: 'No se puede anular esta venta',
+  SALE_RETURN_INVALID: 'No se puede procesar la devolucion',
+  SALE_DETAIL_NOT_FOUND: 'Detalle de venta no encontrado',
+  RETURN_QUANTITY_EXCEEDED: 'La cantidad a devolver excede la cantidad vendida',
   PAYMENT_INSUFFICIENT: 'El pago es menor al total',
   CART_EMPTY: 'El carrito esta vacio',
   INVALID_DISCOUNT: 'El descuento no es valido',

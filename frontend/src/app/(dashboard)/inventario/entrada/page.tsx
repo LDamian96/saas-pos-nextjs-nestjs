@@ -107,38 +107,38 @@ export default function EntradaInventarioPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="flex items-center gap-3 md:gap-4"
       >
         <Link
           href="/inventario"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2.5 md:p-2 hover:bg-gray-100 rounded-lg transition-colors active:scale-[0.98]"
         >
           <ArrowLeft className="h-5 w-5 text-gray-500" />
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <ArrowUpCircle className="h-8 w-8 text-green-600" />
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+            <ArrowUpCircle className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
             Entrada de Inventario
           </h1>
-          <p className="text-gray-500 mt-1">Registrar compra o ingreso de productos</p>
+          <p className="text-sm md:text-base text-gray-500 mt-1">Registrar compra o ingreso de productos</p>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
         {/* Panel izquierdo - Busqueda y lista */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-3 md:space-y-4">
           {/* Sucursal y motivo */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl border border-gray-200 p-4"
+            className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 lg:p-6"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Sucursal destino
@@ -146,7 +146,7 @@ export default function EntradaInventarioPage() {
                 <select
                   value={sucursalId}
                   onChange={(e) => setSucursalId(e.target.value)}
-                  className="w-full h-11 px-4 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
                 >
                   <option value="">Seleccionar sucursal</option>
                   {sucursales?.map((s) => (
@@ -161,7 +161,7 @@ export default function EntradaInventarioPage() {
                 <select
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
-                  className="w-full h-11 px-4 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
                 >
                   <option value="compra">Compra a proveedor</option>
                   <option value="devolucion_cliente">Devolucion de cliente</option>
@@ -176,7 +176,7 @@ export default function EntradaInventarioPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl border border-gray-200 p-4"
+            className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 lg:p-6"
           >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -185,7 +185,7 @@ export default function EntradaInventarioPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar producto por nombre o SKU..."
-                className="w-full h-12 pl-10 pr-4 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                className="w-full h-11 md:h-12 pl-10 pr-4 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none text-base md:text-lg"
               />
             </div>
 
@@ -196,7 +196,7 @@ export default function EntradaInventarioPage() {
                   <button
                     key={producto.id}
                     onClick={() => handleAddProduct(producto)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors text-left active:scale-[0.98] min-h-[44px]"
                   >
                     <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                       {producto.imagenPrincipal ? (
@@ -235,55 +235,59 @@ export default function EntradaInventarioPage() {
             ) : (
               <div className="divide-y divide-gray-100">
                 {items.map((item) => (
-                  <div key={item.varianteId} className="p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      {item.producto.imagenPrincipal ? (
-                        <img src={item.producto.imagenPrincipal} alt="" className="w-full h-full object-cover rounded-lg" />
-                      ) : (
-                        <Package className="h-5 w-5 text-gray-400" />
-                      )}
+                  <div key={item.varianteId} className="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        {item.producto.imagenPrincipal ? (
+                          <img src={item.producto.imagenPrincipal} alt="" className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <Package className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{item.producto.nombre}</p>
+                        <p className="text-sm text-gray-500">{item.producto.sku}</p>
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{item.producto.nombre}</p>
-                      <p className="text-sm text-gray-500">{item.producto.sku}</p>
-                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-end">
+                      {/* Costo unitario */}
+                      <div className="w-24 md:w-28">
+                        <input
+                          type="number"
+                          value={item.costoUnitario || ''}
+                          onChange={(e) => handleUpdateCosto(item.varianteId, parseFloat(e.target.value) || 0)}
+                          placeholder="Costo"
+                          className="w-full h-11 md:h-9 px-2 border border-gray-200 rounded text-sm text-right"
+                          step="0.01"
+                        />
+                      </div>
 
-                    {/* Costo unitario */}
-                    <div className="w-28">
-                      <input
-                        type="number"
-                        value={item.costoUnitario || ''}
-                        onChange={(e) => handleUpdateCosto(item.varianteId, parseFloat(e.target.value) || 0)}
-                        placeholder="Costo"
-                        className="w-full h-9 px-2 border border-gray-200 rounded text-sm text-right"
-                        step="0.01"
-                      />
-                    </div>
+                      {/* Cantidad */}
+                      <div className="flex items-center gap-1 md:gap-2">
+                        <button
+                          onClick={() => handleUpdateCantidad(item.varianteId, -1)}
+                          className="p-2.5 md:p-1.5 hover:bg-gray-100 rounded-lg active:scale-[0.98]"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-10 md:w-12 text-center font-medium">{item.cantidad}</span>
+                        <button
+                          onClick={() => handleUpdateCantidad(item.varianteId, 1)}
+                          className="p-2.5 md:p-1.5 hover:bg-gray-100 rounded-lg active:scale-[0.98]"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
 
-                    {/* Cantidad */}
-                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleUpdateCantidad(item.varianteId, -1)}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg"
+                        onClick={() => handleRemoveItem(item.varianteId)}
+                        className="p-2.5 md:p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg active:scale-[0.98]"
                       >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-12 text-center font-medium">{item.cantidad}</span>
-                      <button
-                        onClick={() => handleUpdateCantidad(item.varianteId, 1)}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg"
-                      >
-                        <Plus className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
-
-                    <button
-                      onClick={() => handleRemoveItem(item.varianteId)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
                   </div>
                 ))}
               </div>
@@ -296,12 +300,12 @@ export default function EntradaInventarioPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="space-y-4"
+          className="space-y-3 md:space-y-4"
         >
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Informacion adicional</h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 lg:p-6">
+            <h3 className="font-semibold text-gray-900 mb-3 md:mb-4">Informacion adicional</h3>
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Numero de documento
@@ -311,7 +315,7 @@ export default function EntradaInventarioPage() {
                   value={documentoNumero}
                   onChange={(e) => setDocumentoNumero(e.target.value)}
                   placeholder="Ej: F001-00123"
-                  className="w-full h-10 px-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
                 />
               </div>
 
@@ -331,7 +335,7 @@ export default function EntradaInventarioPage() {
           </div>
 
           {/* Resumen */}
-          <div className="bg-green-50 rounded-xl border border-green-200 p-4">
+          <div className="bg-green-50 rounded-xl border border-green-200 p-3 md:p-4">
             <h3 className="font-semibold text-green-800 mb-3">Resumen</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -351,7 +355,7 @@ export default function EntradaInventarioPage() {
           <button
             onClick={handleSubmit}
             disabled={!sucursalId || items.length === 0 || createMovimiento.isPending}
-            className="w-full h-14 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full h-12 md:h-14 bg-green-600 text-white rounded-xl font-semibold text-base md:text-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             {createMovimiento.isPending ? (
               'Registrando...'

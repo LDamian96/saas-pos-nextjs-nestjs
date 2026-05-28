@@ -163,32 +163,32 @@ export default function RolesPage() {
   const permisosGrouped = permisos ? permisos.porModulo : {};
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           <Link
             href="/configuracion"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-[0.98]"
           >
             <ArrowLeft className="h-5 w-5 text-gray-500" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Shield className="h-8 w-8 text-purple-600" />
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+              <Shield className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
               Roles y Permisos
             </h1>
-            <p className="text-gray-500 mt-1">Define que puede hacer cada tipo de usuario</p>
+            <p className="text-sm md:text-base text-gray-500 mt-1">Define que puede hacer cada tipo de usuario</p>
           </div>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium w-full sm:w-auto h-11 md:h-10 active:scale-[0.98]"
         >
           <Plus className="h-5 w-5" />
           Nuevo Rol
@@ -197,9 +197,9 @@ export default function RolesPage() {
 
       {/* Loading */}
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 animate-pulse">
               <div className="h-6 bg-gray-200 rounded w-3/4 mb-4" />
               <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
               <div className="h-4 bg-gray-200 rounded w-2/3" />
@@ -234,13 +234,13 @@ export default function RolesPage() {
           variants={staggerContainer}
           initial="initial"
           animate="animate"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4"
         >
           {roles.map((rol) => (
             <motion.div
               key={rol.id}
               variants={fadeInUp}
-              className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-md transition-shadow active:scale-[0.98]"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -259,14 +259,14 @@ export default function RolesPage() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleOpenEdit(rol)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-[0.98]"
                       title="Editar"
                     >
                       <Edit2 className="h-4 w-4 text-gray-500" />
                     </button>
                     <button
                       onClick={() => setDeletingRol(rol)}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-[0.98]"
                       title="Eliminar"
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
@@ -298,14 +298,14 @@ export default function RolesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
             onClick={handleCloseForm}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white rounded-t-xl sm:rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 md:p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-xl font-bold mb-4">
@@ -321,7 +321,7 @@ export default function RolesPage() {
                     type="text"
                     value={formData.nombre}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent h-11 md:h-10"
                     placeholder="Ej: Vendedor, Supervisor"
                     required
                   />
@@ -413,18 +413,18 @@ export default function RolesPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-4">
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium h-11 md:h-10 active:scale-[0.98]"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={createMutation.isPending || updateMutation.isPending}
-                    className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 h-11 md:h-10 active:scale-[0.98]"
                   >
                     {(createMutation.isPending || updateMutation.isPending)
                       ? 'Guardando...'

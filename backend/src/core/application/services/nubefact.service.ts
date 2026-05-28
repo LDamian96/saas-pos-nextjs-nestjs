@@ -134,7 +134,16 @@ export class NubefactService {
   constructor(private config: ConfigService) {
     this.isDemo = this.config.get('NUBEFACT_DEMO', 'true') === 'true';
 
-    if (this.isDemo) {
+    // Check if a full Nubefact URL is provided (includes UUID)
+    const fullUrl = this.config.get('NUBEFACT_FULL_URL', '');
+
+    if (fullUrl) {
+      // Use the full URL directly (e.g., https://api.nubefact.com/api/v1/UUID)
+      this.apiUrl = fullUrl;
+      this.token = this.config.get('NUBEFACT_TOKEN', '');
+      this.ruc = ''; // Not needed when using full URL
+      this.logger.log(`Nubefact iniciado con URL directa: ${this.isDemo ? 'DEMO' : 'PRODUCCION'}`);
+    } else if (this.isDemo) {
       this.apiUrl = NubefactService.DEMO_URL;
       this.token = NubefactService.DEMO_TOKEN;
       this.ruc = NubefactService.DEMO_RUC;
@@ -154,7 +163,8 @@ export class NubefactService {
     try {
       this.logger.log(`Emitiendo documento: ${documento.serie}-${documento.numero}`);
 
-      const response = await fetch(`${this.apiUrl}/${this.ruc}`, {
+      const url = this.ruc ? `${this.apiUrl}/${this.ruc}` : this.apiUrl;
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

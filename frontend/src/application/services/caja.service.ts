@@ -56,6 +56,7 @@ export interface Caja {
     tipoComprobante: string;
     createdAt: string;
   }>;
+  movimientos?: MovimientoCaja[];
 }
 
 export interface MovimientoCaja {

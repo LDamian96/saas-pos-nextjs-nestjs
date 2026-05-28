@@ -103,35 +103,35 @@ export default function MetodosPagoPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 md:gap-4">
           <Link
             href="/configuracion"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-[0.98]"
           >
             <ArrowLeft className="h-5 w-5 text-gray-500" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Métodos de Pago</h1>
-            <p className="text-gray-500 mt-1">
-              Configura las formas de pago aceptadas en tu negocio
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Metodos de Pago</h1>
+            <p className="text-sm md:text-base text-gray-500 mt-1">
+              Configura las formas de pago aceptadas
             </p>
           </div>
         </div>
-        <Button size="lg" className="gap-2" onClick={handleCreate}>
+        <Button size="lg" className="gap-2 h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]" onClick={handleCreate}>
           <Plus size={20} />
-          Nuevo Método
+          Nuevo Metodo
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-white rounded-xl border border-gray-200 p-3 md:p-4"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -149,7 +149,7 @@ export default function MetodosPagoPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-white rounded-xl border border-gray-200 p-3 md:p-4"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -171,7 +171,7 @@ export default function MetodosPagoPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 col-span-2 md:col-span-1"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -217,12 +217,12 @@ export default function MetodosPagoPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                <Card className="hover:shadow-md transition-shadow active:scale-[0.98]">
+                  <CardContent className="p-3 md:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 md:gap-4 min-w-0">
                         <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center"
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center shrink-0"
                           style={{ backgroundColor: metodo.color ? `${metodo.color}20` : '#f3f4f6' }}
                         >
                           <Icon
@@ -230,9 +230,9 @@ export default function MetodosPagoPage() {
                             style={{ color: metodo.color || '#6b7280' }}
                           />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900">{metodo.nombre}</h3>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                            <h3 className="font-semibold text-gray-900 text-sm md:text-base">{metodo.nombre}</h3>
                             <Badge variant={metodo.activo ? 'default' : 'secondary'}>
                               {metodo.activo ? 'Activo' : 'Inactivo'}
                             </Badge>
@@ -242,7 +242,7 @@ export default function MetodosPagoPage() {
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-4 mt-1">
+                          <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-1">
                             <span className="text-sm text-gray-500">
                               Código: {metodo.codigo}
                             </span>
@@ -258,7 +258,7 @@ export default function MetodosPagoPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
                         <div className="flex gap-1">
                           {metodo.visiblePos && (
                             <Badge variant="outline" className="text-xs">POS</Badge>
@@ -316,11 +316,11 @@ export default function MetodosPagoPage() {
               Esta acción desactivará el método de pago. No se podrá usar en nuevas ventas.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]"
             >
               Eliminar
             </AlertDialogAction>
@@ -431,9 +431,9 @@ function MetodoPagoDialog({ open, onOpenChange, metodo, onCreate, onUpdate, isLo
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="codigo">Código</Label>
+              <Label htmlFor="codigo">Codigo</Label>
               <Input
                 id="codigo"
                 value={codigo}
@@ -441,6 +441,7 @@ function MetodoPagoDialog({ open, onOpenChange, metodo, onCreate, onUpdate, isLo
                 placeholder="EFECTIVO"
                 required
                 disabled={!!metodo}
+                className="h-11 md:h-10"
               />
             </div>
             <div className="space-y-2">
@@ -468,6 +469,7 @@ function MetodoPagoDialog({ open, onOpenChange, metodo, onCreate, onUpdate, isLo
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Efectivo"
               required
+              className="h-11 md:h-10"
             />
           </div>
 
@@ -477,29 +479,32 @@ function MetodoPagoDialog({ open, onOpenChange, metodo, onCreate, onUpdate, isLo
               id="descripcion"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Descripción opcional"
+              placeholder="Descripcion opcional"
+              className="h-11 md:h-10"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="comisionPct">Comisión (%)</Label>
+              <Label htmlFor="comisionPct">Comision (%)</Label>
               <Input
                 id="comisionPct"
                 type="number"
                 step="0.01"
                 value={comisionPorcentaje}
                 onChange={(e) => setComisionPorcentaje(e.target.value)}
+                className="h-11 md:h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="comisionFija">Comisión Fija ($)</Label>
+              <Label htmlFor="comisionFija">Comision Fija ($)</Label>
               <Input
                 id="comisionFija"
                 type="number"
                 step="0.01"
                 value={comisionFija}
                 onChange={(e) => setComisionFija(e.target.value)}
+                className="h-11 md:h-10"
               />
             </div>
           </div>
@@ -576,15 +581,16 @@ function MetodoPagoDialog({ open, onOpenChange, metodo, onCreate, onUpdate, isLo
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              className="h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]">
               {isLoading ? 'Guardando...' : metodo ? 'Actualizar' : 'Crear'}
             </Button>
           </div>

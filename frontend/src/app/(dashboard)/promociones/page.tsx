@@ -65,6 +65,10 @@ const tipoLabels: Record<TipoPromocion, { label: string; icon: any; color: strin
   precio_fijo: { label: 'Precio fijo', icon: DollarSign, color: 'bg-purple-100 text-purple-700' },
   monto_minimo: { label: 'Monto minimo', icon: ShoppingBag, color: 'bg-orange-100 text-orange-700' },
   combo: { label: 'Combo', icon: Zap, color: 'bg-cyan-100 text-cyan-700' },
+  descuento_porcentaje: { label: 'Descuento %', icon: Percent, color: 'bg-indigo-100 text-indigo-700' },
+  nth_precio: { label: 'Nth precio especial', icon: Tag, color: 'bg-pink-100 text-pink-700' },
+  nth_gratis: { label: 'Nth gratis', icon: Gift, color: 'bg-emerald-100 text-emerald-700' },
+  nxm: { label: 'NxM (Lleva N paga M)', icon: ShoppingBag, color: 'bg-amber-100 text-amber-700' },
 };
 
 const getPromoStatus = (promo: Promocion) => {
@@ -89,6 +93,14 @@ const getPromoDescription = (promo: Promocion) => {
       return `Lleva ${promo.cantidadComprar}, paga ${(promo.cantidadComprar || 0) - (promo.cantidadBeneficio || 0)}`;
     case 'cantidad_descuento':
       return `${promo.descuentoPorcentaje}% dcto comprando ${promo.cantidadComprar}+`;
+    case 'descuento_porcentaje':
+      return `${promo.descuentoPorcentaje}% de descuento`;
+    case 'nth_precio':
+      return `Compra ${promo.cantidadComprar}, la ${(promo.cantidadComprar || 0) + 1}ra a S/ ${promo.precioFijo?.toFixed(2)}`;
+    case 'nth_gratis':
+      return `Compra ${promo.cantidadComprar}, la ${(promo.cantidadComprar || 0) + 1}ra gratis`;
+    case 'nxm':
+      return `Lleva ${promo.cantidadComprar} paga ${promo.cantidadBeneficio}`;
     case 'precio_fijo':
       return `Precio especial: S/ ${promo.precioFijo?.toFixed(2)}`;
     case 'monto_minimo':
@@ -212,23 +224,23 @@ export default function PromocionesPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Tag className="h-8 w-8 text-primary" />
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3">
+            <Tag className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             Promociones
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             Crea ofertas y descuentos para tus clientes
           </p>
         </div>
-        <Button size="lg" className="gap-2" onClick={handleNew}>
+        <Button size="lg" className="gap-2 h-11 md:h-10 w-full sm:w-auto" onClick={handleNew}>
           <Plus size={20} />
           Nueva Promocion
         </Button>
@@ -239,38 +251,38 @@ export default function PromocionesPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+        className="grid grid-cols-3 gap-2 md:gap-4"
       >
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Tag className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-lg md:text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Total</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <Zap className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.activas}</p>
-              <p className="text-sm text-muted-foreground">Activas ahora</p>
+              <p className="text-lg md:text-2xl font-bold">{stats.activas}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Activas</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
             <div className="p-2 bg-orange-100 rounded-lg">
               <Calendar className="h-5 w-5 text-orange-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.programadas}</p>
-              <p className="text-sm text-muted-foreground">Programadas</p>
+              <p className="text-lg md:text-2xl font-bold">{stats.programadas}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Programadas</p>
             </div>
           </CardContent>
         </Card>
@@ -281,20 +293,20 @@ export default function PromocionesPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="space-y-4"
+        className="space-y-3 md:space-y-4"
       >
         {isLoading ? (
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {[...Array(3)].map((_, i) => (
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
         ) : !promociones?.length ? (
           <Card>
-            <CardContent className="p-12 text-center">
+            <CardContent className="p-8 md:p-12 text-center">
               <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No hay promociones</h3>
-              <p className="text-muted-foreground mt-1">Crea tu primera oferta o descuento</p>
+              <h3 className="text-base md:text-lg font-medium">No hay promociones</h3>
+              <p className="text-sm text-muted-foreground mt-1">Crea tu primera oferta o descuento</p>
             </CardContent>
           </Card>
         ) : (
@@ -304,9 +316,10 @@ export default function PromocionesPage() {
             const Icon = tipoInfo.icon;
 
             return (
-              <Card key={promo.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
+              <Card key={promo.id} className="hover:shadow-md active:scale-[0.98] transition-all">
+                <CardContent className="p-3 md:p-4">
+                  {/* Desktop layout */}
+                  <div className="hidden md:flex items-start gap-4">
                     <div className={`p-3 rounded-lg ${tipoInfo.color}`}>
                       <Icon className="h-6 w-6" />
                     </div>
@@ -344,6 +357,53 @@ export default function PromocionesPage() {
                       </Button>
                     </div>
                   </div>
+
+                  {/* Mobile layout */}
+                  <div className="md:hidden">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2.5 rounded-lg ${tipoInfo.color} shrink-0`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="font-semibold text-sm">{promo.nombre}</h3>
+                          <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {getPromoDescription(promo)}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(promo.fechaInicio)}
+                          </span>
+                          <div className="flex gap-1">
+                            {promo.visiblePos && <Badge variant="outline" className="text-[10px] px-1 py-0">POS</Badge>}
+                            {promo.visibleWeb && <Badge variant="outline" className="text-[10px] px-1 py-0">Web</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-11 text-sm gap-1.5"
+                        onClick={() => handleEdit(promo)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-11 px-4 text-red-500 hover:text-red-700 border-red-200"
+                        onClick={() => handleDelete(promo)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -360,29 +420,34 @@ export default function PromocionesPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-5 py-4">
+          <div className="space-y-4 md:space-y-5 py-3 md:py-4">
             {/* Datos basicos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Codigo *</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+              <div className="space-y-1.5 md:space-y-2">
+                <Label className="text-sm md:text-base">Codigo *</Label>
                 <Input
                   value={form.codigo}
                   onChange={(e) => setForm({ ...form, codigo: e.target.value })}
                   placeholder="PROMO-001"
                   disabled={!!editingPromo}
+                  className="h-11 md:h-10 text-base md:text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Tipo *</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label className="text-sm md:text-base">Tipo *</Label>
                 <Select
                   value={form.tipo}
                   onValueChange={(v) => setForm({ ...form, tipo: v as TipoPromocion })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11 md:h-10 text-base md:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cantidad_gratis">Lleva X Paga Y</SelectItem>
+                    <SelectItem value="descuento_porcentaje">Descuento %</SelectItem>
+                    <SelectItem value="nth_precio">Nth precio especial</SelectItem>
+                    <SelectItem value="nth_gratis">Nth gratis</SelectItem>
+                    <SelectItem value="nxm">NxM (Lleva N paga M)</SelectItem>
+                    <SelectItem value="cantidad_gratis">Lleva X Paga Y (legado)</SelectItem>
                     <SelectItem value="cantidad_descuento">Descuento por cantidad</SelectItem>
                     <SelectItem value="precio_fijo">Precio fijo</SelectItem>
                     <SelectItem value="monto_minimo">Monto minimo</SelectItem>
@@ -392,22 +457,24 @@ export default function PromocionesPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Nombre *</Label>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label className="text-sm md:text-base">Nombre *</Label>
               <Input
                 value={form.nombre}
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 placeholder="Ej: Promo 3x2 en bebidas"
+                className="h-11 md:h-10 text-base md:text-sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Descripcion</Label>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label className="text-sm md:text-base">Descripcion</Label>
               <Textarea
                 value={form.descripcion}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                 placeholder="Descripcion de la promocion..."
                 rows={2}
+                className="text-base md:text-sm min-h-[44px]"
               />
             </div>
 
@@ -415,7 +482,7 @@ export default function PromocionesPage() {
 
             {/* Campos segun tipo */}
             {form.tipo === 'cantidad_gratis' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label>Cantidad a comprar</Label>
                   <Input
@@ -440,7 +507,7 @@ export default function PromocionesPage() {
             )}
 
             {form.tipo === 'cantidad_descuento' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label>Cantidad minima</Label>
                   <Input
@@ -478,7 +545,7 @@ export default function PromocionesPage() {
             )}
 
             {form.tipo === 'monto_minimo' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label>Monto minimo (S/)</Label>
                   <Input
@@ -502,10 +569,91 @@ export default function PromocionesPage() {
               </div>
             )}
 
+            {form.tipo === 'descuento_porcentaje' && (
+              <div className="space-y-2">
+                <Label>Porcentaje de descuento (%)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={form.descuentoPorcentaje || ''}
+                  onChange={(e) => setForm({ ...form, descuentoPorcentaje: parseFloat(e.target.value) || undefined })}
+                  placeholder="10"
+                />
+              </div>
+            )}
+
+            {form.tipo === 'nth_precio' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-2">
+                  <Label>Cantidad a comprar</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.cantidadComprar || ''}
+                    onChange={(e) => setForm({ ...form, cantidadComprar: parseInt(e.target.value) || undefined })}
+                    placeholder="2"
+                  />
+                  <p className="text-xs text-muted-foreground">Ej: Compra 2, la 3ra a precio especial</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Precio especial (S/)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={form.precioFijo || ''}
+                    onChange={(e) => setForm({ ...form, precioFijo: parseFloat(e.target.value) || undefined })}
+                    placeholder="1.00"
+                  />
+                </div>
+              </div>
+            )}
+
+            {form.tipo === 'nth_gratis' && (
+              <div className="space-y-2">
+                <Label>Cantidad a comprar</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.cantidadComprar || ''}
+                  onChange={(e) => setForm({ ...form, cantidadComprar: parseInt(e.target.value) || undefined })}
+                  placeholder="4"
+                />
+                <p className="text-xs text-muted-foreground">Ej: Compra 4, la 5ta es gratis</p>
+              </div>
+            )}
+
+            {form.tipo === 'nxm' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-2">
+                  <Label>Lleva (N)</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    value={form.cantidadComprar || ''}
+                    onChange={(e) => setForm({ ...form, cantidadComprar: parseInt(e.target.value) || undefined })}
+                    placeholder="3"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Paga (M)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.cantidadBeneficio || ''}
+                    onChange={(e) => setForm({ ...form, cantidadBeneficio: parseInt(e.target.value) || undefined })}
+                    placeholder="2"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground col-span-2">Ej: Lleva 3 paga 2</p>
+              </div>
+            )}
+
             <Separator />
 
             {/* Fechas */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-2">
                 <Label>Fecha inicio *</Label>
                 <Input
@@ -552,11 +700,12 @@ export default function PromocionesPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+            <Button variant="outline" className="h-11 md:h-10" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
             <Button
+              className="h-11 md:h-10"
               onClick={handleSubmit}
               disabled={isSaving || !form.codigo || !form.nombre || !form.fechaInicio}
             >

@@ -107,37 +107,55 @@ export function ProductoTable({ filters }: Props) {
   return (
     <>
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="w-10 px-2"></th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Producto</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">SKU</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Categoría</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Precio</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Stock</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.data.map((producto, index) => (
-              <ProductoRow
-                key={producto.id}
-                producto={producto}
-                index={index}
-                isExpanded={expandedIds.has(producto.id)}
-                onToggleExpand={() => toggleExpand(producto.id)}
-                onDelete={() => handleDeleteClick(producto)}
-                formatPrice={formatPrice}
-              />
-            ))}
-          </tbody>
-        </table>
+        {/* Desktop: Table view */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="w-10 px-2"></th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Producto</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">SKU</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Categoría</th>
+                <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Precio</th>
+                <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Stock</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
+                <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.data.map((producto, index) => (
+                <ProductoRow
+                  key={producto.id}
+                  producto={producto}
+                  index={index}
+                  isExpanded={expandedIds.has(producto.id)}
+                  onToggleExpand={() => toggleExpand(producto.id)}
+                  onDelete={() => handleDeleteClick(producto)}
+                  formatPrice={formatPrice}
+                />
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        {/* Mobile: Card view */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {data.data.map((producto, index) => (
+            <ProductoCard
+              key={producto.id}
+              producto={producto}
+              index={index}
+              onDelete={() => handleDeleteClick(producto)}
+              formatPrice={formatPrice}
+            />
+          ))}
+        </div>
 
         {/* Paginación */}
         {data.meta && data.meta.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+          <div className="px-4 py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p className="text-sm text-gray-500">
               Mostrando {data.data.length} de {data.meta.total} productos
             </p>
@@ -145,7 +163,7 @@ export function ProductoTable({ filters }: Props) {
               {Array.from({ length: Math.min(data.meta.totalPages, 5) }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
-                  className={`px-3 py-1 rounded ${
+                  className={`min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 px-3 py-1 md:px-3 md:py-1 rounded text-base md:text-sm font-medium ${
                     page === data.meta.page
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -316,11 +334,6 @@ function ProductoRow({
                 POS
               </Badge>
             )}
-            {producto.visibleWeb && (
-              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                Web
-              </Badge>
-            )}
           </div>
         </td>
 
@@ -359,6 +372,120 @@ function ProductoRow({
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// =====================================================
+// COMPONENTE CARD DE PRODUCTO (MOBILE)
+// =====================================================
+
+interface ProductoCardProps {
+  producto: ProductoListItem;
+  index: number;
+  onDelete: () => void;
+  formatPrice: (price: number | string | null | undefined) => string;
+}
+
+function ProductoCard({ producto, index, onDelete, formatPrice }: ProductoCardProps) {
+  const hasVariantes = producto.tipo === 'variable' && producto.variantesCount > 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03 }}
+      className="p-4 space-y-3"
+    >
+      {/* Top row: image + info */}
+      <div className="flex items-start gap-3">
+        <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+          {producto.imagenPrincipal ? (
+            <img
+              src={producto.imagenPrincipal}
+              alt={producto.nombre}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Package className="h-6 w-6 text-gray-400" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 truncate">{producto.nombre}</p>
+          <p className="text-sm text-gray-500 font-mono">{producto.sku}</p>
+          {hasVariantes && (
+            <p className="text-sm text-blue-600 flex items-center gap-1 mt-0.5">
+              <Layers className="h-3 w-3" />
+              {producto.variantesCount} variantes
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1 flex-shrink-0">
+          <Badge variant={producto.activo ? 'default' : 'secondary'} className="text-xs">
+            {producto.activo ? 'Activo' : 'Inactivo'}
+          </Badge>
+          {producto.visiblePos && (
+            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+              POS
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Middle row: price + stock */}
+      <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Precio</p>
+          {producto.precioOferta ? (
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-green-600">{formatPrice(producto.precioOferta)}</span>
+              <span className="text-sm text-gray-400 line-through">{formatPrice(producto.precioVenta)}</span>
+            </div>
+          ) : (
+            <span className="font-semibold text-gray-900">{formatPrice(producto.precioVenta)}</span>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Stock</p>
+          <span
+            className={`font-semibold ${
+              producto.stockTotal <= (producto.stockMinimo || 5) ? 'text-red-600' : 'text-gray-900'
+            }`}
+          >
+            {producto.stockTotal}
+          </span>
+        </div>
+        {producto.categoria?.nombre && (
+          <div className="text-right">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Categoría</p>
+            <span className="text-sm text-gray-700">{producto.categoria.nombre}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom row: action buttons - bigger for touch */}
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/productos/${producto.id}`}
+          className="flex-1 flex items-center justify-center gap-2 min-h-[44px] px-3 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <Eye className="h-4 w-4" />
+          Ver
+        </Link>
+        <Link
+          href={`/productos/${producto.id}/editar`}
+          className="flex-1 flex items-center justify-center gap-2 min-h-[44px] px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+        >
+          <Edit className="h-4 w-4" />
+          Editar
+        </Link>
+        <button
+          onClick={onDelete}
+          className="flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 py-2.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
@@ -597,7 +724,8 @@ function VarianteRow({ variante, productoId, isLast, formatPrice }: VarianteRowP
 function ProductoTableSkeleton() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="animate-pulse">
+      {/* Desktop skeleton */}
+      <div className="hidden md:block animate-pulse">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-4 p-4 border-b border-gray-100">
             <Skeleton className="w-6 h-6 rounded" />
@@ -614,6 +742,27 @@ function ProductoTableSkeleton() {
               <Skeleton className="h-8 w-8 rounded" />
               <Skeleton className="h-8 w-8 rounded" />
               <Skeleton className="h-8 w-8 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Mobile skeleton */}
+      <div className="md:hidden animate-pulse divide-y divide-gray-100">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <Skeleton className="w-14 h-14 rounded-lg flex-shrink-0" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+            <Skeleton className="h-14 w-full rounded-lg" />
+            <div className="flex gap-2">
+              <Skeleton className="h-11 flex-1 rounded-lg" />
+              <Skeleton className="h-11 flex-1 rounded-lg" />
+              <Skeleton className="h-11 w-11 rounded-lg" />
             </div>
           </div>
         ))}

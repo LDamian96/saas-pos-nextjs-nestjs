@@ -15,9 +15,11 @@ import {
   ArrowDownCircle,
   ArrowRightLeft,
   Package,
+  Store,
 } from 'lucide-react';
 import { useMovimientos } from '@/application/hooks/queries/use-inventario';
 import { MovimientoFilters } from '@/application/services/inventario.service';
+import { useSucursales } from '@/application/hooks/queries/use-sucursales';
 
 const tipoConfig = {
   entrada: { icon: ArrowUpCircle, color: 'text-green-600', bg: 'bg-green-100', label: 'Entrada' },
@@ -28,7 +30,9 @@ const tipoConfig = {
 
 export default function MovimientosPage() {
   const [filters, setFilters] = useState<MovimientoFilters>({ limit: 50 });
-  const { data, isLoading } = useMovimientos(filters);
+  const [selectedSucursal, setSelectedSucursal] = useState<string>('');
+  const { data: sucursales } = useSucursales({ activo: true });
+  const { data, isLoading } = useMovimientos({ ...filters, sucursalId: selectedSucursal || undefined });
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('es-PE', {
@@ -41,26 +45,26 @@ export default function MovimientosPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           <Link
             href="/inventario"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2.5 md:p-2 hover:bg-gray-100 rounded-lg transition-colors active:scale-[0.98]"
           >
             <ArrowLeft className="h-5 w-5 text-gray-500" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <RefreshCw className="h-8 w-8 text-blue-600" />
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+              <RefreshCw className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
               Movimientos
             </h1>
-            <p className="text-gray-500 mt-1">Historial de entradas, salidas y ajustes</p>
+            <p className="text-sm md:text-base text-gray-500 mt-1">Historial de entradas, salidas y ajustes</p>
           </div>
         </div>
       </motion.div>
@@ -69,13 +73,27 @@ export default function MovimientosPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl border border-gray-200 p-4"
+        className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 lg:p-6"
       >
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="relative">
+            <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <select
+              value={selectedSucursal}
+              onChange={(e) => setSelectedSucursal(e.target.value)}
+              className="w-full h-11 md:h-10 pl-10 pr-4 border-2 border-gray-200 rounded-lg bg-white text-sm text-gray-700 focus:border-purple-500 focus:outline-none appearance-none cursor-pointer transition-colors hover:border-gray-300"
+            >
+              <option value="">Todas las sucursales</option>
+              {sucursales?.map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+          </div>
+
           <select
             value={filters.tipo || ''}
             onChange={(e) => setFilters({ ...filters, tipo: e.target.value as any || undefined })}
-            className="h-11 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+            className="h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none w-full"
           >
             <option value="">Todos los tipos</option>
             <option value="entrada">Entradas</option>
@@ -88,7 +106,7 @@ export default function MovimientosPage() {
             type="date"
             value={filters.fechaDesde || ''}
             onChange={(e) => setFilters({ ...filters, fechaDesde: e.target.value || undefined })}
-            className="h-11 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+            className="h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none w-full"
             placeholder="Desde"
           />
 
@@ -96,10 +114,18 @@ export default function MovimientosPage() {
             type="date"
             value={filters.fechaHasta || ''}
             onChange={(e) => setFilters({ ...filters, fechaHasta: e.target.value || undefined })}
-            className="h-11 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+            className="h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none w-full"
             placeholder="Hasta"
           />
         </div>
+        {selectedSucursal && sucursales && (
+          <div className="mt-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+              <Store className="h-3 w-3" />
+              {sucursales.find((s) => s.id === selectedSucursal)?.nombre}
+            </span>
+          </div>
+        )}
       </motion.div>
 
       {/* Tabla */}
@@ -122,7 +148,8 @@ export default function MovimientosPage() {
             ))}
           </div>
         ) : data?.items && data.items.length > 0 ? (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Fecha</th>
@@ -189,6 +216,7 @@ export default function MovimientosPage() {
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <div className="text-center py-12">
             <RefreshCw className="h-16 w-16 text-gray-300 mx-auto mb-4" />

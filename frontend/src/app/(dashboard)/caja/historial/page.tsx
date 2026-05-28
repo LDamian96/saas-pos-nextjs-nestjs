@@ -59,8 +59,8 @@ const formatCurrency = (amount: number | undefined | null) => {
 
 export default function CajaHistorialPage() {
   const [filters, setFilters] = useState({
-    sucursalId: '',
-    estado: '',
+    sucursalId: '__all__',
+    estado: '__all__',
     fechaInicio: '',
     fechaFin: '',
     page: 1,
@@ -68,8 +68,8 @@ export default function CajaHistorialPage() {
 
   const { data: historial, isLoading } = useCajaHistorial({
     ...filters,
-    estado: filters.estado || undefined,
-    sucursalId: filters.sucursalId || undefined,
+    estado: filters.estado === '__all__' ? undefined : filters.estado,
+    sucursalId: filters.sucursalId === '__all__' ? undefined : filters.sucursalId,
     fechaInicio: filters.fechaInicio || undefined,
     fechaFin: filters.fechaFin || undefined,
     limit: 20,
@@ -123,7 +123,7 @@ export default function CajaHistorialPage() {
                     <SelectValue placeholder="Todas las sucursales" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="__all__">Todas</SelectItem>
                     {sucursalesData?.map((sucursal) => (
                       <SelectItem key={sucursal.id} value={sucursal.id}>
                         {sucursal.nombre}
@@ -143,7 +143,7 @@ export default function CajaHistorialPage() {
                     <SelectValue placeholder="Todos los estados" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="__all__">Todos</SelectItem>
                     <SelectItem value="abierta">Abierta</SelectItem>
                     <SelectItem value="cerrada">Cerrada</SelectItem>
                   </SelectContent>

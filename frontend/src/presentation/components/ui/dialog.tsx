@@ -47,7 +47,8 @@ const DialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%]',
-          'gap-5 p-7 duration-300',
+          'max-h-[90vh] overflow-y-auto',
+          'gap-4 md:gap-5 p-5 md:p-7 duration-300',
           'rounded-2xl border-2',
           // Sombra elegante
           'shadow-[0_20px_70px_-10px_rgba(0,0,0,0.5)]',

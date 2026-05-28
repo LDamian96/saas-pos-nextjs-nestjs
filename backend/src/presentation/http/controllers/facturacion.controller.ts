@@ -129,6 +129,14 @@ export class FacturacionController {
   }
 
   /**
+   * GET /facturacion/consultar-ruc/:ruc - Consultar RUC en SUNAT
+   */
+  @Get('consultar-ruc/:ruc')
+  async consultarRuc(@Param('ruc') ruc: string) {
+    return this.facturacionService.consultarRuc(ruc);
+  }
+
+  /**
    * GET /facturacion/tipos-documento - Listar tipos de documento cliente
    */
   @Get('tipos-documento')

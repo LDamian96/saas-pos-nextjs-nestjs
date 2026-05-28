@@ -455,6 +455,81 @@ export class FacturacionService {
     return result;
   }
 
+  /**
+   * Consultar RUC en SUNAT via API externa
+   */
+  async consultarRuc(ruc: string): Promise<{
+    success: boolean;
+    data?: {
+      ruc: string;
+      razonSocial: string;
+      direccion: string;
+      estado: string;
+      condicion: string;
+    };
+    message?: string;
+  }> {
+    try {
+      if (!/^\d{11}$/.test(ruc)) {
+        return { success: false, message: 'El RUC debe tener 11 digitos' };
+      }
+
+      // Intentar múltiples APIs con fallback
+      let data: any = null;
+
+      // API 1: apis.net.pe
+      try {
+        const res1 = await fetch(`https://api.apis.net.pe/v2/sunat/ruc?numero=${ruc}`, {
+          headers: { Authorization: 'Bearer apis-token-1.aTSI1U7KEuT-6bbbCguH-4Y8MIFa' },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (res1.ok) {
+          const json = await res1.json();
+          if (json?.razonSocial) data = json;
+        }
+      } catch {}
+
+      // API 2: apiinti.dev (fallback)
+      if (!data) {
+        try {
+          const res2 = await fetch(`https://api.apiinti.dev/api/v1/ruc/${ruc}`, {
+            signal: AbortSignal.timeout(5000),
+          });
+          if (res2.ok) {
+            const json = await res2.json();
+            if (json?.razonSocial || json?.nombre_o_razon_social) {
+              data = {
+                razonSocial: json.razonSocial || json.nombre_o_razon_social,
+                direccion: json.direccion || json.direccion_completa || '',
+                estado: json.estado || '',
+                condicion: json.condicion || '',
+              };
+            }
+          }
+        } catch {}
+      }
+
+      if (!data || !data.razonSocial) {
+        this.logger.warn(`Consulta RUC ${ruc}: no encontrado en ninguna API`);
+        return { success: false, message: 'No se pudo consultar el RUC. Ingrese la razon social manualmente.' };
+      }
+
+      return {
+        success: true,
+        data: {
+          ruc: data.numeroDocumento || ruc,
+          razonSocial: data.razonSocial || '',
+          direccion: data.direccion || '',
+          estado: data.estado || '',
+          condicion: data.condicion || '',
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Error consultando RUC ${ruc}: ${error.message}`);
+      return { success: false, message: 'Error al consultar SUNAT' };
+    }
+  }
+
   // =====================================================
   // METODOS PRIVADOS
   // =====================================================

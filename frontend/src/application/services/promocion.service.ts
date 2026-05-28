@@ -5,7 +5,7 @@
 
 import { api } from '@/infrastructure/api/axios-instance';
 
-export type TipoPromocion = 'cantidad_gratis' | 'cantidad_descuento' | 'precio_fijo' | 'monto_minimo' | 'combo';
+export type TipoPromocion = 'cantidad_gratis' | 'cantidad_descuento' | 'precio_fijo' | 'monto_minimo' | 'combo' | 'descuento_porcentaje' | 'nth_precio' | 'nth_gratis' | 'nxm';
 export type AplicaA = 'productos' | 'categorias' | 'marcas' | 'todos';
 
 export interface Promocion {
@@ -106,4 +106,17 @@ export const promocionService = {
     const { data } = await api.post(`/promociones/${id}/calcular`, { cantidad, precioUnitario });
     return data;
   },
+
+  evaluar: async (items: Array<{ varianteId: string; productoId: string; cantidad: number; precioUnitario: number }>, sucursalId?: string): Promise<PromoResult[]> => {
+    const { data } = await api.post('/promociones/evaluar', { items, sucursalId });
+    return data.data;
+  },
 };
+
+export interface PromoResult {
+  varianteId: string;
+  productoId: string;
+  descuento: number;
+  promocionId: string;
+  descripcion: string;
+}

@@ -119,7 +119,7 @@ export default function KardexPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -127,20 +127,20 @@ export default function KardexPage() {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <FileText className="h-8 w-8 text-blue-600" />
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+            <FileText className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
             Kardex
           </h1>
-          <p className="text-gray-500 mt-1">Historial de movimientos de inventario</p>
+          <p className="text-sm md:text-base text-gray-500 mt-1">Historial de movimientos de inventario</p>
         </div>
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-4 rounded-xl border border-gray-200"
+          className="bg-white p-3 md:p-4 rounded-xl border border-gray-200"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -157,7 +157,7 @@ export default function KardexPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white p-4 rounded-xl border border-gray-200"
+          className="bg-white p-3 md:p-4 rounded-xl border border-gray-200"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
@@ -176,7 +176,7 @@ export default function KardexPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white p-4 rounded-xl border border-gray-200"
+          className="bg-white p-3 md:p-4 rounded-xl border border-gray-200"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-100 rounded-lg">
@@ -195,7 +195,7 @@ export default function KardexPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white p-4 rounded-xl border border-gray-200"
+          className="bg-white p-3 md:p-4 rounded-xl border border-gray-200"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
@@ -215,22 +215,22 @@ export default function KardexPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl border border-gray-200 p-4"
+        className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 lg:p-6"
       >
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
           <Filter className="h-5 w-5 text-gray-400" />
           <h3 className="font-medium text-gray-900">Filtros</h3>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="ml-auto text-sm text-blue-600 hover:text-blue-700"
+              className="ml-auto text-sm text-blue-600 hover:text-blue-700 min-h-[44px] md:min-h-0 flex items-center active:scale-[0.98]"
             >
               Limpiar filtros
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
           {/* Busqueda */}
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -239,7 +239,7 @@ export default function KardexPage() {
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
               placeholder="Buscar producto, SKU, documento..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+              className="w-full h-11 md:h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
             />
           </div>
 
@@ -249,7 +249,7 @@ export default function KardexPage() {
             <select
               value={filters.sucursalId}
               onChange={(e) => setFilters({ ...filters, sucursalId: e.target.value, page: 1 })}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none appearance-none bg-white"
+              className="w-full h-11 md:h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none appearance-none bg-white"
             >
               <option value="">Todas las sucursales</option>
               {sucursalesData?.map((sucursal) => (
@@ -264,7 +264,7 @@ export default function KardexPage() {
           <select
             value={filters.tipo}
             onChange={(e) => setFilters({ ...filters, tipo: e.target.value as TipoMovimiento, page: 1 })}
-            className="px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+            className="h-11 md:h-10 px-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
           >
             <option value="">Todos los tipos</option>
             <option value="entrada">Entrada</option>
@@ -280,7 +280,7 @@ export default function KardexPage() {
               type="date"
               value={filters.fechaInicio}
               onChange={(e) => setFilters({ ...filters, fechaInicio: e.target.value, page: 1 })}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+              className="w-full h-11 md:h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
             />
           </div>
 
@@ -291,7 +291,7 @@ export default function KardexPage() {
               type="date"
               value={filters.fechaFin}
               onChange={(e) => setFilters({ ...filters, fechaFin: e.target.value, page: 1 })}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+              className="w-full h-11 md:h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
             />
           </div>
         </div>
@@ -323,7 +323,7 @@ export default function KardexPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[700px]">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -432,25 +432,25 @@ export default function KardexPage() {
 
             {/* Paginacion */}
             {movimientos?.meta && movimientos.meta.totalPages > 1 && (
-              <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-                <p className="text-sm text-gray-500">
+              <div className="px-3 md:px-4 py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <p className="text-xs md:text-sm text-gray-500">
                   Mostrando {((filters.page - 1) * 25) + 1} - {Math.min(filters.page * 25, movimientos.meta.total)} de {movimientos.meta.total}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
                     disabled={filters.page === 1}
-                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    className="p-2.5 md:p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 active:scale-[0.98]"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-xs md:text-sm text-gray-600">
                     Pagina {filters.page} de {movimientos.meta.totalPages}
                   </span>
                   <button
                     onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
                     disabled={filters.page >= movimientos.meta.totalPages}
-                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    className="p-2.5 md:p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 active:scale-[0.98]"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>

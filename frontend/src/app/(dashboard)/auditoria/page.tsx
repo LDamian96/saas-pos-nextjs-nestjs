@@ -69,21 +69,21 @@ export default function AuditoriaPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-3 md:space-y-4 lg:space-y-6"
     >
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <Shield className="h-6 w-6" />
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <Shield className="h-5 w-5 md:h-6 md:w-6" />
           Auditoria del Sistema
         </h1>
-        <p className="text-sm text-gray-500 mt-1">Registro de todas las acciones realizadas</p>
+        <p className="text-xs md:text-sm text-gray-500 mt-1">Registro de todas las acciones realizadas</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="p-3 md:pt-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Activity className="h-5 w-5 text-blue-600" />
@@ -96,7 +96,7 @@ export default function AuditoriaPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="p-3 md:pt-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
                 <Calendar className="h-5 w-5 text-green-600" />
@@ -108,8 +108,8 @@ export default function AuditoriaPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
+        <Card className="col-span-2 md:col-span-1">
+          <CardContent className="p-3 md:pt-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <User className="h-5 w-5 text-purple-600" />
@@ -126,7 +126,7 @@ export default function AuditoriaPage() {
       {/* Top modules */}
       {resumen?.porModulo && resumen.porModulo.length > 0 && (
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="p-3 md:p-4 lg:p-6">
             <p className="text-sm font-medium text-gray-500 mb-2">Actividad por modulo (ultima semana)</p>
             <div className="flex flex-wrap gap-2">
               {resumen.porModulo.map((m) => (
@@ -140,11 +140,11 @@ export default function AuditoriaPage() {
       )}
 
       {/* Filters */}
-      <div className="flex gap-3 items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-end">
         <div>
           <Label className="text-xs">Modulo</Label>
           <Select value={filtroModulo} onValueChange={(v) => { setFiltroModulo(v); setPage(1); }}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px] h-11 md:h-10">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
@@ -158,7 +158,7 @@ export default function AuditoriaPage() {
         <div>
           <Label className="text-xs">Accion</Label>
           <Select value={filtroAccion} onValueChange={(v) => { setFiltroAccion(v); setPage(1); }}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px] h-11 md:h-10">
               <SelectValue placeholder="Todas" />
             </SelectTrigger>
             <SelectContent>
@@ -175,11 +175,12 @@ export default function AuditoriaPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 space-y-3">
+            <div className="p-4 md:p-6 space-y-3">
               {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Fecha</TableHead>
@@ -224,20 +225,22 @@ export default function AuditoriaPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t">
-              <span className="text-sm text-gray-500">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 md:px-4 py-3 border-t">
+              <span className="text-xs md:text-sm text-gray-500 text-center">
                 Pagina {pagination.page} de {pagination.totalPages} ({pagination.total} registros)
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
+                  className="flex-1 sm:flex-none h-11 md:h-10 active:scale-[0.98]"
                 >
                   Anterior
                 </Button>
@@ -246,6 +249,7 @@ export default function AuditoriaPage() {
                   size="sm"
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage(page + 1)}
+                  className="flex-1 sm:flex-none h-11 md:h-10 active:scale-[0.98]"
                 >
                   Siguiente
                 </Button>

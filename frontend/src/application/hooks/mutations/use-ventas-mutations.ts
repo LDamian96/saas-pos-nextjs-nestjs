@@ -5,7 +5,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ventaService, CreateVentaDto, AnularVentaDto } from '@/application/services/venta.service';
+import { ventaService, CreateVentaDto, AnularVentaDto, DevolucionVentaDto } from '@/application/services/venta.service';
 import { VENTAS_QUERY_KEY } from '@/application/hooks/queries/use-ventas';
 
 /**
@@ -52,10 +52,41 @@ export const useAnularVenta = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       // Invalidar reportes
       queryClient.invalidateQueries({ queryKey: ['estadisticas'] });
-      toast.success(`Venta #${data.numero} anulada`);
+      toast.success(data?.numero ? `Venta #${data.numero} anulada` : 'Venta anulada correctamente');
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'No se pudo anular la venta';
+      toast.error(message);
+    },
+  });
+};
+
+/**
+ * Hook para procesar devolucion parcial o total
+ */
+export const useDevolucionVenta = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: DevolucionVentaDto }) =>
+      ventaService.devolucion(id, dto),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [VENTAS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['productos'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['estadisticas'] });
+
+      if (data.esDevolucionTotal) {
+        toast.success('Devolucion total procesada. La venta fue anulada.');
+      } else {
+        toast.success(
+          `Devolucion procesada. Monto devuelto: S/ ${data.montoDevolucion.toFixed(2)}`,
+        );
+      }
+    },
+    onError: (error: any) => {
+      const message =
+        error.response?.data?.message || 'No se pudo procesar la devolucion';
       toast.error(message);
     },
   });

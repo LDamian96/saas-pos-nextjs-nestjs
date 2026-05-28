@@ -52,3 +52,44 @@ docker/redis/data/
 # Misc
 *.tsbuildinfo
 .eslintcache
+
+# Secrets / cookies
+.env.ldmapp
+.env.*
+cookies.txt
+test-cookies.txt
+*.cookies
+
+# Junk files
+nul
+
+# QA/dev test artifacts (no commitear)
+.claude/qa-screenshots/
+test-*.png
+test-*.js
+test-*.json
+test-*.sh
+qa-*.js
+qa-*.png
+debug-*.js
+debug-*.png
+caja-*.png
+venta-*.js
+venta-*.png
+rev-*.png
+review-*.png
+verificar-*.js
+verificar-*.png
+screenshot-*.png
+abrir-caja.js
+check-*.js
+fix-stock-sucursal.js
+login-and-test.js
+paso*.js
+setup-mayorista.js
+verify-venta-mayorista.js
+venta.js
+verificar.js
+vender-ahora.js
+PRUEBA-STOCK-MANUAL.md
+

@@ -49,37 +49,37 @@ export default function ReporteInventarioPage() {
   const { data: categorias } = useCategorias();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Warehouse className="h-8 w-8 text-purple-600" />
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold flex items-center gap-2 md:gap-3">
+          <Warehouse className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
           Inventario Valorizado
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm md:text-base text-muted-foreground mt-1">
           Valor actual del inventario por categoria
         </p>
       </motion.div>
 
       {/* Filtros */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4">
+        <CardContent className="p-3 md:p-4 lg:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             {sucursales && sucursales.length > 1 && (
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Sucursal</label>
                 <Select
-                  value={filters.sucursalId || ''}
-                  onValueChange={(v) => setFilters((f) => ({ ...f, sucursalId: v || undefined }))}
+                  value={filters.sucursalId || '__all__'}
+                  onValueChange={(v) => setFilters((f) => ({ ...f, sucursalId: v === '__all__' ? undefined : v }))}
                 >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Todas las sucursales" />
+                  <SelectTrigger className="w-full sm:w-48 h-11 md:h-10">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas las sucursales</SelectItem>
+                    <SelectItem value="__all__">Todas las sucursales</SelectItem>
                     {sucursales.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.nombre}
@@ -94,14 +94,14 @@ export default function ReporteInventarioPage() {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Categoria</label>
                 <Select
-                  value={filters.categoriaId || ''}
-                  onValueChange={(v) => setFilters((f) => ({ ...f, categoriaId: v || undefined }))}
+                  value={filters.categoriaId || '__all__'}
+                  onValueChange={(v) => setFilters((f) => ({ ...f, categoriaId: v === '__all__' ? undefined : v }))}
                 >
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48 h-11 md:h-10">
                     <SelectValue placeholder="Todas las categorias" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas las categorias</SelectItem>
+                    <SelectItem value="__all__">Todas las categorias</SelectItem>
                     {categorias.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.nombre}
@@ -117,7 +117,7 @@ export default function ReporteInventarioPage() {
 
       {/* KPIs */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
@@ -126,7 +126,7 @@ export default function ReporteInventarioPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
         >
           <KpiCard
             title="Total Productos"
@@ -163,11 +163,12 @@ export default function ReporteInventarioPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Inventario por Categoria</CardTitle>
+            <CardHeader className="p-3 md:p-4 lg:p-6 pb-2 md:pb-3">
+              <CardTitle className="text-base md:text-lg">Inventario por Categoria</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
+            <CardContent className="p-0 md:p-4 lg:p-6 md:pt-0">
+              <div className="overflow-x-auto">
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Categoria</TableHead>
@@ -195,6 +196,7 @@ export default function ReporteInventarioPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </motion.div>

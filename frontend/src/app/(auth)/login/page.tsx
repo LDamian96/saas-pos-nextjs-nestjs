@@ -13,27 +13,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Sparkles, Moon, Sun } from 'lucide-react';
 import { loginSchema, type LoginFormData } from '@/application/validators/auth.validator';
 import { useLogin } from '@/application/hooks/mutations/use-auth';
+import { useThemeStore } from '@/application/stores/theme.store';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState(true);
+  const { isDark, toggleTheme } = useThemeStore();
   const loginMutation = useLogin();
-
-  // Cargar preferencia de tema
-  useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) {
-      setIsDark(saved === 'dark');
-    }
-  }, []);
-
-  // Guardar preferencia
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
-  };
 
   const {
     register,
@@ -53,13 +39,11 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = (type: 'superadmin' | 'admin') => {
-    if (type === 'superadmin') {
-      setValue('email', 'superadmin@pos-saas.com');
-    } else {
-      setValue('email', 'admin@demo.com');
-    }
-    setValue('password', 'admin123');
-    handleSubmit(onSubmit)();
+    const email = type === 'superadmin' ? 'superadmin@pos-saas.com' : 'admin@demo.com';
+    setValue('email', email, { shouldValidate: true });
+    setValue('password', 'admin123', { shouldValidate: true });
+    // Call onSubmit directly to avoid validation timing issues
+    onSubmit({ email, password: 'admin123' });
   };
 
   return (

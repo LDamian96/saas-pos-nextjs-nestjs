@@ -33,11 +33,13 @@ export default function CajaDetallePage() {
   const { data: caja, isLoading, error } = useCajaDetalle(id);
   const { data: resumen } = useCajaResumen(id);
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | string | undefined | null) => {
+    const num = Number(amount);
+    if (isNaN(num)) return 'S/ 0.00';
     return new Intl.NumberFormat('es-PE', {
       style: 'currency',
       currency: 'PEN',
-    }).format(amount);
+    }).format(num);
   };
 
   if (isLoading) {
@@ -83,7 +85,7 @@ export default function CajaDetallePage() {
               Detalle de Caja
             </h1>
             <p className="text-gray-500 mt-1">
-              {caja.sucursalNombre} - {format(new Date(caja.fechaApertura), "d 'de' MMMM 'de' yyyy", { locale: es })}
+              {caja.sucursal?.nombre || 'Sin sucursal'} - {format(new Date(caja.fechaApertura), "d 'de' MMMM 'de' yyyy", { locale: es })}
             </p>
           </div>
         </div>
@@ -119,7 +121,7 @@ export default function CajaDetallePage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Sucursal</p>
-                  <p className="font-medium text-gray-900">{caja.sucursalNombre}</p>
+                  <p className="font-medium text-gray-900">{caja.sucursal?.nombre}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -128,7 +130,7 @@ export default function CajaDetallePage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Usuario</p>
-                  <p className="font-medium text-gray-900">{caja.usuarioNombre}</p>
+                  <p className="font-medium text-gray-900">{caja.usuarioApertura ? `${caja.usuarioApertura.nombre} ${caja.usuarioApertura.apellido}` : '-'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -190,13 +192,13 @@ export default function CajaDetallePage() {
                       <tr key={venta.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <Link href={`/ventas/${venta.id}`} className="text-blue-600 hover:underline">
-                            #{venta.numero}
+                            {venta.numeroVenta || `#${venta.id.substring(0, 8)}`}
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {format(new Date(venta.createdAt), "HH:mm")}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{venta.metodoPago}</td>
+                        <td className="px-4 py-3 text-gray-600">{venta.tipoComprobante || '-'}</td>
                         <td className="px-4 py-3 text-right font-medium text-green-600">
                           {formatCurrency(venta.total)}
                         </td>
@@ -225,10 +227,10 @@ export default function CajaDetallePage() {
                     <div className="flex items-center gap-3">
                       <div
                         className={`p-2 rounded-lg ${
-                          mov.tipo === 'ingreso' ? 'bg-green-100' : 'bg-red-100'
+                          mov.tipo === 'entrada' ? 'bg-green-100' : 'bg-red-100'
                         }`}
                       >
-                        {mov.tipo === 'ingreso' ? (
+                        {mov.tipo === 'entrada' ? (
                           <ArrowUpCircle className="h-5 w-5 text-green-600" />
                         ) : (
                           <ArrowDownCircle className="h-5 w-5 text-red-600" />
@@ -243,10 +245,10 @@ export default function CajaDetallePage() {
                     </div>
                     <p
                       className={`font-semibold ${
-                        mov.tipo === 'ingreso' ? 'text-green-600' : 'text-red-600'
+                        mov.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
                       }`}
                     >
-                      {mov.tipo === 'ingreso' ? '+' : '-'}
+                      {mov.tipo === 'entrada' ? '+' : '-'}
                       {formatCurrency(mov.monto)}
                     </p>
                   </div>
@@ -273,25 +275,37 @@ export default function CajaDetallePage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Ventas</span>
-                <span className="font-medium text-green-600">+{formatCurrency(caja.totalVentas)}</span>
+                <span className="font-medium text-green-600">+{formatCurrency(caja.montoVentas)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500">Ingresos</span>
-                <span className="font-medium text-emerald-600">+{formatCurrency(caja.totalIngresos)}</span>
+                <span className="text-gray-500">Efectivo</span>
+                <span className="font-medium text-emerald-600">{formatCurrency(caja.montoEfectivo)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500">Egresos</span>
-                <span className="font-medium text-red-600">-{formatCurrency(caja.totalEgresos)}</span>
+                <span className="text-gray-500">Tarjeta</span>
+                <span className="font-medium text-purple-600">{formatCurrency(caja.montoTarjeta)}</span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Otros</span>
+                <span className="font-medium text-orange-600">{formatCurrency(caja.montoOtros)}</span>
+              </div>
+              {caja.montoCierre != null && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Monto Cierre</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(caja.montoCierre)}</span>
+                </div>
+              )}
               <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
-                <span className="font-semibold text-gray-900">Saldo esperado</span>
-                <span className="text-xl font-bold text-blue-600">{formatCurrency(caja.saldoActual)}</span>
+                <span className="font-semibold text-gray-900">Total en caja</span>
+                <span className="text-xl font-bold text-blue-600">
+                  {resumen ? formatCurrency(resumen.totalEnCaja) : formatCurrency(Number(caja.montoApertura) + Number(caja.montoVentas))}
+                </span>
               </div>
             </div>
           </motion.div>
 
           {/* Ventas por método */}
-          {resumen && resumen.ventasPorMetodo.length > 0 && (
+          {resumen && resumen.ventasPorMetodo?.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

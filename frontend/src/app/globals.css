@@ -25,6 +25,102 @@
   --radius: 0.75rem;
 }
 
+/* ===== DARK MODE - Formularios, inputs, selects, cards ===== */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgba(39, 39, 42, 0.8) !important;
+  border-color: rgba(63, 63, 70, 1) !important;
+  color: #e4e4e7 !important;
+}
+
+.dark input::placeholder,
+.dark select option,
+.dark textarea::placeholder {
+  color: rgba(161, 161, 170, 0.6) !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  background-color: rgba(39, 39, 42, 1) !important;
+}
+
+/* Cards y contenedores con bg-white en dark */
+.dark .bg-white {
+  background-color: rgba(24, 24, 27, 0.9) !important;
+  border-color: rgba(63, 63, 70, 0.6) !important;
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: rgba(39, 39, 42, 0.6) !important;
+}
+
+.dark .bg-green-50,
+.dark .bg-green-50\/30 {
+  background-color: rgba(22, 101, 52, 0.15) !important;
+}
+
+.dark .bg-orange-50,
+.dark .bg-orange-50\/50 {
+  background-color: rgba(194, 65, 12, 0.12) !important;
+}
+
+.dark .bg-blue-50,
+.dark .bg-blue-50\/30 {
+  background-color: rgba(29, 78, 216, 0.12) !important;
+}
+
+/* Textos */
+.dark .text-gray-900 { color: #f4f4f5 !important; }
+.dark .text-gray-800 { color: #e4e4e7 !important; }
+.dark .text-gray-700 { color: #d4d4d8 !important; }
+.dark .text-gray-600 { color: #a1a1aa !important; }
+.dark .text-gray-500 { color: #71717a !important; }
+.dark .text-gray-400 { color: #52525b !important; }
+
+/* Borders */
+.dark .border-gray-200,
+.dark .border-gray-100 {
+  border-color: rgba(63, 63, 70, 0.5) !important;
+}
+
+/* Tablas */
+.dark table thead {
+  background-color: rgba(39, 39, 42, 0.8) !important;
+}
+
+.dark table tbody tr {
+  border-color: rgba(63, 63, 70, 0.3) !important;
+}
+
+.dark table tbody tr:hover {
+  background-color: rgba(39, 39, 42, 0.5) !important;
+}
+
+/* Badges */
+.dark .bg-green-100 { background-color: rgba(22, 101, 52, 0.3) !important; }
+.dark .bg-red-100 { background-color: rgba(153, 27, 27, 0.3) !important; }
+.dark .bg-yellow-100 { background-color: rgba(133, 77, 14, 0.3) !important; }
+.dark .bg-blue-100 { background-color: rgba(29, 78, 216, 0.3) !important; }
+
+/* Modals/Dialogs */
+.dark [role="dialog"] > div,
+.dark .bg-card {
+  background-color: rgba(24, 24, 27, 0.98) !important;
+  border-color: rgba(63, 63, 70, 0.5) !important;
+}
+
+/* Scrollbar dark */
+.dark ::-webkit-scrollbar-track {
+  background: rgba(24, 24, 27, 1);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(63, 63, 70, 0.5);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -41,6 +137,15 @@ body {
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+/* Default light - prevent flash */
+html, body {
+  background-color: #f8fafc;
+  transition: background-color 0s;
+}
+html.dark, html.dark body {
+  background-color: #09090b !important;
 }
 
 /* Scrollbar personalizado */
@@ -61,4 +166,114 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* ===== MOBILE RESPONSIVE GLOBALS ===== */
+
+/* Tables: horizontal scroll on mobile */
+@media (max-width: 767px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+  thead, tbody, tr {
+    display: table;
+    width: 100%;
+    table-layout: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+
+  /* Cards: prevent overflow */
+  .rounded-xl,
+  .rounded-lg,
+  .rounded-2xl {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  /* Grids: force single column on very small screens */
+  .grid-cols-3:not(.md\:grid-cols-3),
+  .grid-cols-4:not(.md\:grid-cols-4):not(.sm\:grid-cols-4) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Headings: smaller on mobile */
+  h1 {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+  h2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Prevent horizontal overflow */
+  main > div {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Stats cards: stack properly */
+  .grid.gap-4 > div,
+  .grid.gap-3 > div {
+    min-width: 0;
+  }
+
+  /* Buttons: touch-friendly */
+  button, a[role="button"], [role="button"] {
+    min-height: 40px;
+  }
+
+  /* Inputs: prevent zoom on iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Dialog/Modal: full width on mobile + scrollable */
+  [role="dialog"] {
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+  }
+  [role="dialog"] > div {
+    max-width: calc(100vw - 1.5rem) !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    margin: 0.75rem;
+  }
+
+  /* Badge overflow fix */
+  .flex.gap-1 > span,
+  .flex.gap-2 > span {
+    white-space: nowrap;
+  }
+}
+
+/* Safe area for iOS */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Scrollbar hide for category pills */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 2px;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

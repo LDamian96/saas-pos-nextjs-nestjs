@@ -64,16 +64,16 @@ export default function SucursalesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sucursales</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Sucursales</h1>
+          <p className="text-sm md:text-base text-gray-500 mt-1">
             Gestiona los locales y almacenes de tu empresa
           </p>
         </div>
-        <Button size="lg" onClick={openCreateModal} className="gap-2">
+        <Button size="lg" onClick={openCreateModal} className="gap-2 h-11 md:h-10 w-full sm:w-auto active:scale-[0.98]">
           <Plus size={20} />
           Nueva Sucursal
         </Button>
@@ -81,7 +81,7 @@ export default function SucursalesPage() {
 
       {/* Lista de Sucursales */}
       {sucursales && sucursales.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
           {sucursales.map((sucursal, index) => (
             <SucursalCard
               key={sucursal.id}
@@ -117,14 +117,14 @@ export default function SucursalesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
             onClick={closeModal}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-lg"
+              className="bg-white rounded-t-xl sm:rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <Card className="border-0 shadow-none">
@@ -134,7 +134,7 @@ export default function SucursalesPage() {
                   </CardTitle>
                   <button
                     onClick={closeModal}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-[0.98]"
                   >
                     <X size={20} />
                   </button>

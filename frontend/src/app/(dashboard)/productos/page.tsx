@@ -22,29 +22,29 @@ export default function ProductosPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Package className="h-8 w-8 text-blue-600" />
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <Package className="h-7 w-7 md:h-8 md:w-8 text-blue-600" />
             Productos
           </h1>
-          <p className="text-gray-500 mt-1">Gestiona tu catalogo de productos</p>
+          <p className="text-gray-500 mt-1 text-sm md:text-base">Gestiona tu catalogo de productos</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/productos/importar"
-            className="flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
           >
-            <Upload className="h-5 w-5" />
-            Importar
+            <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="hidden sm:inline">Importar</span>
           </Link>
           <Link
             href="/productos/nuevo"
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
             Nuevo Producto
           </Link>
         </div>

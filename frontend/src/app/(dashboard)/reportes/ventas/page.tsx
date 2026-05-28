@@ -44,17 +44,17 @@ export default function ReporteVentasPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <DollarSign className="h-8 w-8 text-green-600" />
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold flex items-center gap-2 md:gap-3">
+          <DollarSign className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
           Reporte de Ventas
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm md:text-base text-muted-foreground mt-1">
           Analisis detallado de ventas por periodo
         </p>
       </motion.div>
@@ -72,7 +72,7 @@ export default function ReporteVentasPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
         >
           <KpiCard
             title="Total Ventas"
@@ -104,7 +104,7 @@ export default function ReporteVentasPage() {
       )}
 
       {/* Graficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 lg:gap-6">
         <SalesChart
           data={data?.porPeriodo}
           isLoading={isLoading}
@@ -124,21 +124,21 @@ export default function ReporteVentasPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Ventas por Metodo de Pago</CardTitle>
+            <CardHeader className="p-3 md:p-4 lg:p-6 pb-2 md:pb-3">
+              <CardTitle className="text-base md:text-lg">Ventas por Metodo de Pago</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <CardContent className="p-3 md:p-4 lg:p-6 pt-0">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 {data.porMetodoPago.map((metodo) => (
                   <div
                     key={metodo.metodo}
-                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                    className="flex items-center justify-between p-3 md:p-4 bg-muted/50 rounded-lg active:scale-[0.98] transition-transform"
                   >
-                    <div>
-                      <p className="font-medium">{metodo.metodo}</p>
-                      <p className="text-2xl font-bold">{formatCurrency(metodo.monto)}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm md:text-base truncate">{metodo.metodo}</p>
+                      <p className="text-lg md:text-2xl font-bold">{formatCurrency(metodo.monto)}</p>
                     </div>
-                    <Badge variant="secondary" className="text-lg">
+                    <Badge variant="secondary" className="text-sm md:text-lg ml-1 shrink-0">
                       {metodo.porcentaje}%
                     </Badge>
                   </div>

@@ -173,23 +173,23 @@ export default function ProveedoresPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Truck className="h-8 w-8 text-primary" />
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3">
+            <Truck className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             Proveedores
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             Gestiona tus proveedores y sus datos de contacto
           </p>
         </div>
-        <Button size="lg" className="gap-2" onClick={handleNew}>
+        <Button size="lg" className="gap-2 h-11 md:h-10 w-full sm:w-auto" onClick={handleNew}>
           <Plus size={20} />
           Nuevo Proveedor
         </Button>
@@ -200,38 +200,38 @@ export default function ProveedoresPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+        className="grid grid-cols-3 gap-2 md:gap-4"
       >
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Building2 className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-lg md:text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Total</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <Truck className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.activos}</p>
-              <p className="text-sm text-muted-foreground">Activos</p>
+              <p className="text-lg md:text-2xl font-bold">{stats.activos}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Activos</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
               <CreditCard className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.conCredito}</p>
-              <p className="text-sm text-muted-foreground">Con credito</p>
+              <p className="text-lg md:text-2xl font-bold">{stats.conCredito}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Con credito</p>
             </div>
           </CardContent>
         </Card>
@@ -243,13 +243,13 @@ export default function ProveedoresPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <div className="relative max-w-md">
+        <div className="relative w-full md:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nombre, RUC o codigo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-11 md:h-10"
           />
         </div>
       </motion.div>
@@ -260,98 +260,164 @@ export default function ProveedoresPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
       >
-        <Card>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="p-6 space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-16" />
-                ))}
-              </div>
-            ) : !proveedores?.length ? (
-              <div className="p-12 text-center">
-                <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium">No hay proveedores</h3>
-                <p className="text-muted-foreground mt-1">
-                  {search ? 'No se encontraron resultados' : 'Agrega tu primer proveedor'}
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Proveedor</TableHead>
-                    <TableHead>Contacto</TableHead>
-                    <TableHead>Credito</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {proveedores.map((prov) => (
-                    <TableRow key={prov.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{prov.nombreComercial || prov.razonSocial}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {prov.codigo} {prov.ruc && `| RUC: ${prov.ruc}`}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm space-y-0.5">
-                          {prov.email && (
-                            <p className="flex items-center gap-1 text-muted-foreground">
-                              <Mail className="h-3 w-3" />
-                              {prov.email}
-                            </p>
-                          )}
-                          {prov.telefono && (
-                            <p className="flex items-center gap-1 text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              {prov.telefono}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {prov.diasCredito > 0 ? (
-                          <Badge variant="secondary">{prov.diasCredito} dias</Badge>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Contado</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={prov.activo ? 'default' : 'secondary'}>
-                          {prov.activo ? 'Activo' : 'Inactivo'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(prov)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(prov)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+        {isLoading ? (
+          <div className="p-4 md:p-6 space-y-3 md:space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16" />
+            ))}
+          </div>
+        ) : !proveedores?.length ? (
+          <Card>
+            <CardContent className="p-8 md:p-12 text-center">
+              <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-base md:text-lg font-medium">No hay proveedores</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {search ? 'No se encontraron resultados' : 'Agrega tu primer proveedor'}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <Card className="hidden md:block">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Proveedor</TableHead>
+                      <TableHead>Contacto</TableHead>
+                      <TableHead>Credito</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {proveedores.map((prov) => (
+                      <TableRow key={prov.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{prov.nombreComercial || prov.razonSocial}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {prov.codigo} {prov.ruc && `| RUC: ${prov.ruc}`}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm space-y-0.5">
+                            {prov.email && (
+                              <p className="flex items-center gap-1 text-muted-foreground">
+                                <Mail className="h-3 w-3" />
+                                {prov.email}
+                              </p>
+                            )}
+                            {prov.telefono && (
+                              <p className="flex items-center gap-1 text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                {prov.telefono}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {prov.diasCredito > 0 ? (
+                            <Badge variant="secondary">{prov.diasCredito} dias</Badge>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Contado</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={prov.activo ? 'default' : 'secondary'}>
+                            {prov.activo ? 'Activo' : 'Inactivo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(prov)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(prov)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-3">
+              {proveedores.map((prov) => (
+                <Card key={prov.id} className="active:scale-[0.98] transition-transform">
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-sm truncate">{prov.nombreComercial || prov.razonSocial}</p>
+                          <Badge variant={prov.activo ? 'default' : 'secondary'} className="text-xs">
+                            {prov.activo ? 'Activo' : 'Inactivo'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {prov.codigo} {prov.ruc && `| RUC: ${prov.ruc}`}
+                        </p>
+                      </div>
+                      {prov.diasCredito > 0 && (
+                        <Badge variant="secondary" className="text-xs shrink-0">{prov.diasCredito}d credito</Badge>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                      {prov.email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {prov.email}
+                        </span>
+                      )}
+                      {prov.telefono && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {prov.telefono}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-11 text-sm gap-1.5"
+                        onClick={() => handleEdit(prov)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-11 px-4 text-red-500 hover:text-red-700 border-red-200"
+                        onClick={() => handleDelete(prov)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </motion.div>
 
       {/* Create/Edit Dialog */}
@@ -551,11 +617,12 @@ export default function ProveedoresPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+            <Button variant="outline" className="h-11 md:h-10" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
             <Button
+              className="h-11 md:h-10"
               onClick={handleSubmit}
               disabled={isSaving || !form.codigo || !form.razonSocial}
             >
