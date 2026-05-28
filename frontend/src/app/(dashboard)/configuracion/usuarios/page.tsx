@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import {
   Users,
   Plus,

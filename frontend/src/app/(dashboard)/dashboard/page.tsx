@@ -5,7 +5,7 @@
  * @description Dashboard principal conectado a la API de reportes
  */
 
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { useRouter } from 'next/navigation';
 import {
   DollarSign,

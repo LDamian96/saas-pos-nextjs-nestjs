@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/application/stores/auth.store';
 import { useThemeStore } from '@/application/stores/theme.store';

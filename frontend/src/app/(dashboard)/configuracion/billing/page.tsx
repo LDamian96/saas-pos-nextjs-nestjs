@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { CreditCard, Check, Star, Loader2, AlertCircle } from 'lucide-react';
 import { useThemeStore } from '@/application/stores/theme.store';
 

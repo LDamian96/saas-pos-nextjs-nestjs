@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { X, FolderOpen, ChevronDown } from 'lucide-react';
 import { useCreateCategoria, useUpdateCategoria } from '@/application/hooks/mutations/use-categorias';
 import { useCategorias } from '@/application/hooks/queries/use-categorias';

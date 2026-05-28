@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, RefreshCw, Search, Package, X, Info } from 'lucide-react';

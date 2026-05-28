@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { X, Plus, Trash2, GripVertical } from 'lucide-react';
 import { useAtributo } from '@/application/hooks/queries/use-atributos';
 import {

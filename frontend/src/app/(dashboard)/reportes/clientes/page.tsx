@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Users } from 'lucide-react';
 import { useClientesFrecuentes } from '@/application/hooks/queries/use-reportes';
 import { ReporteClientesFilters } from '@/application/services/reportes.service';

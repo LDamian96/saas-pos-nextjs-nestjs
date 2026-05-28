@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo, Fragment } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Plus, Search, Edit, Trash2, FolderOpen, ChevronRight, Tags, FolderPlus } from 'lucide-react';
 import { useCategorias } from '@/application/hooks/queries/use-categorias';
 import { useDeleteCategoria } from '@/application/hooks/mutations/use-categorias';

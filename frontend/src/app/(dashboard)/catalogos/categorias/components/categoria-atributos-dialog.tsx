@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { X, Tags, Plus, Trash2, Check, AlertCircle } from 'lucide-react';
 import { useCategoriaAtributos, useCategoriaAtributosDisponibles } from '@/application/hooks/queries/use-categorias';
 import { useVincularAtributo, useDesvincularAtributo } from '@/application/hooks/mutations/use-categoria-atributos';

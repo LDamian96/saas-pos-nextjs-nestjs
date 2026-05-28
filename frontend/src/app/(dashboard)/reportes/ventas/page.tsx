@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { DollarSign, TrendingUp, ShoppingCart, Percent } from 'lucide-react';
 import { useReporteVentas } from '@/application/hooks/queries/use-reportes';
 import { ReporteVentasFilters } from '@/application/services/reportes.service';

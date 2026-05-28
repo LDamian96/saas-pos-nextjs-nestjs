@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import {
   Building2,
   Store,

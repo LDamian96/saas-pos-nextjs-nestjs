@@ -8,7 +8,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { Lock, Eye, EyeOff, ArrowLeft, Moon, Sun, Sparkles, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useResetPassword } from '@/application/hooks/mutations/use-auth';
 

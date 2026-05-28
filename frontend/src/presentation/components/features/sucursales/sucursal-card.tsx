@@ -8,7 +8,7 @@
  * - BD: ver docs/arquitectura/03-BASE-DATOS-COMPLETA.md (tabla: sucursales)
  */
 
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Store, MapPin, Phone, Mail, Pencil, Trash2 } from 'lucide-react';
 
 import { Button } from '@/presentation/components/ui/button';

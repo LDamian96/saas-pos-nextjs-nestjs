@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { Store, Plus, Loader2, X } from 'lucide-react';
 
 import { Button } from '@/presentation/components/ui/button';

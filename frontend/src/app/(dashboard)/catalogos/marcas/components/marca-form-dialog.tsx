@@ -13,7 +13,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { X, Tag } from 'lucide-react';
 import { useCreateMarca, useUpdateMarca } from '@/application/hooks/mutations/use-marcas';
 import { Marca } from '@/application/services/marcas.service';

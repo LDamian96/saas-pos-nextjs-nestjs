@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Edit, Trash2, Palette, Type, Image } from 'lucide-react';
 import { useAtributos } from '@/application/hooks/queries/use-atributos';
 import { useDeleteAtributo } from '@/application/hooks/mutations/use-atributos';

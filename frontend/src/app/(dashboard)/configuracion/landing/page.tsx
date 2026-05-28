@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Plus, GripVertical, Trash2, Edit2, Eye, Loader2, Save } from 'lucide-react';
 import { useThemeStore } from '@/application/stores/theme.store';
 

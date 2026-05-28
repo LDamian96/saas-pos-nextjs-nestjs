@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import {
   Building2, Users, ShoppingCart, TrendingUp, Search,
   ToggleLeft, ToggleRight, Loader2, Plus, X, Copy, Check,

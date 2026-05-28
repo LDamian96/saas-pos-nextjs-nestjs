@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowUpCircle, Search, Package, Plus, Minus, X } from 'lucide-react';

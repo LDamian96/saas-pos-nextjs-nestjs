@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { Shield, Plus, ArrowLeft, Edit2, Trash2, Check, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRoles, usePermisos } from '@/application/hooks/queries/use-roles';

@@ -5,7 +5,7 @@
  * @description Pagina de detalle de producto
  */
 
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import { ArrowLeft, Edit, Package, Box, BarChart3 } from 'lucide-react';
 import { useProducto } from '@/application/hooks/queries/use-productos';

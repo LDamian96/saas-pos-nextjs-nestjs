@@ -5,7 +5,7 @@
  * @description Modal de confirmacion para eliminar sucursal
  */
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { AlertTriangle, Trash2, Loader2, X } from 'lucide-react';
 
 import { Button } from '@/presentation/components/ui/button';

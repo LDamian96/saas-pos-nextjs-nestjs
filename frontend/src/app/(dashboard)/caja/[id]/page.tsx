@@ -6,7 +6,7 @@
  */
 
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

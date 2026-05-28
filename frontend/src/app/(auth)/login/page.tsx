@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Sparkles, Moon, Sun } from 'lucide-react';
 import { loginSchema, type LoginFormData } from '@/application/validators/auth.validator';
 import { useLogin } from '@/application/hooks/mutations/use-auth';

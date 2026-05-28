@@ -8,7 +8,7 @@
  * - UX: ver docs/arquitectura/19-UX-UI-GUIDELINES.md
  */
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { AlertTriangle, X } from 'lucide-react';
 
 interface ConfirmDialogProps {

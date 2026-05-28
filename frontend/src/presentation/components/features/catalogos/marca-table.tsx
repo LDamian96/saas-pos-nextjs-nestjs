@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Edit, Trash2, Tag } from 'lucide-react';
 import { useMarcas } from '@/application/hooks/queries/use-marcas';
 import { useDeleteMarca } from '@/application/hooks/mutations/use-marcas';

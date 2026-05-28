@@ -22,7 +22,7 @@ const nextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 días
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-dropdown-menu'],
+    optimizePackageImports: ['lucide-react', 'gsap', '@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-dropdown-menu'],
   },
   async headers() {
     return [

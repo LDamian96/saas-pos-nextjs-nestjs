@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {

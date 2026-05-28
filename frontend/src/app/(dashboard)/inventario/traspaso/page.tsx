@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {

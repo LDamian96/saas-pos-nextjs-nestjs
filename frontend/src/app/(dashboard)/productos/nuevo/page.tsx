@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { ArrowLeft, Package, Camera, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useForm, Controller, useWatch } from 'react-hook-form';

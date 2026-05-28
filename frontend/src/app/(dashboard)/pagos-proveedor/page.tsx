@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Wallet, Plus, DollarSign, Hash, X } from 'lucide-react';
 import { Button } from '@/presentation/components/ui/button';
 import { Card, CardContent } from '@/presentation/components/ui/card';

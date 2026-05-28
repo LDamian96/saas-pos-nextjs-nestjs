@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import { Package, Plus, Download, Upload } from 'lucide-react';
 import { ProductoTable } from '@/presentation/components/features/productos/producto-table';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { ShoppingCart, Plus, Trash2, FileText, DollarSign, Clock, CheckCircle, X, AlertTriangle } from 'lucide-react';
 import { Button } from '@/presentation/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/presentation/components/ui/card';

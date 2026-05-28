@@ -14,7 +14,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { registerSchema, type RegisterFormData } from '@/application/validators/auth.validator';
 import { useRegister } from '@/application/hooks/mutations/use-auth';
 

@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Warehouse, Package, DollarSign, TrendingUp } from 'lucide-react';
 import { useInventarioValorizado } from '@/application/hooks/queries/use-reportes';
 import { ReporteInventarioFilters } from '@/application/services/reportes.service';

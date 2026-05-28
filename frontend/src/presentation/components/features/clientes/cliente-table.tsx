@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Edit, Trash2, Users, Phone, Mail, CreditCard, Eye } from 'lucide-react';
 import { useClientes } from '@/application/hooks/queries/use-clientes';
 import { useDeleteCliente } from '@/application/hooks/mutations/use-clientes-mutations';

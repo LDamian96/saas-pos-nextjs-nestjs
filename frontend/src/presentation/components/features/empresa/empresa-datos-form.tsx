@@ -11,7 +11,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Save, Loader2 } from 'lucide-react';
 
 import { Button } from '@/presentation/components/ui/button';

@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { QrCode, Loader2, CheckCircle2, XCircle, RefreshCw, ExternalLink } from 'lucide-react';
 import { Button } from '@/presentation/components/ui/button';
 import { metodosPagoService } from '@/application/services/metodos-pago.service';

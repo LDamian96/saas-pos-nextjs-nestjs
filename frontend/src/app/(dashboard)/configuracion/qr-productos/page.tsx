@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { QrCode, Download, Search, Loader2, CheckSquare, Square } from 'lucide-react';
 import { useThemeStore } from '@/application/stores/theme.store';
 

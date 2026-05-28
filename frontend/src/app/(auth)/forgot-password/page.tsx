@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/shared/motion';
 import { Mail, ArrowLeft, Send, Moon, Sun, Sparkles, CheckCircle } from 'lucide-react';
 import { useForgotPassword } from '@/application/hooks/mutations/use-auth';
 

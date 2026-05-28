@@ -9,7 +9,7 @@
  * - Hooks: ver src/application/hooks/queries/use-reportes.ts
  */
 
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import {
   BarChart3,

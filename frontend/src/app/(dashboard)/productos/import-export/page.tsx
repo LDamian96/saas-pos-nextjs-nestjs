@@ -6,7 +6,7 @@
  */
 
 import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import {
   ArrowLeft,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Building2, Receipt, Printer, Wifi, Share2, MessageCircle, Save, ArrowLeft, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';

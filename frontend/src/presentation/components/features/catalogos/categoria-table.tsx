@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Edit, Trash2, Folder, MoreHorizontal } from 'lucide-react';
 import { useCategorias } from '@/application/hooks/queries/use-categorias';
 import { useDeleteCategoria } from '@/application/hooks/mutations/use-categorias';

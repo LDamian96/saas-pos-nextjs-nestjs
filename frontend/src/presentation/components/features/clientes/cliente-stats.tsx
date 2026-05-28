@@ -5,7 +5,7 @@
  * @description Cards de estadisticas de clientes
  */
 
-import { motion } from 'framer-motion';
+import { motion } from '@/shared/motion';
 import { Users, UserCheck, UserX, CreditCard } from 'lucide-react';
 import { useClienteEstadisticas } from '@/application/hooks/queries/use-clientes';
 import { Card } from '@/presentation/components/ui/card';
