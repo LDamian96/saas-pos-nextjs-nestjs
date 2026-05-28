@@ -44,22 +44,28 @@ export function InstallPWABanner() {
 
   return (
     <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 animate-in slide-in-from-bottom-5">
-      <div className="bg-gradient-to-r from-purple-600 to-cyan-600 rounded-2xl p-4 shadow-2xl shadow-purple-500/30 text-white">
+      <div className="bg-brand text-brand-foreground rounded-md p-4 shadow-3 border border-border">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-            <Download className="h-5 w-5" />
+          <div className="w-10 h-10 bg-brand-foreground/10 rounded-sm flex items-center justify-center shrink-0">
+            <Download className="h-5 w-5" strokeWidth={1.75} />
           </div>
-          <div className="flex-1">
-            <p className="font-bold text-sm">Instalar POS Shop</p>
-            <p className="text-xs text-white/80 mt-0.5">Accede mas rapido desde tu pantalla de inicio</p>
+          <div className="flex-1 leading-tight">
+            <p className="font-display font-semibold text-body-m">Instalar POS Shop</p>
+            <p className="text-body-s text-brand-foreground/70 mt-0.5">Accede más rápido desde tu inicio.</p>
           </div>
-          <button onClick={handleDismiss} className="p-1 hover:bg-white/20 rounded-lg shrink-0">
+          <button
+            onClick={handleDismiss}
+            aria-label="Descartar"
+            className="p-1.5 -mt-1 -mr-1 hover:bg-brand-foreground/10 rounded-xs transition-colors shrink-0"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <button onClick={handleInstall}
-          className="w-full mt-3 h-10 bg-white text-purple-700 font-semibold text-sm rounded-xl hover:bg-white/90 active:scale-[0.98] transition-all">
-          Instalar App
+        <button
+          onClick={handleInstall}
+          className="w-full mt-3 h-10 bg-accent text-accent-foreground font-medium text-body-s rounded-sm hover:bg-accent-hover active:scale-[0.985] transition-[background,transform] duration-150"
+        >
+          Instalar
         </button>
       </div>
     </div>

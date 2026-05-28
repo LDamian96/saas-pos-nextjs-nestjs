@@ -26,6 +26,7 @@ import { Card, CardContent } from '@/presentation/components/ui/card';
 import { Badge } from '@/presentation/components/ui/badge';
 import { Skeleton } from '@/presentation/components/ui/skeleton';
 import { useDashboard } from '@/application/hooks/queries/use-reportes';
+import { useAuthStore } from '@/application/stores/auth.store';
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('es-PE', {
@@ -42,12 +43,25 @@ function formatPercent(value: number) {
 export default function DashboardPage() {
   const router = useRouter();
   const { data: dashboard, isLoading, error } = useDashboard();
+  const usuario = useAuthStore((s) => s.usuario);
+
+  const firstName = usuario?.nombre?.split(' ')[0] || '';
+  const ventasHoy = dashboard?.hoy?.ventas ?? 0;
+  const cantidadHoy = dashboard?.hoy?.cantidad ?? 0;
 
   return (
     <div className="space-y-4 md:space-y-6 px-1 md:px-0">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Bienvenido 👋</h1>
-        <p className="text-sm md:text-base text-gray-500 mt-1">Asi va tu negocio hoy</p>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100">
+          {firstName ? `Hola, ${firstName}` : 'Bienvenido'}
+        </h1>
+        <p className="text-sm md:text-base text-gray-500 dark:text-zinc-400 mt-1">
+          {isLoading
+            ? 'Cargando datos del día…'
+            : ventasHoy === 0
+              ? 'Aún no se han registrado ventas hoy. Abre el POS para comenzar.'
+              : <>Llevas <span className="font-semibold text-gray-900 dark:text-zinc-100 tabular">{formatCurrency(ventasHoy)}</span> en {cantidadHoy} {cantidadHoy === 1 ? 'venta' : 'ventas'} hoy.</>}
+        </p>
       </div>
 
       {/* Acciones Rapidas */}
@@ -130,7 +144,7 @@ export default function DashboardPage() {
             <Skeleton className="h-8 w-28" />
           ) : (
             <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900">
+              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 tabular">
                 {formatCurrency(dashboard?.hoy?.ventas || 0)}
               </p>
               {dashboard?.hoy?.comparacionAyer !== undefined && dashboard.hoy.comparacionAyer !== 0 && (
@@ -169,7 +183,7 @@ export default function DashboardPage() {
           {isLoading ? (
             <Skeleton className="h-8 w-16" />
           ) : (
-            <p className="text-xl md:text-2xl font-bold text-gray-900">
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 tabular">
               {dashboard?.hoy?.cantidad || 0}
             </p>
           )}
@@ -192,7 +206,7 @@ export default function DashboardPage() {
             <Skeleton className="h-8 w-28" />
           ) : (
             <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900">
+              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 tabular">
                 {formatCurrency(dashboard?.mes?.ventas || 0)}
               </p>
               {dashboard?.mes?.comparacionMesAnterior !== undefined && dashboard.mes.comparacionMesAnterior !== 0 && (
@@ -233,7 +247,7 @@ export default function DashboardPage() {
             <Skeleton className="h-8 w-20" />
           ) : (
             <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2 tabular">
                 {(dashboard?.alertas?.sinStock || 0) + (dashboard?.alertas?.stockBajo || 0)}
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -279,13 +293,13 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center justify-between min-h-[44px] md:min-h-0">
                     <span className="text-sm md:text-base text-gray-500">Efectivo actual:</span>
-                    <span className="text-sm md:text-base font-semibold">
+                    <span className="text-sm md:text-base font-semibold tabular">
                       {formatCurrency(dashboard?.cajaActual?.efectivoActual || 0)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between min-h-[44px] md:min-h-0">
                     <span className="text-sm md:text-base text-gray-500">Ventas en caja:</span>
-                    <span className="text-sm md:text-base font-semibold">
+                    <span className="text-sm md:text-base font-semibold tabular">
                       {formatCurrency(dashboard?.cajaActual?.ventasHoy || 0)}
                     </span>
                   </div>
@@ -325,7 +339,7 @@ export default function DashboardPage() {
                           <p className="text-xs text-gray-500">{producto.cantidad} vendidos</p>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 shrink-0">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-zinc-100 shrink-0 tabular">
                         {formatCurrency(producto.monto)}
                       </span>
                     </div>

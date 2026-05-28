@@ -407,7 +407,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Bell className="w-4 h-4 md:w-5 md:h-5" />
               {stockAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
+                <span className={`absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold tabular ${stockAlerts >= 5 ? 'animate-stock-critical' : ''}`}>
                   {stockAlerts > 99 ? '99+' : stockAlerts}
                 </span>
               )}
