@@ -38,21 +38,13 @@ export class AuthService {
    * @returns Usuario y setea cookies HTTPOnly
    */
   async login(dto: LoginDto, res: Response) {
-    // 1. Buscar usuario por email
+    // 1. Buscar usuario por email (SIN permisos: se cargan lazy si se necesitan)
     const usuario = await this.prisma.usuario.findFirst({
       where: { email: dto.email },
       include: {
-        rol: {
-          include: {
-            permisos: {
-              include: {
-                permiso: true,
-              },
-            },
-          },
-        },
-        empresa: true,
-        sucursal: true,
+        rol: { select: { id: true, codigo: true, nombre: true, nivel: true } },
+        empresa: { select: { id: true, nombreComercial: true, subdominio: true } },
+        sucursal: { select: { id: true, nombre: true } },
       },
     });
 
@@ -75,24 +67,14 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    // 4. Verificar password
+    // 4. Verificar password (bcrypt 12 rounds - seguro)
     const passwordValid = await bcrypt.compare(dto.password, usuario.passwordHash);
     if (!passwordValid) {
       await this.incrementarIntentosFallidos(usuario.id, usuario.intentosFallidos);
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
-    // 5. Resetear intentos fallidos y actualizar ultimo login
-    await this.prisma.usuario.update({
-      where: { id: usuario.id },
-      data: {
-        intentosFallidos: 0,
-        bloqueadoHasta: null,
-        ultimoLogin: new Date(),
-      },
-    });
-
-    // 6. Generar tokens
+    // 5. Generar tokens
     const payload = {
       sub: usuario.id,
       email: usuario.email,
@@ -115,19 +97,31 @@ export class AuthService {
       },
     );
 
-    // 7. Guardar refresh token hasheado en BD
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    // 6. Hash del refresh token con SHA-256 (no bcrypt: ~100ms → ~0.5ms)
+    // El refresh token ya es aleatorio criptográfico, SHA-256 basta para almacenarlo.
+    const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    // 7. Un solo UPDATE: reset intentos + ultimo login + refresh token (ahorro RTT)
     await this.prisma.usuario.update({
       where: { id: usuario.id },
-      data: { refreshToken: refreshTokenHash },
+      data: {
+        intentosFallidos: 0,
+        bloqueadoHasta: null,
+        ultimoLogin: new Date(),
+        refreshToken: refreshTokenHash,
+      },
     });
 
     // 8. Setear cookies HTTPOnly
     res.cookie('access_token', accessToken, cookieConfig.accessToken);
     res.cookie('refresh_token', refreshToken, cookieConfig.refreshToken);
 
-    // 9. Extraer permisos
-    const permisos = usuario.rol.permisos.map((rp) => rp.permiso.codigo);
+    // 9. Cargar permisos en query separada (más rápido que include nested)
+    const permisosRows = await this.prisma.rolPermiso.findMany({
+      where: { rolId: usuario.rol.id },
+      select: { permiso: { select: { codigo: true } } },
+    });
+    const permisos = permisosRows.map((rp) => rp.permiso.codigo);
 
     return {
       success: true,
@@ -291,19 +285,17 @@ export class AuthService {
         secret: this.configService.get('JWT_REFRESH_SECRET') || jwtConfig.refreshToken.secret,
       });
 
-      // 2. Buscar usuario
+      // 2. Buscar usuario (sin nested permisos - no se usan aquí)
       const usuario = await this.prisma.usuario.findUnique({
         where: { id: payload.sub },
-        include: {
-          rol: {
-            include: {
-              permisos: {
-                include: {
-                  permiso: true,
-                },
-              },
-            },
-          },
+        select: {
+          id: true,
+          email: true,
+          empresaId: true,
+          sucursalId: true,
+          activo: true,
+          refreshToken: true,
+          rol: { select: { codigo: true, nivel: true } },
         },
       });
 
@@ -311,12 +303,16 @@ export class AuthService {
         throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
       }
 
-      // 3. Verificar que el refresh token coincide
+      // 3. Verificar que el refresh token coincide (SHA-256 comparison, timing-safe)
       if (!usuario.refreshToken) {
         throw new UnauthorizedException(ERROR_MESSAGES.TOKEN_EXPIRED);
       }
 
-      const tokenValid = await bcrypt.compare(refreshTokenFromCookie, usuario.refreshToken);
+      const incomingHash = crypto.createHash('sha256').update(refreshTokenFromCookie).digest('hex');
+      const storedBuf = Buffer.from(usuario.refreshToken, 'hex');
+      const incomingBuf = Buffer.from(incomingHash, 'hex');
+      const tokenValid = storedBuf.length === incomingBuf.length &&
+        crypto.timingSafeEqual(storedBuf, incomingBuf);
       if (!tokenValid) {
         throw new UnauthorizedException(ERROR_MESSAGES.TOKEN_EXPIRED);
       }

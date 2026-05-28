@@ -585,6 +585,13 @@ export class ReportesService {
   async getDashboard(empresaId: string, filters: ReporteDashboardFiltersDto) {
     const { sucursalId } = filters;
 
+    // Cache key con TTL 30s: la mayoría de hits regresan sin tocar DB
+    const cacheKey = `dashboard:${empresaId}:${sucursalId || 'all'}`;
+    const cached = await this.redis.get<any>(cacheKey);
+    if (cached) {
+      return { success: true, data: cached };
+    }
+
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
@@ -600,92 +607,83 @@ export class ReportesService {
       whereBase.sucursalId = sucursalId;
     }
 
-    // Ventas hoy
-    const ventasHoy = await this.prisma.venta.aggregate({
-      where: { ...whereBase, createdAt: { gte: hoy } },
-      _sum: { total: true },
-      _count: { id: true },
-    });
+    // ⚡ Paralelizar las 9 queries: tiempo total = la más lenta, no la suma
+    const [
+      ventasHoy,
+      ventasAyer,
+      ventasMes,
+      ventasMesAnterior,
+      cajaActual,
+      variantesConStockBajo,
+      sinStockResult,
+      topProductosHoy,
+    ] = await Promise.all([
+      // Ventas hoy
+      this.prisma.venta.aggregate({
+        where: { ...whereBase, createdAt: { gte: hoy } },
+        _sum: { total: true },
+        _count: { id: true },
+      }),
+      // Ventas ayer
+      this.prisma.venta.aggregate({
+        where: { ...whereBase, createdAt: { gte: ayer, lt: hoy } },
+        _sum: { total: true },
+        _count: { id: true },
+      }),
+      // Ventas mes actual
+      this.prisma.venta.aggregate({
+        where: { ...whereBase, createdAt: { gte: inicioMes } },
+        _sum: { total: true },
+        _count: { id: true },
+      }),
+      // Ventas mes anterior
+      this.prisma.venta.aggregate({
+        where: { ...whereBase, createdAt: { gte: inicioMesAnterior, lte: finMesAnterior } },
+        _sum: { total: true },
+        _count: { id: true },
+      }),
+      // Caja actual
+      this.prisma.caja.findFirst({
+        where: { empresaId, estado: 'abierta', ...(sucursalId && { sucursalId }) },
+        select: { id: true, montoApertura: true, montoEfectivo: true, montoVentas: true },
+      }),
+      // Stock bajo (raw SQL)
+      this.prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT COUNT(*) as count FROM stock_sucursal ss
+        INNER JOIN variantes v ON ss.variante_id = v.id
+        INNER JOIN productos p ON v.producto_id = p.id
+        INNER JOIN sucursales s ON ss.sucursal_id = s.id
+        WHERE p.empresa_id = ${empresaId}::uuid
+        AND p.activo = true AND v.activo = true AND s.activo = true
+        AND ss.stock_minimo > 0 AND ss.stock > 0 AND ss.stock <= ss.stock_minimo
+      `,
+      // Sin stock (raw SQL)
+      this.prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT COUNT(DISTINCT v.id) as count FROM variantes v
+        INNER JOIN productos p ON v.producto_id = p.id
+        WHERE p.empresa_id = ${empresaId}::uuid
+        AND p.activo = true AND v.activo = true AND v.stock <= 0
+      `,
+      // Top productos hoy
+      this.prisma.ventaDetalle.groupBy({
+        by: ['varianteId'],
+        where: { venta: { ...whereBase, createdAt: { gte: hoy } } },
+        _sum: { cantidad: true, subtotal: true },
+        orderBy: { _sum: { cantidad: 'desc' } },
+        take: 5,
+      }),
+    ]);
 
-    // Ventas ayer
-    const ventasAyer = await this.prisma.venta.aggregate({
-      where: { ...whereBase, createdAt: { gte: ayer, lt: hoy } },
-      _sum: { total: true },
-      _count: { id: true },
-    });
-
-    // Ventas mes actual
-    const ventasMes = await this.prisma.venta.aggregate({
-      where: { ...whereBase, createdAt: { gte: inicioMes } },
-      _sum: { total: true },
-      _count: { id: true },
-    });
-
-    // Ventas mes anterior
-    const ventasMesAnterior = await this.prisma.venta.aggregate({
-      where: { ...whereBase, createdAt: { gte: inicioMesAnterior, lte: finMesAnterior } },
-      _sum: { total: true },
-      _count: { id: true },
-    });
-
-    // Caja actual
-    const cajaActual = await this.prisma.caja.findFirst({
-      where: {
-        empresaId,
-        estado: 'abierta',
-        ...(sucursalId && { sucursalId }),
-      },
-      select: {
-        id: true,
-        montoApertura: true,
-        montoEfectivo: true,
-        montoVentas: true,
-      },
-    });
-
-    // Alertas de stock - productos con stock bajo (StockSucursal tiene los minimos reales)
-    const variantesConStockBajo = await this.prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*) as count FROM stock_sucursal ss
-      INNER JOIN variantes v ON ss.variante_id = v.id
-      INNER JOIN productos p ON v.producto_id = p.id
-      INNER JOIN sucursales s ON ss.sucursal_id = s.id
-      WHERE p.empresa_id = ${empresaId}::uuid
-      AND p.activo = true
-      AND v.activo = true
-      AND s.activo = true
-      AND ss.stock_minimo > 0
-      AND ss.stock > 0
-      AND ss.stock <= ss.stock_minimo
-    `;
     const stockBajo = Number(variantesConStockBajo[0]?.count || 0);
-
-    // Productos sin stock (stock = 0 en StockSucursal o en variante)
-    const sinStockResult = await this.prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(DISTINCT v.id) as count FROM variantes v
-      INNER JOIN productos p ON v.producto_id = p.id
-      WHERE p.empresa_id = ${empresaId}::uuid
-      AND p.activo = true
-      AND v.activo = true
-      AND v.stock <= 0
-    `;
     const sinStock = Number(sinStockResult[0]?.count || 0);
 
-    // Top productos hoy
-    const topProductosHoy = await this.prisma.ventaDetalle.groupBy({
-      by: ['varianteId'],
-      where: {
-        venta: { ...whereBase, createdAt: { gte: hoy } },
-      },
-      _sum: { cantidad: true, subtotal: true },
-      orderBy: { _sum: { cantidad: 'desc' } },
-      take: 5,
-    });
-
     const varianteIds = topProductosHoy.map((p) => p.varianteId);
-    const variantes = await this.prisma.variante.findMany({
-      where: { id: { in: varianteIds } },
-      include: { producto: { select: { nombre: true } } },
-    });
+    const variantes = varianteIds.length > 0
+      ? await this.prisma.variante.findMany({
+          where: { id: { in: varianteIds } },
+          select: { id: true, producto: { select: { nombre: true } } },
+        })
+      : [];
     const variantesMap = new Map(variantes.map((v) => [v.id, v]));
 
     // Calcular comparaciones
@@ -702,40 +700,39 @@ export class ReportesService {
       ? ((ventasMesNum - ventasMesAntNum) / ventasMesAntNum) * 100
       : 0;
 
-    return {
-      success: true,
-      data: {
-        hoy: {
-          ventas: ventasHoyNum,
-          cantidad: ventasHoy._count.id,
-          comparacionAyer: Math.round(comparacionAyer * 10) / 10,
-        },
-        mes: {
-          ventas: ventasMesNum,
-          cantidad: ventasMes._count.id,
-          comparacionMesAnterior: Math.round(comparacionMes * 10) / 10,
-        },
-        cajaActual: cajaActual
-          ? {
-              abierta: true,
-              efectivoActual: Number(cajaActual.montoEfectivo),
-              ventasHoy: Number(cajaActual.montoVentas),
-            }
-          : { abierta: false, efectivoActual: 0, ventasHoy: 0 },
-        alertas: {
-          stockBajo,
-          sinStock,
-        },
-        topProductosHoy: topProductosHoy.map((p) => {
-          const variante = variantesMap.get(p.varianteId);
-          return {
-            nombre: variante?.producto.nombre || 'Producto',
-            cantidad: p._sum.cantidad || 0,
-            monto: Number(p._sum.subtotal) || 0,
-          };
-        }),
+    const data = {
+      hoy: {
+        ventas: ventasHoyNum,
+        cantidad: ventasHoy._count.id,
+        comparacionAyer: Math.round(comparacionAyer * 10) / 10,
       },
+      mes: {
+        ventas: ventasMesNum,
+        cantidad: ventasMes._count.id,
+        comparacionMesAnterior: Math.round(comparacionMes * 10) / 10,
+      },
+      cajaActual: cajaActual
+        ? {
+            abierta: true,
+            efectivoActual: Number(cajaActual.montoEfectivo),
+            ventasHoy: Number(cajaActual.montoVentas),
+          }
+        : { abierta: false, efectivoActual: 0, ventasHoy: 0 },
+      alertas: { stockBajo, sinStock },
+      topProductosHoy: topProductosHoy.map((p) => {
+        const variante = variantesMap.get(p.varianteId);
+        return {
+          nombre: variante?.producto.nombre || 'Producto',
+          cantidad: p._sum.cantidad || 0,
+          monto: Number(p._sum.subtotal) || 0,
+        };
+      }),
     };
+
+    // Cache 30s — invalidación se hace en venta.service al crear venta
+    await this.redis.set(cacheKey, data, 30);
+
+    return { success: true, data };
   }
 
   // =====================================================
