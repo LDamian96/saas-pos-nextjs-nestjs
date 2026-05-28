@@ -288,6 +288,131 @@
   100% { background-position: 200% 0; }
 }
 
+/* ===========================================================
+   STAT CARDS — Look DineTrack elegante
+   Bordes 20px, sombras suaves, halos sutiles en icon boxes,
+   chips con bg pastel, microinteracción de press.
+   =========================================================== */
+
+.stat-card {
+  position: relative;
+  background: white;
+  border: 1px solid rgba(229, 231, 235, 0.7);
+  border-radius: 20px;
+  padding: 18px 18px 16px;
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.04),
+    0 8px 24px -10px rgba(15, 23, 42, 0.08),
+    0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  transition: transform 280ms var(--ease-out-quart),
+              box-shadow 280ms var(--ease-out-quart),
+              border-color 200ms ease-out;
+}
+.dark .stat-card {
+  background: rgb(24, 24, 27);
+  border-color: rgba(63, 63, 70, 0.5);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.3),
+    0 8px 24px -10px rgba(0, 0, 0, 0.5),
+    0 2px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Halo de color sutil en la esquina superior derecha (donde está el icon) */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  opacity: 0.10;
+  filter: blur(40px);
+  pointer-events: none;
+  transition: opacity 280ms ease-out;
+}
+.stat-card:hover::before { opacity: 0.18; }
+.dark .stat-card::before { opacity: 0.18; }
+.dark .stat-card:hover::before { opacity: 0.28; }
+
+.stat-card--emerald::before { background: rgb(16, 185, 129); }
+.stat-card--blue::before    { background: rgb(59, 130, 246); }
+.stat-card--purple::before  { background: rgb(168, 85, 247); }
+.stat-card--amber::before   { background: rgb(245, 158, 11); }
+
+/* Icon boxes con glow sutil */
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  color: white;
+  flex-shrink: 0;
+  transition: transform 280ms var(--ease-spring);
+}
+.stat-card:hover .stat-icon { transform: scale(1.08) rotate(-4deg); }
+
+.stat-icon--emerald {
+  background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129));
+  box-shadow: 0 6px 14px -4px rgba(16, 185, 129, 0.45);
+}
+.stat-icon--blue {
+  background: linear-gradient(135deg, rgb(59, 130, 246), rgb(99, 102, 241));
+  box-shadow: 0 6px 14px -4px rgba(59, 130, 246, 0.45);
+}
+.stat-icon--purple {
+  background: linear-gradient(135deg, rgb(168, 85, 247), rgb(217, 70, 239));
+  box-shadow: 0 6px 14px -4px rgba(168, 85, 247, 0.45);
+}
+.stat-icon--amber {
+  background: linear-gradient(135deg, rgb(245, 158, 11), rgb(249, 115, 22));
+  box-shadow: 0 6px 14px -4px rgba(245, 158, 11, 0.45);
+}
+
+/* Chips de trend / badges sutiles */
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.stat-chip--up {
+  color: rgb(5, 122, 85);
+  background: rgba(16, 185, 129, 0.12);
+}
+.stat-chip--down {
+  color: rgb(220, 38, 38);
+  background: rgba(239, 68, 68, 0.12);
+}
+.stat-chip--danger {
+  color: rgb(220, 38, 38);
+  background: rgba(239, 68, 68, 0.10);
+}
+.stat-chip--neutral {
+  color: rgb(75, 85, 99);
+  background: rgba(148, 163, 184, 0.16);
+}
+.dark .stat-chip--up      { color: rgb(52, 211, 153); background: rgba(16, 185, 129, 0.18); }
+.dark .stat-chip--down    { color: rgb(248, 113, 113); background: rgba(239, 68, 68, 0.18); }
+.dark .stat-chip--danger  { color: rgb(248, 113, 113); background: rgba(239, 68, 68, 0.15); }
+.dark .stat-chip--neutral { color: rgb(161, 161, 170); background: rgba(148, 163, 184, 0.12); }
+
+/* Hover lift que envuelve la card entera */
+.stat-card.lift-soft:hover {
+  transform: translateY(-3px);
+  border-color: rgba(209, 213, 219, 1);
+}
+.dark .stat-card.lift-soft:hover {
+  border-color: rgba(82, 82, 91, 0.7);
+}
+
 /* Cart +1 bump al agregar producto */
 @keyframes cart-bump {
   0% { transform: scale(1); }

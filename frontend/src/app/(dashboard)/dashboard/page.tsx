@@ -119,39 +119,30 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Stats Grid - stagger reveal */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 stagger-reveal">
+      {/* Stats Grid - look DineTrack elegante */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 stagger">
         {/* Ventas Hoy */}
-        <div
-          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Ventas Hoy</p>
-            <div className="bg-green-500 p-2 rounded-lg">
-              <DollarSign className="h-4 w-4 text-white" />
+        <div className="stat-card stat-card--emerald lift-soft press-soft">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <p className="text-[11px] font-semibold tracking-wider uppercase text-gray-500 dark:text-zinc-500">Ventas Hoy</p>
+            <div className="stat-icon stat-icon--emerald">
+              <DollarSign className="h-4 w-4" strokeWidth={2.25} />
             </div>
           </div>
           {isLoading ? (
-            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-9 w-32" />
           ) : (
             <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 tabular">
+              <p className="font-bold tracking-tight text-gray-900 dark:text-zinc-50 tabular text-[26px] md:text-[28px] leading-none">
                 {formatCurrency(dashboard?.hoy?.ventas || 0)}
               </p>
               {dashboard?.hoy?.comparacionAyer !== undefined && dashboard.hoy.comparacionAyer !== 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  {dashboard.hoy.comparacionAyer >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-green-600 shrink-0" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600 shrink-0" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      dashboard.hoy.comparacionAyer >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {formatPercent(dashboard.hoy.comparacionAyer)} vs ayer
-                  </span>
+                <div className={`stat-chip ${dashboard.hoy.comparacionAyer >= 0 ? 'stat-chip--up' : 'stat-chip--down'} mt-3`}>
+                  {dashboard.hoy.comparacionAyer >= 0
+                    ? <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
+                    : <TrendingDown className="h-3 w-3" strokeWidth={2.5} />}
+                  <span className="tabular">{formatPercent(dashboard.hoy.comparacionAyer)}</span>
+                  <span className="opacity-60">vs ayer</span>
                 </div>
               )}
             </>
@@ -159,55 +150,49 @@ export default function DashboardPage() {
         </div>
 
         {/* Transacciones Hoy */}
-        <div
-          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Transacciones</p>
-            <div className="bg-blue-500 p-2 rounded-lg">
-              <ShoppingCart className="h-4 w-4 text-white" />
+        <div className="stat-card stat-card--blue lift-soft press-soft">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <p className="text-[11px] font-semibold tracking-wider uppercase text-gray-500 dark:text-zinc-500">Transacciones</p>
+            <div className="stat-icon stat-icon--blue">
+              <ShoppingCart className="h-4 w-4" strokeWidth={2.25} />
             </div>
           </div>
           {isLoading ? (
-            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-9 w-16" />
           ) : (
-            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 tabular">
-              {dashboard?.hoy?.cantidad || 0}
-            </p>
+            <>
+              <p className="font-bold tracking-tight text-gray-900 dark:text-zinc-50 tabular text-[26px] md:text-[28px] leading-none">
+                {dashboard?.hoy?.cantidad || 0}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-zinc-500 mt-2">
+                ventas {(dashboard?.hoy?.cantidad ?? 0) === 1 ? 'completada' : 'completadas'}
+              </p>
+            </>
           )}
         </div>
 
         {/* Ventas del Mes */}
-        <div
-          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Ventas del Mes</p>
-            <div className="bg-purple-500 p-2 rounded-lg">
-              <BarChart3 className="h-4 w-4 text-white" />
+        <div className="stat-card stat-card--purple lift-soft press-soft">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <p className="text-[11px] font-semibold tracking-wider uppercase text-gray-500 dark:text-zinc-500">Ventas del Mes</p>
+            <div className="stat-icon stat-icon--purple">
+              <BarChart3 className="h-4 w-4" strokeWidth={2.25} />
             </div>
           </div>
           {isLoading ? (
-            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-9 w-32" />
           ) : (
             <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 tabular">
+              <p className="font-bold tracking-tight text-gray-900 dark:text-zinc-50 tabular text-[26px] md:text-[28px] leading-none">
                 {formatCurrency(dashboard?.mes?.ventas || 0)}
               </p>
               {dashboard?.mes?.comparacionMesAnterior !== undefined && dashboard.mes.comparacionMesAnterior !== 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  {dashboard.mes.comparacionMesAnterior >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-green-600 shrink-0" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600 shrink-0" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      dashboard.mes.comparacionMesAnterior >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {formatPercent(dashboard.mes.comparacionMesAnterior)} vs mes ant.
-                  </span>
+                <div className={`stat-chip ${dashboard.mes.comparacionMesAnterior >= 0 ? 'stat-chip--up' : 'stat-chip--down'} mt-3`}>
+                  {dashboard.mes.comparacionMesAnterior >= 0
+                    ? <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
+                    : <TrendingDown className="h-3 w-3" strokeWidth={2.5} />}
+                  <span className="tabular">{formatPercent(dashboard.mes.comparacionMesAnterior)}</span>
+                  <span className="opacity-60">vs mes ant.</span>
                 </div>
               )}
             </>
@@ -217,32 +202,34 @@ export default function DashboardPage() {
         {/* Alertas de Stock - Clickeable */}
         <div
           onClick={() => router.push('/inventario/alertas')}
-          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden cursor-pointer active:scale-[0.98] min-h-[44px] hover:border-orange-300 dark:hover:border-orange-500/50"
+          className="stat-card stat-card--amber lift-soft press group/card cursor-pointer"
         >
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <p className="text-sm md:text-sm font-medium text-gray-500">Alertas Stock</p>
-            <div className="bg-orange-500 p-2 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-white" />
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <p className="text-[11px] font-semibold tracking-wider uppercase text-gray-500 dark:text-zinc-500">Alertas Stock</p>
+            <div className="stat-icon stat-icon--amber">
+              <AlertTriangle className="h-4 w-4" strokeWidth={2.25} />
             </div>
           </div>
           {isLoading ? (
-            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-9 w-16" />
           ) : (
             <>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2 tabular">
+              <p className="font-bold tracking-tight text-gray-900 dark:text-zinc-50 mb-3 tabular text-[26px] md:text-[28px] leading-none">
                 {(dashboard?.alertas?.sinStock || 0) + (dashboard?.alertas?.stockBajo || 0)}
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
-                <Badge variant="destructive" className="text-xs">
-                  {dashboard?.alertas?.sinStock || 0} sin stock
-                </Badge>
-                <Badge variant="secondary" className="text-xs">
-                  {dashboard?.alertas?.stockBajo || 0} bajo
-                </Badge>
+                <span className="stat-chip stat-chip--danger">
+                  <span className="tabular">{dashboard?.alertas?.sinStock || 0}</span>
+                  <span className="opacity-70">sin stock</span>
+                </span>
+                <span className="stat-chip stat-chip--neutral">
+                  <span className="tabular">{dashboard?.alertas?.stockBajo || 0}</span>
+                  <span className="opacity-70">bajo</span>
+                </span>
               </div>
-              <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 dark:text-orange-400 font-medium group/link">
+              <div className="flex items-center gap-1 mt-3 text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                 <span>Ver alertas</span>
-                <ChevronRight className="h-3 w-3 transition-transform group-hover/link:translate-x-0.5" />
+                <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover/card:translate-x-1" strokeWidth={2.5} />
               </div>
             </>
           )}
