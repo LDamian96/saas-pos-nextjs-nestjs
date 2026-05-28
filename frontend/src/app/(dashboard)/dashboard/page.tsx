@@ -50,7 +50,7 @@ export default function DashboardPage() {
   const cantidadHoy = dashboard?.hoy?.cantidad ?? 0;
 
   return (
-    <div className="space-y-4 md:space-y-6 px-1 md:px-0">
+    <div className="space-y-4 md:space-y-6 px-1 md:px-0 animate-page-in">
       <div>
         <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-zinc-100">
           {firstName ? `Hola, ${firstName}` : 'Bienvenido'}
@@ -64,75 +64,66 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Acciones Rapidas */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-      >
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
-          <button
-            onClick={() => router.push('/pos')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/20 transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-              <ShoppingCart className="h-5 w-5" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm">Abrir POS</p>
-              <p className="text-xs text-white/70 hidden sm:block">Vender ahora</p>
-            </div>
-          </button>
+      {/* Acciones Rápidas - stagger reveal + hover lift */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 stagger-reveal">
+        <button
+          onClick={() => router.push('/pos')}
+          className="glow-cta hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-xl shadow-soft active:scale-[0.97] group"
+        >
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 group-hover:rotate-[-6deg] transition-transform duration-300 shrink-0">
+            <ShoppingCart className="h-5 w-5" />
+          </div>
+          <div className="text-left min-w-0">
+            <p className="font-semibold text-sm">Abrir POS</p>
+            <p className="text-xs text-white/70 hidden sm:block">Vender ahora</p>
+          </div>
+        </button>
 
-          <button
-            onClick={() => router.push('/productos/nuevo')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors shrink-0">
-              <Plus className="h-5 w-5 text-blue-600" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm text-gray-900 truncate">Nuevo Producto</p>
-              <p className="text-xs text-gray-400 hidden sm:block">Agregar al catalogo</p>
-            </div>
-          </button>
+        <button
+          onClick={() => router.push('/productos/nuevo')}
+          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-soft hover:border-blue-300 dark:hover:border-blue-500/50 active:scale-[0.97] group"
+        >
+          <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/15 rounded-lg flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-500/25 transition-colors shrink-0">
+            <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:rotate-90 transition-transform duration-300" />
+          </div>
+          <div className="text-left min-w-0">
+            <p className="font-semibold text-sm text-gray-900 dark:text-zinc-100 truncate">Nuevo Producto</p>
+            <p className="text-xs text-gray-400 dark:text-zinc-500 hidden sm:block">Agregar al catálogo</p>
+          </div>
+        </button>
 
-          <button
-            onClick={() => router.push('/ventas')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors shrink-0">
-              <Receipt className="h-5 w-5 text-green-600" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm text-gray-900">Ver Ventas</p>
-              <p className="text-xs text-gray-400 hidden sm:block">Historial de hoy</p>
-            </div>
-          </button>
+        <button
+          onClick={() => router.push('/ventas')}
+          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-soft hover:border-emerald-300 dark:hover:border-emerald-500/50 active:scale-[0.97] group"
+        >
+          <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/15 rounded-lg flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/25 transition-colors shrink-0">
+            <Receipt className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="text-left min-w-0">
+            <p className="font-semibold text-sm text-gray-900 dark:text-zinc-100">Ver Ventas</p>
+            <p className="text-xs text-gray-400 dark:text-zinc-500 hidden sm:block">Historial de hoy</p>
+          </div>
+        </button>
 
-          <button
-            onClick={() => router.push('/caja')}
-            className="flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white border border-gray-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all group active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 md:w-10 md:h-10 bg-orange-50 rounded-lg flex items-center justify-center group-hover:bg-orange-100 transition-colors shrink-0">
-              <Calculator className="h-5 w-5 text-orange-600" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold text-sm text-gray-900">Caja</p>
-              <p className="text-xs text-gray-400 hidden sm:block">Abrir o cerrar</p>
-            </div>
-          </button>
-        </div>
-      </motion.div>
+        <button
+          onClick={() => router.push('/caja')}
+          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-soft hover:border-amber-300 dark:hover:border-amber-500/50 active:scale-[0.97] group"
+        >
+          <div className="w-10 h-10 bg-amber-50 dark:bg-amber-500/15 rounded-lg flex items-center justify-center group-hover:bg-amber-100 dark:group-hover:bg-amber-500/25 transition-colors shrink-0">
+            <Calculator className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="text-left min-w-0">
+            <p className="font-semibold text-sm text-gray-900 dark:text-zinc-100">Caja</p>
+            <p className="text-xs text-gray-400 dark:text-zinc-500 hidden sm:block">Abrir o cerrar</p>
+          </div>
+        </button>
+      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {/* Stats Grid - stagger reveal */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 stagger-reveal">
         {/* Ventas Hoy */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0 }}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden"
+        <div
+          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden"
         >
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <p className="text-sm md:text-sm font-medium text-gray-500">Ventas Hoy</p>
@@ -165,14 +156,11 @@ export default function DashboardPage() {
               )}
             </>
           )}
-        </motion.div>
+        </div>
 
         {/* Transacciones Hoy */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden"
+        <div
+          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden"
         >
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <p className="text-sm md:text-sm font-medium text-gray-500">Transacciones</p>
@@ -187,14 +175,11 @@ export default function DashboardPage() {
               {dashboard?.hoy?.cantidad || 0}
             </p>
           )}
-        </motion.div>
+        </div>
 
         {/* Ventas del Mes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden"
+        <div
+          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden"
         >
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <p className="text-sm md:text-sm font-medium text-gray-500">Ventas del Mes</p>
@@ -227,15 +212,12 @@ export default function DashboardPage() {
               )}
             </>
           )}
-        </motion.div>
+        </div>
 
         {/* Alertas de Stock - Clickeable */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+        <div
           onClick={() => router.push('/inventario/alertas')}
-          className="bg-white rounded-xl shadow-sm p-4 md:p-5 overflow-hidden cursor-pointer hover:shadow-md hover:ring-1 hover:ring-orange-200 transition-all active:scale-[0.98] min-h-[44px]"
+          className="hover-lift bg-white dark:bg-zinc-900 border border-gray-200/60 dark:border-zinc-800 rounded-xl shadow-soft p-4 md:p-5 overflow-hidden cursor-pointer active:scale-[0.98] min-h-[44px] hover:border-orange-300 dark:hover:border-orange-500/50"
         >
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <p className="text-sm md:text-sm font-medium text-gray-500">Alertas Stock</p>
@@ -258,13 +240,13 @@ export default function DashboardPage() {
                   {dashboard?.alertas?.stockBajo || 0} bajo
                 </Badge>
               </div>
-              <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 font-medium">
+              <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 dark:text-orange-400 font-medium group/link">
                 <span>Ver alertas</span>
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-3 w-3 transition-transform group-hover/link:translate-x-0.5" />
               </div>
             </>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Second Row */}

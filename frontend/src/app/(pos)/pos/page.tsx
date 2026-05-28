@@ -739,7 +739,9 @@ export default function POSPage() {
                           <img
                             src={producto.imagenPrincipal}
                             alt={producto.nombre}
-                            className="h-20 md:h-24 w-full object-cover rounded-t"
+                            loading="lazy"
+                            decoding="async"
+                            className="h-20 md:h-24 w-full object-cover rounded-t bg-slate-100 dark:bg-zinc-800 transition-opacity duration-200"
                           />
                         ) : (
                           <div
