@@ -163,7 +163,7 @@ export default function CategoriasPage() {
                     </button>
                     <button
                       onClick={() => setAtributosCategoria(categoria)}
-                      className="p-2.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      className="p-2.5 text-gray-400 hover:text-[#00932C] hover:bg-[#CCE9D5]/40 rounded-lg transition-colors"
                       title="Gestionar atributos"
                     >
                       <Tags className="h-5 w-5" />
@@ -212,7 +212,7 @@ export default function CategoriasPage() {
                     <div className="flex items-center gap-1 mt-1 ml-[52px]">
                       <button
                         onClick={() => setAtributosCategoria(sub)}
-                        className="p-2.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        className="p-2.5 text-gray-400 hover:text-[#00932C] hover:bg-[#CCE9D5]/40 rounded-lg transition-colors"
                         title="Gestionar atributos"
                       >
                         <Tags className="h-4 w-4" />
@@ -310,7 +310,7 @@ export default function CategoriasPage() {
                           </button>
                           <button
                             onClick={() => setAtributosCategoria(categoria)}
-                            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 hover:text-[#00932C] hover:bg-[#CCE9D5]/40 rounded-lg transition-colors"
                             title="Gestionar atributos"
                           >
                             <Tags className="h-5 w-5" />
@@ -371,7 +371,7 @@ export default function CategoriasPage() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => setAtributosCategoria(sub)}
-                              className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              className="p-1.5 text-gray-400 hover:text-[#00932C] hover:bg-[#CCE9D5]/40 rounded-lg transition-colors"
                               title="Gestionar atributos"
                             >
                               <Tags className="h-4 w-4" />

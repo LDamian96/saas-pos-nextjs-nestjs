@@ -181,7 +181,7 @@ function ResumenCard({
     default: 'bg-card',
     primary: 'bg-blue-50 dark:bg-blue-950',
     success: 'bg-green-50 dark:bg-green-950',
-    info: 'bg-purple-50 dark:bg-purple-950',
+    info: 'bg-[#CCE9D5]/40 dark:bg-purple-950',
     warning: 'bg-orange-50 dark:bg-orange-950',
   };
 
@@ -189,7 +189,7 @@ function ResumenCard({
     default: 'text-muted-foreground',
     primary: 'text-blue-600',
     success: 'text-green-600',
-    info: 'text-purple-600',
+    info: 'text-[#00932C]',
     warning: 'text-orange-600',
   };
 

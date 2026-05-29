@@ -14,7 +14,7 @@ import { useResetPassword } from '@/application/hooks/mutations/use-auth';
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-black"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-black"><div className="w-8 h-8 border-2 border-[#00932C] border-t-transparent rounded-full animate-spin" /></div>}>
       <ResetPasswordContent />
     </Suspense>
   );
@@ -74,7 +74,7 @@ function ResetPasswordContent() {
   if (!token) {
     return (
       <div className={`min-h-screen flex items-center justify-center p-4 ${
-        isDark ? 'bg-black' : 'bg-gradient-to-br from-slate-50 to-slate-100'
+        isDark ? 'bg-black' : 'bg-gradient-to-br from-[#F4F4F4] to-white'
       }`}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -92,7 +92,7 @@ function ResetPasswordContent() {
           </p>
           <Link
             href="/forgot-password"
-            className="inline-flex items-center gap-2 text-sm font-medium text-purple-500 hover:text-purple-400 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#00932C] hover:text-[#00932C] transition-colors"
           >
             Solicitar nuevo enlace
           </Link>
@@ -103,7 +103,7 @@ function ResetPasswordContent() {
 
   return (
     <div className={`min-h-screen relative flex items-center justify-center p-4 overflow-hidden transition-colors duration-500 ${
-      isDark ? 'bg-black' : 'bg-gradient-to-br from-slate-50 to-slate-100'
+      isDark ? 'bg-black' : 'bg-gradient-to-br from-[#F4F4F4] to-white'
     }`}>
       {/* Grid pattern */}
       <div className={`absolute inset-0 transition-opacity duration-500 ${
@@ -115,7 +115,7 @@ function ResetPasswordContent() {
       {/* Gradient orbs */}
       {isDark ? (
         <>
-          <div className="absolute top-0 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-pulse" />
+          <div className="absolute top-0 -left-40 w-80 h-80 bg-[#CCE9D5]/400 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-pulse" />
           <div className="absolute top-0 -right-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-pulse" />
         </>
       ) : (
@@ -179,10 +179,10 @@ function ResetPasswordContent() {
                 transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
                 className="relative inline-flex"
               >
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+                <div className="w-14 h-14 bg-[#00932C] rounded-xl flex items-center justify-center shadow-lg shadow-[#00932C]/20">
                   <Sparkles className="w-7 h-7 text-white" />
                 </div>
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl blur opacity-30 animate-pulse" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#00932C] to-[#00932C] rounded-xl blur opacity-30 animate-pulse" />
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -258,8 +258,8 @@ function ResetPasswordContent() {
                           ${errors.password
                             ? 'border-red-500/50 focus:border-red-500'
                             : isDark
-                              ? 'border-zinc-700 hover:border-zinc-600 focus:border-purple-500'
-                              : 'border-slate-300 hover:border-slate-400 focus:border-purple-500'
+                              ? 'border-zinc-700 hover:border-zinc-600 focus:border-[#00932C]'
+                              : 'border-slate-300 hover:border-slate-400 focus:border-[#00932C]'
                           }
                         `}
                         disabled={resetMutation.isPending}
@@ -304,8 +304,8 @@ function ResetPasswordContent() {
                           ${errors.confirm
                             ? 'border-red-500/50 focus:border-red-500'
                             : isDark
-                              ? 'border-zinc-700 hover:border-zinc-600 focus:border-purple-500'
-                              : 'border-slate-300 hover:border-slate-400 focus:border-purple-500'
+                              ? 'border-zinc-700 hover:border-zinc-600 focus:border-[#00932C]'
+                              : 'border-slate-300 hover:border-slate-400 focus:border-[#00932C]'
                           }
                         `}
                         disabled={resetMutation.isPending}
@@ -371,7 +371,7 @@ function ResetPasswordContent() {
                     ) : (
                       <span>Cambiar contrasena</span>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#00932C] to-[#00932C] opacity-0 group-hover:opacity-10 transition-opacity" />
                   </motion.button>
 
                   {/* Back to login */}
@@ -379,7 +379,7 @@ function ResetPasswordContent() {
                     <Link
                       href="/login"
                       className={`inline-flex items-center gap-2 text-sm transition-colors ${
-                        isDark ? 'text-zinc-400 hover:text-purple-400' : 'text-slate-500 hover:text-purple-600'
+                        isDark ? 'text-zinc-400 hover:text-[#00932C]' : 'text-slate-500 hover:text-[#00932C]'
                       }`}
                     >
                       <ArrowLeft className="w-4 h-4" />

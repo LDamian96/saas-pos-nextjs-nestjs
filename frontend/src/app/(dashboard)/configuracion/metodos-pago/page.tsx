@@ -174,8 +174,8 @@ export default function MetodosPagoPage() {
           className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 col-span-2 md:col-span-1"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Globe className="h-5 w-5 text-purple-600" />
+            <div className="w-10 h-10 bg-[#CCE9D5] rounded-lg flex items-center justify-center">
+              <Globe className="h-5 w-5 text-[#00932C]" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">

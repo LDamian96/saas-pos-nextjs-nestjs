@@ -176,7 +176,7 @@ export default function DetalleProductoPage() {
         <span
           className={`inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full ${
             producto.visibleWeb
-              ? 'bg-purple-100 text-purple-700'
+              ? 'bg-[#CCE9D5] text-[#006920]'
               : 'bg-gray-100 text-gray-600'
           }`}
         >
@@ -184,7 +184,7 @@ export default function DetalleProductoPage() {
           Web
         </span>
         {producto.tipo === 'variable' && (
-          <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-700">
+          <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-[#CCE9D5] text-[#006920]">
             <Layers className="h-3 w-3" />
             Con variantes
           </span>

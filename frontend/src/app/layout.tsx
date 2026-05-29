@@ -1,13 +1,21 @@
 import type { Metadata } from 'next';
+import { Mulish } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { QueryProvider } from '@/presentation/providers/query-provider';
 import { ThemeSync } from '@/presentation/components/common/theme-sync';
 import { InstallPWABanner } from '@/presentation/components/common/install-pwa-banner';
 import './globals.css';
 
+const mulish = Mulish({
+  subsets: ['latin'],
+  variable: '--font-mulish',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+});
+
 export const metadata: Metadata = {
-  title: 'POS SaaS - Sistema de Punto de Venta',
-  description: 'Sistema de Punto de Venta moderno y facil de usar',
+  title: 'POS Shop - Punto de Venta',
+  description: 'Sistema de Punto de Venta moderno para tu negocio',
 };
 
 export default function RootLayout({
@@ -16,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={mulish.variable}>
       <head>
         {/* Prevent flash + fix Android nav bar color + purge stale Service Worker */}
         <script dangerouslySetInnerHTML={{ __html: `

@@ -44,7 +44,7 @@ export function InstallPWABanner() {
 
   return (
     <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 animate-in slide-in-from-bottom-5">
-      <div className="bg-gradient-to-r from-purple-600 to-cyan-600 rounded-2xl p-4 shadow-2xl shadow-purple-500/30 text-white">
+      <div className="bg-[#00932C] hover:bg-[#006920] rounded-2xl p-4 shadow-2xl shadow-[#00932C]/25 text-white">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
             <Download className="h-5 w-5" />
@@ -58,7 +58,7 @@ export function InstallPWABanner() {
           </button>
         </div>
         <button onClick={handleInstall}
-          className="w-full mt-3 h-10 bg-white text-purple-700 font-semibold text-sm rounded-xl hover:bg-white/90 active:scale-[0.98] transition-all">
+          className="w-full mt-3 h-10 bg-white text-[#006920] font-semibold text-sm rounded-xl hover:bg-white/90 active:scale-[0.98] transition-all">
           Instalar App
         </button>
       </div>

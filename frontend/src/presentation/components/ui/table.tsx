@@ -61,7 +61,7 @@ const TableFooter = React.forwardRef<
       ref={ref}
       className={cn(
         'border-t font-medium [&>tr]:last:border-b-0',
-        isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-slate-200 bg-slate-50',
+        isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-slate-200 bg-[#F4F4F4]',
         className
       )}
       {...props}
@@ -81,7 +81,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
           'border-b transition-colors duration-200',
           isDark
             ? 'border-zinc-800 hover:bg-zinc-800/50 data-[state=selected]:bg-zinc-800'
-            : 'border-slate-100 hover:bg-slate-50 data-[state=selected]:bg-slate-100',
+            : 'border-slate-100 hover:bg-[#F4F4F4] data-[state=selected]:bg-slate-100',
           className
         )}
         {...props}

@@ -56,7 +56,7 @@ export default function ReporteInventarioPage() {
         animate={{ opacity: 1, y: 0 }}
       >
         <h1 className="text-xl md:text-2xl lg:text-3xl font-bold flex items-center gap-2 md:gap-3">
-          <Warehouse className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
+          <Warehouse className="h-6 w-6 md:h-8 md:w-8 text-[#00932C]" />
           Inventario Valorizado
         </h1>
         <p className="text-sm md:text-base text-muted-foreground mt-1">
@@ -138,7 +138,7 @@ export default function ReporteInventarioPage() {
             title="Total Unidades"
             value={data.resumen.totalUnidades.toLocaleString('es-PE')}
             icon={Warehouse}
-            iconColor="text-purple-600"
+            iconColor="text-[#00932C]"
           />
           <KpiCard
             title="Valor Venta"

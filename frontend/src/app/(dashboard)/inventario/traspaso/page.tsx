@@ -261,7 +261,7 @@ export default function TraspasoInventarioPage() {
         </Link>
         <div>
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
-            <ArrowRightLeft className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
+            <ArrowRightLeft className="h-6 w-6 md:h-8 md:w-8 text-[#00932C]" />
             Traspaso entre Sucursales
           </h1>
           <p className="text-sm md:text-base text-gray-500 mt-1">
@@ -287,7 +287,7 @@ export default function TraspasoInventarioPage() {
                 <select
                   value={sucursalOrigenId}
                   onChange={(e) => setSucursalOrigenId(e.target.value)}
-                  className="w-full h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-[#00932C] focus:outline-none"
                 >
                   <option value="">Seleccionar origen</option>
                   {sucursales
@@ -301,10 +301,10 @@ export default function TraspasoInventarioPage() {
               </div>
 
               <div className="hidden sm:block pt-6">
-                <ArrowRight className="h-6 w-6 text-purple-500" />
+                <ArrowRight className="h-6 w-6 text-[#00932C]" />
               </div>
               <div className="flex justify-center sm:hidden">
-                <ArrowRight className="h-5 w-5 text-purple-500 rotate-90" />
+                <ArrowRight className="h-5 w-5 text-[#00932C] rotate-90" />
               </div>
 
               <div className="flex-1">
@@ -314,7 +314,7 @@ export default function TraspasoInventarioPage() {
                 <select
                   value={sucursalDestinoId}
                   onChange={(e) => setSucursalDestinoId(e.target.value)}
-                  className="w-full h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                  className="w-full h-11 md:h-10 px-4 border-2 border-gray-200 rounded-lg focus:border-[#00932C] focus:outline-none"
                 >
                   <option value="">Seleccionar destino</option>
                   {sucursales
@@ -343,7 +343,7 @@ export default function TraspasoInventarioPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar producto a traspasar..."
-                className="w-full h-11 md:h-12 pl-10 pr-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-base md:text-lg"
+                className="w-full h-11 md:h-12 pl-10 pr-4 border-2 border-gray-200 rounded-lg focus:border-[#00932C] focus:outline-none text-base md:text-lg"
               />
             </div>
 
@@ -577,32 +577,32 @@ export default function TraspasoInventarioPage() {
               onChange={(e) => setNotas(e.target.value)}
               placeholder="Motivo del traspaso, responsable..."
               rows={4}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#00932C] focus:outline-none resize-none"
             />
           </div>
 
           {/* Resumen visual */}
           {sucursalOrigen && sucursalDestino && (
-            <div className="bg-purple-50 rounded-xl border border-purple-200 p-3 md:p-4">
+            <div className="bg-[#CCE9D5]/40 rounded-xl border border-purple-200 p-3 md:p-4">
               <h3 className="font-semibold text-purple-800 mb-3">Detalle del traspaso</h3>
               <div className="flex items-center justify-between text-sm mb-4">
                 <div className="text-center">
-                  <p className="text-purple-600 text-xs">Desde</p>
+                  <p className="text-[#00932C] text-xs">Desde</p>
                   <p className="font-medium text-purple-900">{sucursalOrigen.nombre}</p>
                 </div>
-                <ArrowRight className="h-5 w-5 text-purple-400" />
+                <ArrowRight className="h-5 w-5 text-[#00932C]" />
                 <div className="text-center">
-                  <p className="text-purple-600 text-xs">Hacia</p>
+                  <p className="text-[#00932C] text-xs">Hacia</p>
                   <p className="font-medium text-purple-900">{sucursalDestino.nombre}</p>
                 </div>
               </div>
               <div className="space-y-2 text-sm border-t border-purple-200 pt-3">
                 <div className="flex justify-between">
-                  <span className="text-purple-700">Productos:</span>
+                  <span className="text-[#006920]">Productos:</span>
                   <span className="font-medium text-purple-900">{items.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-purple-700">Unidades:</span>
+                  <span className="text-[#006920]">Unidades:</span>
                   <span className="font-medium text-purple-900">
                     {items.reduce((sum, item) => sum + item.cantidad, 0)}
                   </span>
@@ -612,7 +612,7 @@ export default function TraspasoInventarioPage() {
               {/* Per-item impact summary */}
               {items.length > 0 && (
                 <div className="mt-3 border-t border-purple-200 pt-3 space-y-2">
-                  <p className="text-xs font-medium text-purple-700 uppercase tracking-wide">
+                  <p className="text-xs font-medium text-[#006920] uppercase tracking-wide">
                     Impacto por producto
                   </p>
                   {items.map((item) => {
@@ -675,7 +675,7 @@ export default function TraspasoInventarioPage() {
               createTraspaso.isPending ||
               hasStockError
             }
-            className="w-full h-12 md:h-14 bg-purple-600 text-white rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="w-full h-12 md:h-14 bg-[#00932C] text-white rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             {createTraspaso.isPending ? (
               <>
@@ -710,8 +710,8 @@ export default function TraspasoInventarioPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <ArrowRightLeft className="h-5 w-5 text-purple-600" />
+                <div className="w-10 h-10 bg-[#CCE9D5] rounded-full flex items-center justify-center">
+                  <ArrowRightLeft className="h-5 w-5 text-[#00932C]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Confirmar traspaso</h3>
@@ -728,7 +728,7 @@ export default function TraspasoInventarioPage() {
                     Pierde {items.reduce((s, i) => s + i.cantidad, 0)} uds
                   </p>
                 </div>
-                <ArrowRight className="h-5 w-5 text-purple-400" />
+                <ArrowRight className="h-5 w-5 text-[#00932C]" />
                 <div className="text-center">
                   <p className="text-gray-500 text-xs">Destino</p>
                   <p className="font-semibold text-gray-900">{sucursalDestino?.nombre}</p>
@@ -750,7 +750,7 @@ export default function TraspasoInventarioPage() {
                     >
                       <div className="flex justify-between items-start mb-2">
                         <p className="font-medium text-gray-900">{item.producto.nombre}</p>
-                        <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <span className="bg-[#CCE9D5] text-[#006920] px-2 py-0.5 rounded-full text-xs font-medium">
                           x{item.cantidad}
                         </span>
                       </div>
@@ -795,7 +795,7 @@ export default function TraspasoInventarioPage() {
                     handleSubmit();
                   }}
                   disabled={createTraspaso.isPending}
-                  className="flex-1 h-11 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 h-11 bg-[#00932C] text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <ArrowRightLeft className="h-4 w-4" />
                   Confirmar
@@ -840,14 +840,14 @@ export default function TraspasoInventarioPage() {
               </motion.div>
 
               {/* Transfer direction */}
-              <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4 text-sm">
+              <div className="flex items-center justify-between bg-[#CCE9D5]/40 border border-purple-200 rounded-lg p-3 mb-4 text-sm">
                 <div className="text-center">
-                  <p className="text-purple-600 text-xs">Origen</p>
+                  <p className="text-[#00932C] text-xs">Origen</p>
                   <p className="font-semibold text-purple-900">{resumenTraspaso.sucursalOrigen}</p>
                 </div>
-                <ArrowRight className="h-5 w-5 text-purple-400" />
+                <ArrowRight className="h-5 w-5 text-[#00932C]" />
                 <div className="text-center">
-                  <p className="text-purple-600 text-xs">Destino</p>
+                  <p className="text-[#00932C] text-xs">Destino</p>
                   <p className="font-semibold text-purple-900">{resumenTraspaso.sucursalDestino}</p>
                 </div>
               </div>
@@ -867,7 +867,7 @@ export default function TraspasoInventarioPage() {
                         <p className="font-medium text-gray-900 text-sm">{item.nombre}</p>
                         <p className="text-xs text-gray-500">{item.sku}</p>
                       </div>
-                      <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                      <span className="bg-[#CCE9D5] text-[#006920] px-2 py-0.5 rounded-full text-xs font-medium">
                         x{item.cantidad}
                       </span>
                     </div>
@@ -900,7 +900,7 @@ export default function TraspasoInventarioPage() {
                   <span>{resumenTraspaso.timestamp}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 bg-purple-200 rounded-full flex items-center justify-center text-[8px] font-bold text-purple-700">
+                  <span className="w-3.5 h-3.5 bg-purple-200 rounded-full flex items-center justify-center text-[8px] font-bold text-[#006920]">
                     U
                   </span>
                   <span>Realizado por: {resumenTraspaso.usuario}</span>
@@ -913,7 +913,7 @@ export default function TraspasoInventarioPage() {
 
               <button
                 onClick={handleCloseResumen}
-                className="w-full h-11 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full h-11 bg-[#00932C] text-white rounded-xl font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Cerrar y volver al inventario

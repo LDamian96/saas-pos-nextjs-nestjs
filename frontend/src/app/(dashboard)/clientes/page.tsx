@@ -146,7 +146,7 @@ export default function ClientesPage() {
       regular: 'bg-gray-100 text-gray-700',
       plata: 'bg-slate-100 text-slate-700',
       oro: 'bg-yellow-100 text-yellow-700',
-      platino: 'bg-purple-100 text-purple-700',
+      platino: 'bg-[#CCE9D5] text-[#006920]',
     };
     return colors[nivel] || colors.regular;
   };
@@ -210,10 +210,10 @@ export default function ClientesPage() {
             className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
           >
             <div className="flex items-center gap-2 mb-1">
-              <CreditCard className="h-4 w-4 text-purple-600" />
+              <CreditCard className="h-4 w-4 text-[#00932C]" />
               <span className="text-xs md:text-sm text-gray-500">Con credito</span>
             </div>
-            <p className="text-xl md:text-2xl font-bold text-purple-600">{estadisticas.conCredito}</p>
+            <p className="text-xl md:text-2xl font-bold text-[#00932C]">{estadisticas.conCredito}</p>
           </motion.div>
 
           <motion.div
@@ -380,7 +380,7 @@ export default function ClientesPage() {
                       <td className="px-4 py-3 text-center">
                         {cliente.tieneCredito ? (
                           <div>
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[#CCE9D5] text-[#006920]">
                               <CreditCard className="h-3 w-3" />
                               Si
                             </span>

@@ -94,8 +94,8 @@ export function AtributoTable({ onEdit }: Props) {
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-purple-600" />
+                    <div className="w-10 h-10 bg-[#CCE9D5] rounded-lg flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-[#00932C]" />
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{atributo.nombre}</p>

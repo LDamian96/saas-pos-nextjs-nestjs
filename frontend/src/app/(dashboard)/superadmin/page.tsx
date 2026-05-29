@@ -183,7 +183,7 @@ export default function SuperAdminPage() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-lg font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#00932C] hover:bg-[#006920] text-white rounded-lg font-medium shadow-lg shadow-[#00932C]/15 hover:shadow-[#00932C]/30 transition-all"
         >
           <Plus className="w-5 h-5" />
           Nueva Empresa
@@ -398,7 +398,7 @@ export default function SuperAdminPage() {
                   <button
                     type="submit"
                     disabled={creating}
-                    className="w-full py-3 bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3 bg-[#00932C] hover:bg-[#006920] text-white font-medium rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
                     {creating ? 'Creando...' : 'Crear Empresa'}

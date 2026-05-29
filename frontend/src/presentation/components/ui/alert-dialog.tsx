@@ -142,7 +142,7 @@ const AlertDialogAction = React.forwardRef<
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium h-10 px-4 py-2 transition-all duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00932C]/50 focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-50',
         isDark
           ? 'bg-white text-black hover:bg-zinc-200'
@@ -166,12 +166,12 @@ const AlertDialogCancel = React.forwardRef<
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium h-10 px-4 py-2 transition-all duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00932C]/50 focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-50',
         'mt-2 sm:mt-0',
         isDark
           ? 'border border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-white'
-          : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+          : 'border border-slate-300 bg-white text-slate-700 hover:bg-[#F4F4F4]',
         className
       )}
       {...props}

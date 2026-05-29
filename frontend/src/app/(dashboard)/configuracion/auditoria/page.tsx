@@ -33,7 +33,7 @@ const ACCIONES = {
   'venta.anular': { label: 'Venta anulada', color: 'bg-red-100 text-red-700' },
   'caja.abrir': { label: 'Caja abierta', color: 'bg-emerald-100 text-emerald-700' },
   'caja.cerrar': { label: 'Caja cerrada', color: 'bg-orange-100 text-orange-700' },
-  'producto.crear': { label: 'Producto creado', color: 'bg-purple-100 text-purple-700' },
+  'producto.crear': { label: 'Producto creado', color: 'bg-[#CCE9D5] text-[#006920]' },
   'producto.editar': { label: 'Producto editado', color: 'bg-indigo-100 text-indigo-700' },
   'inventario.ajuste': { label: 'Ajuste inventario', color: 'bg-yellow-100 text-yellow-700' },
   'usuario.crear': { label: 'Usuario creado', color: 'bg-pink-100 text-pink-700' },

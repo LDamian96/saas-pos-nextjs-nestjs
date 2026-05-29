@@ -213,7 +213,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!mounted) return null;
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-zinc-950' : 'bg-slate-50'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-zinc-950' : 'bg-[#F4F4F4]'}`}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobile && sidebarOpen && (
@@ -244,7 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className={`h-16 flex items-center justify-between px-4 border-b flex-shrink-0 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
           {(sidebarOpen || isMobile) && (
             <Link href="/dashboard" className="flex items-center gap-2" onClick={() => isMobile && setSidebarOpen(false)}>
-              <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <div className="w-9 h-9 bg-[#00932C] rounded-lg flex items-center justify-center shadow-md shadow-[#00932C]/15">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
               <span className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>POS Shop</span>
@@ -284,7 +284,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           onClick={() => toggleSubmenu(item.label)}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
                             isActive
-                              ? isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'
+                              ? isDark ? 'bg-[#CCE9D5]/30 text-[#00932C]' : 'bg-[#CCE9D5] text-[#00932C]'
                               : isDark ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200' : 'text-slate-600 hover:bg-slate-100'
                           }`}
                         >
@@ -302,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           onClick={() => isMobile && setSidebarOpen(false)}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
                             isActive
-                              ? isDark ? 'bg-purple-500/10 text-purple-400 shadow-lg shadow-purple-500/5' : 'bg-purple-50 text-purple-600'
+                              ? isDark ? 'bg-[#00932C]/10 text-[#00932C] shadow-sm shadow-[#00932C]/10' : 'bg-[#CCE9D5] text-[#00932C]'
                               : isDark ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200' : 'text-slate-600 hover:bg-slate-100'
                           }`}
                         >
@@ -328,7 +328,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                   onClick={() => isMobile && setSidebarOpen(false)}
                                   className={`block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
                                     pathname === subitem.href
-                                      ? isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'
+                                      ? isDark ? 'bg-[#CCE9D5]/30 text-[#00932C]' : 'bg-[#CCE9D5] text-[#00932C]'
                                       : isDark ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                                   }`}
                                 >
@@ -352,7 +352,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             href="/pos"
             onClick={() => isMobile && setSidebarOpen(false)}
-            className="mb-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-medium text-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300"
+            className="mb-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#00932C] hover:bg-[#006920] text-white font-medium text-sm shadow-md shadow-[#00932C]/15 hover:shadow-[#00932C]/30 transition-all duration-300"
           >
             <ShoppingCart size={18} />
             {(sidebarOpen || isMobile) && <span>Abrir POS</span>}
@@ -442,7 +442,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {usuario?.empresa?.nombre || 'Cargando...'}
                 </p>
               </div>
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold text-sm md:text-base shadow-lg shadow-purple-500/20">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-[#00932C] rounded-full flex items-center justify-center text-white font-semibold text-sm md:text-base shadow-md shadow-[#00932C]/15">
                 {usuario?.nombre?.charAt(0) || '?'}
               </div>
             </div>
@@ -491,10 +491,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   href={item.href}
                   className="flex flex-col items-center justify-center -mt-5"
                 >
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 active:scale-95 transition-transform">
+                  <div className="w-14 h-14 bg-[#00932C] rounded-2xl flex items-center justify-center shadow-lg shadow-[#00932C]/30 active:scale-95 transition-transform">
                     <Icon size={26} className="text-white" />
                   </div>
-                  <span className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>{item.label}</span>
+                  <span className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-[#86D49A]' : 'text-[#00932C]'}`}>{item.label}</span>
                 </Link>
               );
             }
@@ -505,14 +505,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 className={`flex flex-col items-center justify-center gap-0.5 w-16 py-1 rounded-lg transition-colors ${
                   isActive
-                    ? isDark ? 'text-purple-400' : 'text-purple-600'
+                    ? isDark ? 'text-[#86D49A]' : 'text-[#00932C]'
                     : isDark ? 'text-zinc-500 active:text-zinc-300' : 'text-slate-400 active:text-slate-600'
                 }`}
               >
                 <Icon size={22} />
                 <span className="text-[10px] font-medium">{item.label}</span>
                 {isActive && (
-                  <div className="absolute bottom-1 w-1 h-1 rounded-full bg-purple-500" />
+                  <div className="absolute bottom-1 w-1 h-1 rounded-full bg-[#00932C]" />
                 )}
               </Link>
             );

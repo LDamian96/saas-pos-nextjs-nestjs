@@ -68,7 +68,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 stagger-reveal">
         <button
           onClick={() => router.push('/pos')}
-          className="glow-cta hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-xl shadow-soft active:scale-[0.97] group"
+          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-[#00932C] hover:bg-[#006920] text-white rounded-2xl shadow-md shadow-[#00932C]/25 hover:shadow-lg hover:shadow-[#00932C]/35 active:scale-[0.97] transition-all group"
         >
           <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 group-hover:rotate-[-6deg] transition-transform duration-300 shrink-0">
             <ShoppingCart className="h-5 w-5" />
@@ -81,10 +81,10 @@ export default function DashboardPage() {
 
         <button
           onClick={() => router.push('/productos/nuevo')}
-          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-soft hover:border-blue-300 dark:hover:border-blue-500/50 active:scale-[0.97] group"
+          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-soft hover:border-[#00932C]/40 active:scale-[0.97] group"
         >
-          <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/15 rounded-lg flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-500/25 transition-colors shrink-0">
-            <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:rotate-90 transition-transform duration-300" />
+          <div className="w-10 h-10 bg-[#CCE9D5] dark:bg-[#00932C]/20 rounded-xl flex items-center justify-center group-hover:bg-[#CCE9D5]/80 transition-colors shrink-0">
+            <Plus className="h-5 w-5 text-[#00932C] group-hover:rotate-90 transition-transform duration-300" strokeWidth={2.5} />
           </div>
           <div className="text-left min-w-0">
             <p className="font-semibold text-sm text-gray-900 dark:text-zinc-100 truncate">Nuevo Producto</p>
@@ -94,10 +94,10 @@ export default function DashboardPage() {
 
         <button
           onClick={() => router.push('/ventas')}
-          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-soft hover:border-emerald-300 dark:hover:border-emerald-500/50 active:scale-[0.97] group"
+          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-soft hover:border-[#00932C]/40 active:scale-[0.97] group"
         >
-          <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/15 rounded-lg flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/25 transition-colors shrink-0">
-            <Receipt className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="w-10 h-10 bg-[#CCE9D5] dark:bg-[#00932C]/20 rounded-xl flex items-center justify-center group-hover:bg-[#CCE9D5]/80 transition-colors shrink-0">
+            <Receipt className="h-5 w-5 text-[#00932C]" strokeWidth={2.5} />
           </div>
           <div className="text-left min-w-0">
             <p className="font-semibold text-sm text-gray-900 dark:text-zinc-100">Ver Ventas</p>
@@ -107,10 +107,10 @@ export default function DashboardPage() {
 
         <button
           onClick={() => router.push('/caja')}
-          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-soft hover:border-amber-300 dark:hover:border-amber-500/50 active:scale-[0.97] group"
+          className="hover-lift flex items-center gap-3 p-3 md:p-4 min-h-[56px] md:min-h-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-soft hover:border-[#00932C]/40 active:scale-[0.97] group"
         >
-          <div className="w-10 h-10 bg-amber-50 dark:bg-amber-500/15 rounded-lg flex items-center justify-center group-hover:bg-amber-100 dark:group-hover:bg-amber-500/25 transition-colors shrink-0">
-            <Calculator className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <div className="w-10 h-10 bg-[#CCE9D5] dark:bg-[#00932C]/20 rounded-xl flex items-center justify-center group-hover:bg-[#CCE9D5]/80 transition-colors shrink-0">
+            <Calculator className="h-5 w-5 text-[#00932C]" strokeWidth={2.5} />
           </div>
           <div className="text-left min-w-0">
             <p className="font-semibold text-sm text-gray-900 dark:text-zinc-100">Caja</p>

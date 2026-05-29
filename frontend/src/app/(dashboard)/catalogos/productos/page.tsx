@@ -301,7 +301,7 @@ export default function ProductosPage() {
                               {producto.nombre}
                             </p>
                             {producto.tipo === 'variable' && (
-                              <span className="inline-flex items-center gap-1 text-xs text-purple-600">
+                              <span className="inline-flex items-center gap-1 text-xs text-[#00932C]">
                                 <Layers className="h-3 w-3" />
                                 {producto.variantesCount} variantes
                               </span>

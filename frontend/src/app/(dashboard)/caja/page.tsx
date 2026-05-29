@@ -180,12 +180,12 @@ export default function CajaPage() {
           <Card className="border-l-4 border-l-purple-500">
             <CardContent className="p-4 md:pt-5 md:pb-4 md:px-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                <div className="w-10 h-10 bg-[#CCE9D5] rounded-lg flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-5 w-5 text-[#00932C]" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Cajas Registradas</p>
-                  <p className="text-lg md:text-xl font-bold text-purple-600">{historial?.total || totalCajasCerradas}</p>
+                  <p className="text-lg md:text-xl font-bold text-[#00932C]">{historial?.total || totalCajasCerradas}</p>
                 </div>
               </div>
             </CardContent>

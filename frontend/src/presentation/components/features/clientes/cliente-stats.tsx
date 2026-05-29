@@ -36,7 +36,7 @@ export function ClienteStats() {
       title: 'Con credito',
       value: stats?.conCredito ?? 0,
       icon: CreditCard,
-      color: 'bg-purple-100 text-purple-600',
+      color: 'bg-[#CCE9D5] text-[#00932C]',
     },
   ];
 

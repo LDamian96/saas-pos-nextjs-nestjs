@@ -25,7 +25,7 @@ const tipoConfig = {
   entrada: { icon: ArrowUpCircle, color: 'text-green-600', bg: 'bg-green-100', label: 'Entrada' },
   salida: { icon: ArrowDownCircle, color: 'text-red-600', bg: 'bg-red-100', label: 'Salida' },
   ajuste: { icon: RefreshCw, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Ajuste' },
-  traspaso: { icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-100', label: 'Traspaso' },
+  traspaso: { icon: ArrowRightLeft, color: 'text-[#00932C]', bg: 'bg-[#CCE9D5]', label: 'Traspaso' },
 };
 
 export default function MovimientosPage() {
@@ -81,7 +81,7 @@ export default function MovimientosPage() {
             <select
               value={selectedSucursal}
               onChange={(e) => setSelectedSucursal(e.target.value)}
-              className="w-full h-11 md:h-10 pl-10 pr-4 border-2 border-gray-200 rounded-lg bg-white text-sm text-gray-700 focus:border-purple-500 focus:outline-none appearance-none cursor-pointer transition-colors hover:border-gray-300"
+              className="w-full h-11 md:h-10 pl-10 pr-4 border-2 border-gray-200 rounded-lg bg-white text-sm text-gray-700 focus:border-[#00932C] focus:outline-none appearance-none cursor-pointer transition-colors hover:border-gray-300"
             >
               <option value="">Todas las sucursales</option>
               {sucursales?.map((s) => (
@@ -120,7 +120,7 @@ export default function MovimientosPage() {
         </div>
         {selectedSucursal && sucursales && (
           <div className="mt-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#CCE9D5] text-[#006920] rounded-full text-xs font-medium">
               <Store className="h-3 w-3" />
               {sucursales.find((s) => s.id === selectedSucursal)?.nombre}
             </span>

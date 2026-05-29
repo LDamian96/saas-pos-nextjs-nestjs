@@ -49,7 +49,7 @@ export default function AlertasPage() {
           </Link>
           <div>
             <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
-              <Warehouse className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
+              <Warehouse className="h-6 w-6 md:h-8 md:w-8 text-[#00932C]" />
               Alertas de Inventario
             </h1>
             <p className="text-sm md:text-base text-gray-500 mt-1">Stock bajo y productos por vencer</p>
@@ -73,8 +73,8 @@ export default function AlertasPage() {
           <p className="text-xs md:text-sm text-gray-500">Criticos</p>
         </div>
         <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-2 md:mb-3">
-            <Package className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-[#CCE9D5] rounded-lg flex items-center justify-center mb-2 md:mb-3">
+            <Package className="h-5 w-5 md:h-6 md:w-6 text-[#00932C]" />
           </div>
           <p className="text-xl md:text-2xl font-bold text-gray-900">
             {alertasStock?.filter((a: any) => a.urgencia === 'bajo').length || 0}
@@ -115,7 +115,7 @@ export default function AlertasPage() {
               onClick={() => setActiveTab('stock-bajo')}
               className={`text-sm font-medium pb-1 transition-colors min-h-[44px] flex items-center active:scale-[0.98] ${
                 activeTab === 'stock-bajo'
-                  ? 'text-purple-600 border-b-2 border-purple-600'
+                  ? 'text-[#00932C] border-b-2 border-purple-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -125,7 +125,7 @@ export default function AlertasPage() {
               onClick={() => setActiveTab('vencimientos')}
               className={`text-sm font-medium pb-1 transition-colors min-h-[44px] flex items-center active:scale-[0.98] ${
                 activeTab === 'vencimientos'
-                  ? 'text-purple-600 border-b-2 border-purple-600'
+                  ? 'text-[#00932C] border-b-2 border-purple-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >

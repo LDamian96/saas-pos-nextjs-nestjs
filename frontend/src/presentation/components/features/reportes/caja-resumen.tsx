@@ -85,7 +85,7 @@ export function CajaResumen({ data, isLoading = false }: CajaResumenProps) {
           title="Tarjeta"
           value={formatCurrency(resumen.totalTarjeta)}
           icon={CreditCard}
-          iconColor="text-purple-600"
+          iconColor="text-[#00932C]"
         />
         <KpiCard
           title="Diferencia Total"

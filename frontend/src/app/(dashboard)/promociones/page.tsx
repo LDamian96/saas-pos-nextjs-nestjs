@@ -62,7 +62,7 @@ import { Promocion, CreatePromocionDto, TipoPromocion } from '@/application/serv
 const tipoLabels: Record<TipoPromocion, { label: string; icon: any; color: string }> = {
   cantidad_gratis: { label: 'Lleva X Paga Y', icon: Gift, color: 'bg-green-100 text-green-700' },
   cantidad_descuento: { label: 'Descuento por cantidad', icon: Percent, color: 'bg-blue-100 text-blue-700' },
-  precio_fijo: { label: 'Precio fijo', icon: DollarSign, color: 'bg-purple-100 text-purple-700' },
+  precio_fijo: { label: 'Precio fijo', icon: DollarSign, color: 'bg-[#CCE9D5] text-[#006920]' },
   monto_minimo: { label: 'Monto minimo', icon: ShoppingBag, color: 'bg-orange-100 text-orange-700' },
   combo: { label: 'Combo', icon: Zap, color: 'bg-cyan-100 text-cyan-700' },
   descuento_porcentaje: { label: 'Descuento %', icon: Percent, color: 'bg-indigo-100 text-indigo-700' },

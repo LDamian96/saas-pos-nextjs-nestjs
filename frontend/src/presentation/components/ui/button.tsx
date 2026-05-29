@@ -12,7 +12,7 @@ import { cn } from '@/shared/utils/cn';
 import { useThemeStore } from '@/application/stores/theme.store';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00932C]/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
   {
     variants: {
       variant: {
@@ -22,7 +22,7 @@ const buttonVariants = cva(
         secondary: '',
         ghost: '',
         link: '',
-        gradient: 'bg-gradient-to-r from-purple-600 via-purple-500 to-cyan-500 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:brightness-110',
+        gradient: 'bg-[#00932C] hover:bg-[#006920] text-white shadow-lg shadow-[#00932C]/20 hover:shadow-[#00932C]/30 hover:brightness-110',
         success: '',
       },
       size: {
@@ -64,7 +64,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         case 'outline':
           return isDark
             ? 'border-2 border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600 hover:text-white'
-            : 'border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400';
+            : 'border-2 border-slate-300 bg-white text-slate-700 hover:bg-[#F4F4F4] hover:border-slate-400';
         case 'secondary':
           return isDark
             ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white'
@@ -75,8 +75,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900';
         case 'link':
           return isDark
-            ? 'text-purple-400 underline-offset-4 hover:underline hover:text-purple-300'
-            : 'text-purple-600 underline-offset-4 hover:underline hover:text-purple-700';
+            ? 'text-[#00932C] underline-offset-4 hover:underline hover:text-[#86D49A]'
+            : 'text-[#00932C] underline-offset-4 hover:underline hover:text-[#006920]';
         case 'success':
           return isDark
             ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'

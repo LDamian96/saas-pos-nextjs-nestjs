@@ -47,18 +47,39 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Colores del POS
+        // Paleta DineTrack
+        dt: {
+          green: {
+            DEFAULT: "#00932C",
+            light: "#CCE9D5",
+            dark: "#006920",
+            50: "#E6F5EA",
+            100: "#CCE9D5",
+            500: "#00932C",
+            600: "#006920",
+            700: "#004F18",
+          },
+          gray: "#F4F4F4",
+          black: "#0C0C0C",
+        },
+        // Colores del POS (mantengo compat)
         pos: {
-          success: "#22C55E",
+          success: "#00932C",
           warning: "#F59E0B",
           danger: "#EF4444",
           info: "#3B82F6",
         }
       },
+      fontFamily: {
+        sans: ['var(--font-mulish)', 'Mulish', 'system-ui', '-apple-system', 'sans-serif'],
+        mulish: ['var(--font-mulish)', 'Mulish', 'sans-serif'],
+      },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
+        xl: "calc(var(--radius) + 4px)",
+        '2xl': "calc(var(--radius) + 8px)",
       },
       keyframes: {
         "accordion-down": {

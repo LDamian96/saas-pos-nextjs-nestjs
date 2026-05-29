@@ -209,12 +209,12 @@ export function CierreCajaDialog({ open, onOpenChange }: CierreCajaDialogProps) 
             Pagos electronicos (automatico)
           </Label>
           <div className="grid grid-cols-2 gap-3">
-            <Card className="bg-purple-50 border-purple-200">
+            <Card className="bg-[#CCE9D5]/40 border-purple-200">
               <CardContent className="py-3 px-4">
                 <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-purple-600" />
+                  <CreditCard className="h-4 w-4 text-[#00932C]" />
                   <div className="flex-1">
-                    <p className="text-xs text-purple-600 font-medium">Tarjeta</p>
+                    <p className="text-xs text-[#00932C] font-medium">Tarjeta</p>
                     <p className="text-lg font-bold text-purple-900">
                       {formatCurrency(tarjetaSistema)}
                     </p>

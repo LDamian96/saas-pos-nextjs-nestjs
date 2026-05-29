@@ -91,7 +91,7 @@ export default function ReporteVentasPage() {
             title="Margen Bruto"
             value={formatCurrency(data.resumen.margenBruto)}
             icon={TrendingUp}
-            iconColor="text-purple-600"
+            iconColor="text-[#00932C]"
             subtitle={`${data.resumen.margenPorcentaje}% margen`}
           />
           <KpiCard

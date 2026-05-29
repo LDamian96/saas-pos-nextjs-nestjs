@@ -72,8 +72,8 @@ export default function KardexPage() {
       },
       traspaso: {
         icon: ArrowLeftRight,
-        bg: 'bg-purple-100',
-        text: 'text-purple-700',
+        bg: 'bg-[#CCE9D5]',
+        text: 'text-[#006920]',
         label: 'Traspaso',
       },
     };
@@ -198,12 +198,12 @@ export default function KardexPage() {
           className="bg-white p-3 md:p-4 rounded-xl border border-gray-200"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <RefreshCw className="h-5 w-5 text-purple-600" />
+            <div className="p-2 bg-[#CCE9D5] rounded-lg">
+              <RefreshCw className="h-5 w-5 text-[#00932C]" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Ajustes</p>
-              <p className="text-2xl font-bold text-purple-600">
+              <p className="text-2xl font-bold text-[#00932C]">
                 {movimientos?.data?.filter((m: any) => m.tipo === 'ajuste' || m.tipo === 'traspaso').length || 0}
               </p>
             </div>

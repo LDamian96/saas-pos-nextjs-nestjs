@@ -40,8 +40,8 @@ function Badge({ className, variant, ...props }: BadgeProps) {
     switch (variant) {
       case 'default':
         return isDark
-          ? 'border-purple-500/30 bg-purple-500/10 text-purple-400'
-          : 'border-purple-200 bg-purple-50 text-purple-700';
+          ? 'border-[#00932C]/30 bg-[#CCE9D5]/400/10 text-[#00932C]'
+          : 'border-purple-200 bg-[#CCE9D5]/40 text-[#006920]';
       case 'secondary':
         return isDark
           ? 'border-zinc-700 bg-zinc-800 text-zinc-300'

@@ -78,7 +78,7 @@ export default function StockSucursalesPage() {
           </Link>
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Store className="h-6 w-6 text-purple-600" />
+              <Store className="h-6 w-6 text-[#00932C]" />
               Stock por Sucursal
             </h1>
             <p className="text-sm text-gray-500">Compara el stock entre tus sucursales</p>
@@ -87,7 +87,7 @@ export default function StockSucursalesPage() {
 
         <Link
           href="/inventario/traspaso"
-          className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#00932C] text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
         >
           <ArrowRightLeft className="h-4 w-4" />
           Traspasar Stock
@@ -108,7 +108,7 @@ export default function StockSucursalesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar producto..."
-            className="w-full pl-10 pr-4 h-11 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+            className="w-full pl-10 pr-4 h-11 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#00932C] focus:border-transparent text-sm"
           />
         </div>
         <button
@@ -137,7 +137,7 @@ export default function StockSucursalesPage() {
                 style={{ backgroundColor: COLORS[idx % COLORS.length] }}
               />
               {suc.nombre}
-              {suc.esPrincipal && <span className="text-purple-600">(Principal)</span>}
+              {suc.esPrincipal && <span className="text-[#00932C]">(Principal)</span>}
             </span>
           ))}
         </div>
@@ -217,7 +217,7 @@ export default function StockSucursalesPage() {
                           className={`inline-flex items-center justify-center min-w-[48px] px-3 py-1.5 rounded-lg text-sm font-bold ${
                             isLow
                               ? 'bg-red-100 text-red-700'
-                              : 'bg-purple-50 text-purple-700'
+                              : 'bg-[#CCE9D5]/40 text-[#006920]'
                           }`}
                         >
                           {prod.stockTotal}

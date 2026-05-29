@@ -89,8 +89,8 @@ export function CategoriaAtributosDialog({
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <Tags className="h-6 w-6 text-purple-600" />
+              <div className="w-12 h-12 bg-[#CCE9D5] rounded-xl flex items-center justify-center">
+                <Tags className="h-6 w-6 text-[#00932C]" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -123,11 +123,11 @@ export function CategoriaAtributosDialog({
                   {atributosVinculados.map((vinculo) => (
                     <div
                       key={vinculo.id}
-                      className="flex items-center justify-between p-3 bg-purple-50 rounded-xl"
+                      className="flex items-center justify-between p-3 bg-[#CCE9D5]/40 rounded-xl"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <Check className="h-4 w-4 text-purple-600" />
+                        <div className="w-8 h-8 bg-[#CCE9D5] rounded-lg flex items-center justify-center">
+                          <Check className="h-4 w-4 text-[#00932C]" />
                         </div>
                         <div>
                           <span className="font-medium text-gray-900">
@@ -165,7 +165,7 @@ export function CategoriaAtributosDialog({
             <div>
               <button
                 onClick={() => setShowAddSection(!showAddSection)}
-                className="flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium"
+                className="flex items-center gap-2 text-[#00932C] hover:text-[#006920] font-medium"
               >
                 <Plus className="h-4 w-4" />
                 {showAddSection ? 'Ocultar disponibles' : 'Agregar atributos'}
@@ -199,7 +199,7 @@ export function CategoriaAtributosDialog({
                           <button
                             onClick={() => handleVincular(atributo.id)}
                             disabled={vincularMutation.isPending}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-[#00932C] hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                           >
                             <Plus className="h-4 w-4" />
                             Agregar

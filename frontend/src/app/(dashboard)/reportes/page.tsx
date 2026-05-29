@@ -60,7 +60,7 @@ const reportLinks = [
     icon: BarChart3,
     title: 'Inventario',
     description: 'Valorizacion del inventario',
-    color: 'text-purple-600 bg-purple-100',
+    color: 'text-[#00932C] bg-[#CCE9D5]',
   },
   {
     href: '/reportes/caja',

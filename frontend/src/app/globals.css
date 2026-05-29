@@ -2,27 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================================
+   DINETRACK PALETTE — adaptado al POS Shop
+   Paleta oficial del case study: #00932C #F4F4F4 #0C0C0C #CCE9D5
+   Tipografía: Mulish (cargada via Google Fonts en layout.tsx)
+   =========================================================== */
+
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  /* DineTrack colors */
+  --dt-green: 137 100% 29%;          /* #00932C — accent principal */
+  --dt-green-light: 142 39% 86%;     /* #CCE9D5 — fondos sutiles, hover, active */
+  --dt-green-dark: 137 100% 20%;     /* #006920 — hover de botones */
+  --dt-gray: 0 0% 96%;               /* #F4F4F4 — fondo secundario */
+  --dt-black: 0 0% 5%;               /* #0C0C0C — texto principal */
+
+  /* shadcn aliases mapeados a DineTrack */
+  --background: 0 0% 100%;                  /* blanco puro */
+  --foreground: var(--dt-black);
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: var(--dt-black);
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.75rem;
+  --popover-foreground: var(--dt-black);
+  --primary: var(--dt-green);
+  --primary-foreground: 0 0% 100%;
+  --secondary: var(--dt-gray);
+  --secondary-foreground: var(--dt-black);
+  --muted: var(--dt-gray);
+  --muted-foreground: 0 0% 40%;
+  --accent: var(--dt-green-light);
+  --accent-foreground: var(--dt-green-dark);
+  --destructive: 0 75% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 92%;
+  --input: 0 0% 92%;
+  --ring: var(--dt-green);
+  --radius: 1rem;                            /* 16px — cards DineTrack más redondeadas */
+}
+
+.dark {
+  --dt-green: 137 70% 45%;                  /* verde más vivo en dark */
+  --dt-green-light: 137 30% 18%;            /* verde MUY oscuro como fondo activo */
+  --dt-green-dark: 137 80% 35%;
+
+  --background: 0 0% 7%;                    /* casi negro */
+  --foreground: 0 0% 96%;
+  --card: 0 0% 10%;
+  --card-foreground: 0 0% 96%;
+  --popover: 0 0% 10%;
+  --popover-foreground: 0 0% 96%;
+  --primary: var(--dt-green);
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 65%;
+  --accent: var(--dt-green-light);
+  --accent-foreground: 0 0% 96%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: var(--dt-green);
 }
 
 /* ===== DARK MODE - Formularios, inputs, selects, cards ===== */
@@ -336,10 +374,10 @@
 .dark .stat-card::before { opacity: 0.18; }
 .dark .stat-card:hover::before { opacity: 0.28; }
 
-.stat-card--emerald::before { background: rgb(16, 185, 129); }
-.stat-card--blue::before    { background: rgb(59, 130, 246); }
-.stat-card--purple::before  { background: rgb(168, 85, 247); }
-.stat-card--amber::before   { background: rgb(245, 158, 11); }
+.stat-card--emerald::before { background: rgb(0, 147, 44); }
+.stat-card--blue::before    { background: rgb(0, 147, 44); }
+.stat-card--purple::before  { background: rgb(0, 147, 44); }
+.stat-card--amber::before   { background: rgb(0, 147, 44); }
 
 /* Icon boxes con glow sutil */
 .stat-icon {
@@ -355,21 +393,13 @@
 }
 .stat-card:hover .stat-icon { transform: scale(1.08) rotate(-4deg); }
 
-.stat-icon--emerald {
-  background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129));
-  box-shadow: 0 6px 14px -4px rgba(16, 185, 129, 0.45);
-}
-.stat-icon--blue {
-  background: linear-gradient(135deg, rgb(59, 130, 246), rgb(99, 102, 241));
-  box-shadow: 0 6px 14px -4px rgba(59, 130, 246, 0.45);
-}
-.stat-icon--purple {
-  background: linear-gradient(135deg, rgb(168, 85, 247), rgb(217, 70, 239));
-  box-shadow: 0 6px 14px -4px rgba(168, 85, 247, 0.45);
-}
+/* DineTrack: TODOS los stat icons son verde mint sólido (no gradient) */
+.stat-icon--emerald,
+.stat-icon--blue,
+.stat-icon--purple,
 .stat-icon--amber {
-  background: linear-gradient(135deg, rgb(245, 158, 11), rgb(249, 115, 22));
-  box-shadow: 0 6px 14px -4px rgba(245, 158, 11, 0.45);
+  background: #00932C;
+  box-shadow: 0 4px 12px -2px rgba(0, 147, 44, 0.35);
 }
 
 /* Chips de trend / badges sutiles */

@@ -55,7 +55,7 @@ export default function TraspasoHistorialPage() {
           </Link>
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <ArrowRightLeft className="h-6 w-6 text-purple-600" />
+              <ArrowRightLeft className="h-6 w-6 text-[#00932C]" />
               Historial de Traspasos
             </h1>
             <p className="text-sm text-gray-500">Registro de movimientos entre sucursales</p>
@@ -64,7 +64,7 @@ export default function TraspasoHistorialPage() {
 
         <Link
           href="/inventario/traspaso"
-          className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#00932C] text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
         >
           <ArrowRightLeft className="h-4 w-4" />
           Nuevo Traspaso
@@ -84,7 +84,7 @@ export default function TraspasoHistorialPage() {
             type="date"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500"
+            className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-[#00932C]"
             placeholder="Desde"
           />
         </div>
@@ -94,7 +94,7 @@ export default function TraspasoHistorialPage() {
             type="date"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500"
+            className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-[#00932C]"
             placeholder="Hasta"
           />
         </div>
@@ -138,14 +138,14 @@ export default function TraspasoHistorialPage() {
                   onClick={() => setExpandedId(isExpanded ? null : key)}
                   className="w-full px-4 md:px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-                    <ArrowRightLeft className="h-5 w-5 text-purple-600" />
+                  <div className="w-10 h-10 rounded-lg bg-[#CCE9D5] flex items-center justify-center shrink-0">
+                    <ArrowRightLeft className="h-5 w-5 text-[#00932C]" />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm text-gray-900">{sucOrigen}</span>
-                      <span className="text-purple-500">→</span>
+                      <span className="text-[#00932C]">→</span>
                       <span className="font-semibold text-sm text-gray-900">{sucDestino}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
@@ -163,7 +163,7 @@ export default function TraspasoHistorialPage() {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <span className="text-sm font-semibold text-purple-600">
+                    <span className="text-sm font-semibold text-[#00932C]">
                       {totalItems} producto{totalItems > 1 ? 's' : ''}
                     </span>
                     <p className="text-xs text-gray-500">{totalUnidades} unidades</p>
@@ -215,7 +215,7 @@ export default function TraspasoHistorialPage() {
                             <p className="text-xs text-gray-500">{mov.variante?.sku || ''}</p>
                           </div>
                           <div className="col-span-2 text-center">
-                            <span className="inline-flex items-center px-2 py-1 rounded-lg bg-purple-50 text-purple-700 font-semibold">
+                            <span className="inline-flex items-center px-2 py-1 rounded-lg bg-[#CCE9D5]/40 text-[#006920] font-semibold">
                               {Math.abs(mov.cantidad || 0)}
                             </span>
                           </div>

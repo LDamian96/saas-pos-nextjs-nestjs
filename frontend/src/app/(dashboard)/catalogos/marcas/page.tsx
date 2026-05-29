@@ -84,8 +84,8 @@ export default function MarcasPage() {
                 transition={{ delay: index * 0.05 }}
                 className="p-3 flex items-center gap-3 min-h-[60px]"
               >
-                <div className="w-11 h-11 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
-                  <Tag className="h-5 w-5 text-purple-600" />
+                <div className="w-11 h-11 bg-[#CCE9D5] rounded-lg flex items-center justify-center shrink-0">
+                  <Tag className="h-5 w-5 text-[#00932C]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="font-medium text-sm text-gray-900">{marca.nombre}</span>
@@ -150,8 +150,8 @@ export default function MarcasPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <Tag className="h-5 w-5 text-purple-600" />
+                        <div className="w-10 h-10 bg-[#CCE9D5] rounded-lg flex items-center justify-center">
+                          <Tag className="h-5 w-5 text-[#00932C]" />
                         </div>
                         <span className="font-medium text-gray-900">
                           {marca.nombre}

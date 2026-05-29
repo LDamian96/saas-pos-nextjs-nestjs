@@ -210,8 +210,8 @@ export default function ImportarExportarPage() {
           }`}
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-900/30' : 'bg-purple-50'}`}>
-              <FileSpreadsheet className={`w-6 h-6 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+            <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-900/30' : 'bg-[#CCE9D5]/40'}`}>
+              <FileSpreadsheet className={`w-6 h-6 ${isDark ? 'text-[#00932C]' : 'text-[#00932C]'}`} />
             </div>
             <div>
               <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
@@ -229,8 +229,8 @@ export default function ImportarExportarPage() {
             onClick={handleDownloadTemplate}
             className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors ${
               isDark
-                ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                : 'bg-purple-600 hover:bg-purple-700 text-white'
+                ? 'bg-[#00932C] hover:bg-purple-700 text-white'
+                : 'bg-[#00932C] hover:bg-purple-700 text-white'
             }`}
           >
             <FileSpreadsheet className="w-4 h-4" />

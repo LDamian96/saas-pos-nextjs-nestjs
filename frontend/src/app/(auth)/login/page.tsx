@@ -48,7 +48,7 @@ export default function LoginPage() {
 
   return (
     <div className={`min-h-screen relative flex items-center justify-center p-4 overflow-hidden transition-colors duration-500 ${
-      isDark ? 'bg-black' : 'bg-gradient-to-br from-slate-50 to-slate-100'
+      isDark ? 'bg-black' : 'bg-gradient-to-br from-[#F4F4F4] to-white'
     }`}>
       {/* Grid pattern background */}
       <div className={`absolute inset-0 transition-opacity duration-500 ${
@@ -60,7 +60,7 @@ export default function LoginPage() {
       {/* Gradient orbs - solo en dark mode */}
       {isDark && (
         <>
-          <div className="absolute top-0 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-pulse" />
+          <div className="absolute top-0 -left-40 w-80 h-80 bg-[#CCE9D5]/400 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-pulse" />
           <div className="absolute top-0 -right-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-50 animate-pulse" />
           <div className="absolute -bottom-40 left-20 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-30 animate-pulse" />
         </>
@@ -144,10 +144,10 @@ export default function LoginPage() {
                 transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
                 className="relative inline-flex"
               >
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+                <div className="w-14 h-14 bg-[#00932C] rounded-xl flex items-center justify-center shadow-lg shadow-[#00932C]/20">
                   <Sparkles className="w-7 h-7 text-white" />
                 </div>
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl blur opacity-30 animate-pulse" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#00932C] to-[#00932C] rounded-xl blur opacity-30 animate-pulse" />
               </motion.div>
 
               <motion.div
@@ -200,7 +200,7 @@ export default function LoginPage() {
                       ${errors.email
                         ? 'border-red-500/50 focus:border-red-500'
                         : focusedField === 'email'
-                          ? 'border-purple-500 shadow-lg shadow-purple-500/10'
+                          ? 'border-[#00932C] shadow-lg shadow-purple-500/10'
                           : isDark
                             ? 'border-zinc-700 hover:border-zinc-600'
                             : 'border-slate-300 hover:border-slate-400'
@@ -247,7 +247,7 @@ export default function LoginPage() {
                       ${errors.password
                         ? 'border-red-500/50 focus:border-red-500'
                         : focusedField === 'password'
-                          ? 'border-purple-500 shadow-lg shadow-purple-500/10'
+                          ? 'border-[#00932C] shadow-lg shadow-purple-500/10'
                           : isDark
                             ? 'border-zinc-700 hover:border-zinc-600'
                             : 'border-slate-300 hover:border-slate-400'
@@ -288,7 +288,7 @@ export default function LoginPage() {
                 <Link
                   href="/forgot-password"
                   className={`text-sm transition-colors ${
-                    isDark ? 'text-zinc-400 hover:text-purple-400' : 'text-slate-500 hover:text-purple-600'
+                    isDark ? 'text-zinc-400 hover:text-[#00932C]' : 'text-slate-500 hover:text-[#00932C]'
                   }`}
                 >
                   Olvidaste tu contrasena?
@@ -318,7 +318,7 @@ export default function LoginPage() {
                   </>
                 )}
                 {/* Button hover effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#00932C] to-[#00932C] opacity-0 group-hover:opacity-10 transition-opacity" />
               </motion.button>
 
               {/* Divider */}
@@ -343,7 +343,7 @@ export default function LoginPage() {
                   disabled={loginMutation.isPending}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
-                  className="relative w-full h-12 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden shadow-lg shadow-amber-500/20"
+                  className="relative w-full h-12 bg-[#0C0C0C] hover:bg-black text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden shadow-lg shadow-[#0C0C0C]/15"
                 >
                   <Sparkles className="w-5 h-5" />
                   <span>Super Admin (Dueno del SaaS)</span>
@@ -356,7 +356,7 @@ export default function LoginPage() {
                   disabled={loginMutation.isPending}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
-                  className="relative w-full h-12 bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden shadow-lg shadow-purple-500/20"
+                  className="relative w-full h-12 bg-[#00932C] hover:bg-[#006920] text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden shadow-lg shadow-[#00932C]/15"
                 >
                   <Zap className="w-5 h-5" />
                   <span>Admin Negocio (Tienda Demo)</span>
@@ -378,7 +378,7 @@ export default function LoginPage() {
                 No tienes cuenta?{' '}
                 <Link
                   href="/register"
-                  className="text-purple-500 hover:text-purple-400 font-medium transition-colors"
+                  className="text-[#00932C] hover:text-[#00932C] font-medium transition-colors"
                 >
                   Registra tu empresa
                 </Link>

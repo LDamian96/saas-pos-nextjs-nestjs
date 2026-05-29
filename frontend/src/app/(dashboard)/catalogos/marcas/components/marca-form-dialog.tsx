@@ -141,8 +141,8 @@ export function MarcaFormDialog({
 
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <Tag className="h-6 w-6 text-purple-600" />
+            <div className="w-12 h-12 bg-[#CCE9D5] rounded-xl flex items-center justify-center">
+              <Tag className="h-6 w-6 text-[#00932C]" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">

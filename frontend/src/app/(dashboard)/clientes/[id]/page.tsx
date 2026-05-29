@@ -45,7 +45,7 @@ export default function ClienteDetallePage() {
       regular: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Regular' },
       plata: { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Plata' },
       oro: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Oro' },
-      platino: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Platino' },
+      platino: { bg: 'bg-[#CCE9D5]', text: 'text-[#006920]', label: 'Platino' },
     };
     return config[nivel] || config.regular;
   };
@@ -149,8 +149,8 @@ export default function ClienteDetallePage() {
 
               {(cliente.telefono || cliente.celular) && (
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Phone className="h-4 w-4 text-purple-600" />
+                  <div className="p-2 bg-[#CCE9D5] rounded-lg">
+                    <Phone className="h-4 w-4 text-[#00932C]" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Telefono</p>
@@ -224,8 +224,8 @@ export default function ClienteDetallePage() {
                 <p className="text-sm text-yellow-600">Puntos</p>
                 <p className="text-2xl font-bold text-yellow-900">{cliente.puntosAcumulados}</p>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <p className="text-sm text-purple-600">Ultima compra</p>
+              <div className="p-4 bg-[#CCE9D5]/40 rounded-lg">
+                <p className="text-sm text-[#00932C]">Ultima compra</p>
                 <p className="text-lg font-bold text-purple-900">
                   {cliente.ultimaCompra
                     ? format(new Date(cliente.ultimaCompra), "d MMM yyyy", { locale: es })

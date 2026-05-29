@@ -215,7 +215,7 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       <div className={`min-h-screen transition-colors duration-300 ${
-        isDark ? 'bg-zinc-950' : 'bg-slate-50'
+        isDark ? 'bg-zinc-950' : 'bg-[#F4F4F4]'
       }`}>
         {/* Mobile Backdrop */}
         <AnimatePresence>
@@ -248,7 +248,7 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
           }`}>
             {sidebarOpen && (
               <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <div className="w-9 h-9 bg-[#00932C] rounded-lg flex items-center justify-center shadow-lg shadow-[#00932C]/15">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <span className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -296,8 +296,8 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
                               isActive
                                 ? isDark
-                                  ? 'bg-purple-500/10 text-purple-400'
-                                  : 'bg-purple-50 text-purple-600'
+                                  ? 'bg-[#CCE9D5]/400/10 text-[#00932C]'
+                                  : 'bg-[#CCE9D5]/40 text-[#00932C]'
                                 : isDark
                                   ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
                                   : 'text-slate-600 hover:bg-slate-100'
@@ -324,8 +324,8 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
                               isActive
                                 ? isDark
-                                  ? 'bg-purple-500/10 text-purple-400 shadow-lg shadow-purple-500/5'
-                                  : 'bg-purple-50 text-purple-600'
+                                  ? 'bg-[#CCE9D5]/400/10 text-[#00932C] shadow-lg shadow-[#00932C]/10'
+                                  : 'bg-[#CCE9D5]/40 text-[#00932C]'
                                 : isDark
                                   ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
                                   : 'text-slate-600 hover:bg-slate-100'
@@ -356,8 +356,8 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
                                     className={`block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
                                       pathname === subitem.href
                                         ? isDark
-                                          ? 'bg-purple-500/10 text-purple-400'
-                                          : 'bg-purple-50 text-purple-600'
+                                          ? 'bg-[#CCE9D5]/400/10 text-[#00932C]'
+                                          : 'bg-[#CCE9D5]/40 text-[#00932C]'
                                         : isDark
                                           ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
                                           : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
@@ -385,7 +385,7 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
             {/* Cerrar POS */}
             <Link
               href="/dashboard"
-              className="mb-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-medium text-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300"
+              className="mb-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#00932C] hover:bg-[#006920] text-white font-medium text-sm shadow-lg shadow-[#00932C]/15 hover:shadow-[#00932C]/30 transition-all duration-300"
             >
               <X size={18} />
               {sidebarOpen && <span>Cerrar POS</span>}
@@ -484,7 +484,7 @@ export default function POSLayout({ children }: { children: React.ReactNode }) {
                     {usuario?.empresa?.nombre || 'Cargando...'}
                   </p>
                 </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold text-sm md:text-base shadow-lg shadow-purple-500/20">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-[#00932C] rounded-full flex items-center justify-center text-white font-semibold text-sm md:text-base shadow-lg shadow-[#00932C]/15">
                   {usuario?.nombre?.charAt(0) || '?'}
                 </div>
               </div>

@@ -226,8 +226,8 @@ export default function ProveedoresPage() {
         </Card>
         <Card>
           <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <CreditCard className="h-5 w-5 text-purple-600" />
+            <div className="p-2 bg-[#CCE9D5] rounded-lg">
+              <CreditCard className="h-5 w-5 text-[#00932C]" />
             </div>
             <div>
               <p className="text-lg md:text-2xl font-bold">{stats.conCredito}</p>

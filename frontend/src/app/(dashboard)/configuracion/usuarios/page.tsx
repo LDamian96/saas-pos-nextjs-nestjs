@@ -58,7 +58,7 @@ import { UsuarioDialog } from '@/presentation/components/features/usuarios';
 
 // Colores para los roles
 const rolColors: Record<string, string> = {
-  admin: 'bg-purple-100 text-purple-800',
+  admin: 'bg-[#CCE9D5] text-purple-800',
   supervisor: 'bg-blue-100 text-blue-800',
   cajero: 'bg-green-100 text-green-800',
   almacenero: 'bg-orange-100 text-orange-800',
@@ -208,8 +208,8 @@ export default function UsuariosPage() {
           className="bg-white rounded-xl border border-gray-200 p-3 md:p-4"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Shield className="h-5 w-5 text-purple-600" />
+            <div className="w-10 h-10 bg-[#CCE9D5] rounded-lg flex items-center justify-center">
+              <Shield className="h-5 w-5 text-[#00932C]" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">

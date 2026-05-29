@@ -173,7 +173,7 @@ export default function ProductoDetailPage({ params }: Props) {
           className="bg-white rounded-xl border border-gray-200 p-6"
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Box className="h-5 w-5 text-purple-600" />
+            <Box className="h-5 w-5 text-[#00932C]" />
             Inventario
           </h3>
 

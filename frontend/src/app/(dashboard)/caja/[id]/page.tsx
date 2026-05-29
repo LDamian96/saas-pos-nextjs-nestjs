@@ -134,8 +134,8 @@ export default function CajaDetallePage() {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Calendar className="h-4 w-4 text-purple-600" />
+                <div className="p-2 bg-[#CCE9D5] rounded-lg">
+                  <Calendar className="h-4 w-4 text-[#00932C]" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Apertura</p>
@@ -283,7 +283,7 @@ export default function CajaDetallePage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Tarjeta</span>
-                <span className="font-medium text-purple-600">{formatCurrency(caja.montoTarjeta)}</span>
+                <span className="font-medium text-[#00932C]">{formatCurrency(caja.montoTarjeta)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Otros</span>

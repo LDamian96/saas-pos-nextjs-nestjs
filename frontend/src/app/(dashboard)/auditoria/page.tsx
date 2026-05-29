@@ -35,7 +35,7 @@ export default function AuditoriaPage() {
       editar: 'bg-blue-100 text-blue-800',
       eliminar: 'bg-red-100 text-red-800',
       anular: 'bg-orange-100 text-orange-800',
-      login: 'bg-purple-100 text-purple-800',
+      login: 'bg-[#CCE9D5] text-purple-800',
       logout: 'bg-gray-100 text-gray-800',
       login_fallido: 'bg-red-100 text-red-800',
       abrir_caja: 'bg-green-100 text-green-800',
@@ -111,8 +111,8 @@ export default function AuditoriaPage() {
         <Card className="col-span-2 md:col-span-1">
           <CardContent className="p-3 md:pt-4 md:p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <User className="h-5 w-5 text-purple-600" />
+              <div className="p-2 bg-[#CCE9D5] rounded-lg">
+                <User className="h-5 w-5 text-[#00932C]" />
               </div>
               <div>
                 <p className="text-xs text-gray-500">Modulos Activos</p>

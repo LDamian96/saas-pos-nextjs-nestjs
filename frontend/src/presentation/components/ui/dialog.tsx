@@ -70,7 +70,7 @@ const DialogContent = React.forwardRef<
         <DialogPrimitive.Close
           className={cn(
             'absolute right-4 top-4 rounded-full p-2 transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-purple-500/50',
+            'focus:outline-none focus:ring-2 focus:ring-[#00932C]/50',
             'disabled:pointer-events-none',
             isDark
               ? 'text-zinc-400 hover:text-white hover:bg-zinc-700/80'

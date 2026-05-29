@@ -44,7 +44,7 @@ export default function InventarioPage() {
       >
         <div>
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
-            <Warehouse className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
+            <Warehouse className="h-6 w-6 md:h-8 md:w-8 text-[#00932C]" />
             Inventario
           </h1>
           <p className="text-sm md:text-base text-gray-500 mt-1">Control de stock y movimientos</p>
@@ -53,7 +53,7 @@ export default function InventarioPage() {
         <div className="flex items-center gap-2 md:gap-3">
           <Link
             href="/inventario/stock-sucursales"
-            className="flex items-center gap-2 px-3 md:px-4 py-2.5 h-11 md:h-10 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+            className="flex items-center gap-2 px-3 md:px-4 py-2.5 h-11 md:h-10 bg-[#00932C] text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
           >
             <Store className="h-4 w-4" />
             <span className="hidden sm:inline">Stock por Sucursal</span>
@@ -81,7 +81,7 @@ export default function InventarioPage() {
           <select
             value={selectedSucursal}
             onChange={(e) => setSelectedSucursal(e.target.value)}
-            className="w-full h-11 md:h-10 pl-10 pr-4 border-2 border-gray-200 rounded-lg bg-white text-sm text-gray-700 focus:border-purple-500 focus:outline-none appearance-none cursor-pointer transition-colors hover:border-gray-300"
+            className="w-full h-11 md:h-10 pl-10 pr-4 border-2 border-gray-200 rounded-lg bg-white text-sm text-gray-700 focus:border-[#00932C] focus:outline-none appearance-none cursor-pointer transition-colors hover:border-gray-300"
           >
             <option value="">Todas las sucursales</option>
             {sucursales?.map((s) => (
@@ -90,7 +90,7 @@ export default function InventarioPage() {
           </select>
         </div>
         {selectedSucursal && sucursales && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#CCE9D5] text-[#006920] rounded-full text-xs font-medium">
             <Store className="h-3 w-3" />
             {sucursales.find((s) => s.id === selectedSucursal)?.nombre}
           </span>
@@ -138,10 +138,10 @@ export default function InventarioPage() {
 
         <Link
           href="/inventario/traspaso"
-          className="bg-white p-3 md:p-4 lg:p-6 rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all group min-h-[100px]"
+          className="bg-white p-3 md:p-4 lg:p-6 rounded-xl border border-gray-200 hover:border-[#00932C]/40 hover:shadow-md transition-all group min-h-[100px]"
         >
-          <div className="w-14 h-14 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-            <ArrowRightLeft className="h-7 w-7 md:h-6 md:w-6 text-purple-600" />
+          <div className="w-14 h-14 md:w-12 md:h-12 bg-[#CCE9D5] rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+            <ArrowRightLeft className="h-7 w-7 md:h-6 md:w-6 text-[#00932C]" />
           </div>
           <h3 className="font-semibold text-sm md:text-base text-gray-900">Traspaso</h3>
           <p className="text-xs md:text-sm text-gray-500">Entre sucursales</p>

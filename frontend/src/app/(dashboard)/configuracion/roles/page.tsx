@@ -179,7 +179,7 @@ export default function RolesPage() {
           </Link>
           <div>
             <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
-              <Shield className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
+              <Shield className="h-6 w-6 md:h-8 md:w-8 text-[#00932C]" />
               Roles y Permisos
             </h1>
             <p className="text-sm md:text-base text-gray-500 mt-1">Define que puede hacer cada tipo de usuario</p>
@@ -188,7 +188,7 @@ export default function RolesPage() {
 
         <button
           onClick={handleOpenCreate}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium w-full sm:w-auto h-11 md:h-10 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#00932C] text-white rounded-lg hover:bg-purple-700 transition-colors font-medium w-full sm:w-auto h-11 md:h-10 active:scale-[0.98]"
         >
           <Plus className="h-5 w-5" />
           Nuevo Rol
@@ -220,7 +220,7 @@ export default function RolesPage() {
           <p className="text-gray-500 mb-6">Crea tu primer rol para asignar permisos a usuarios</p>
           <button
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#00932C] text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
           >
             <Plus className="h-5 w-5" />
             Crear Rol
@@ -244,8 +244,8 @@ export default function RolesPage() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Shield className="h-5 w-5 text-purple-600" />
+                  <div className="w-10 h-10 bg-[#CCE9D5] rounded-lg flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-[#00932C]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{rol.nombre}</h3>
@@ -321,7 +321,7 @@ export default function RolesPage() {
                     type="text"
                     value={formData.nombre}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent h-11 md:h-10"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00932C] focus:border-transparent h-11 md:h-10"
                     placeholder="Ej: Vendedor, Supervisor"
                     required
                   />
@@ -334,7 +334,7 @@ export default function RolesPage() {
                   <textarea
                     value={formData.descripcion}
                     onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00932C] focus:border-transparent"
                     placeholder="Describe las responsabilidades de este rol"
                     rows={2}
                   />
@@ -365,15 +365,15 @@ export default function RolesPage() {
                               <div
                                 className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                                   allSelected
-                                    ? 'bg-purple-600 border-purple-600'
+                                    ? 'bg-[#00932C] border-purple-600'
                                     : someSelected
-                                    ? 'bg-purple-100 border-purple-600'
+                                    ? 'bg-[#CCE9D5] border-purple-600'
                                     : 'border-gray-300'
                                 }`}
                               >
                                 {allSelected && <Check className="h-3 w-3 text-white" />}
                                 {someSelected && !allSelected && (
-                                  <div className="w-2 h-2 bg-purple-600 rounded-sm" />
+                                  <div className="w-2 h-2 bg-[#00932C] rounded-sm" />
                                 )}
                               </div>
                               {moduloLabels[modulo] || modulo}
@@ -395,7 +395,7 @@ export default function RolesPage() {
                                 <div
                                   className={`w-4 h-4 rounded border flex items-center justify-center ${
                                     formData.permisoIds.includes(permiso.id)
-                                      ? 'bg-purple-600 border-purple-600'
+                                      ? 'bg-[#00932C] border-purple-600'
                                       : 'border-gray-300'
                                   }`}
                                 >
@@ -424,7 +424,7 @@ export default function RolesPage() {
                   <button
                     type="submit"
                     disabled={createMutation.isPending || updateMutation.isPending}
-                    className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 h-11 md:h-10 active:scale-[0.98]"
+                    className="flex-1 px-4 py-2.5 bg-[#00932C] text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 h-11 md:h-10 active:scale-[0.98]"
                   >
                     {(createMutation.isPending || updateMutation.isPending)
                       ? 'Guardando...'

@@ -49,7 +49,7 @@ export function SucursalCard({ sucursal, index, onEdit, onDelete }: SucursalCard
                 </span>
               )}
               {sucursal.esAlmacen && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                <span className="px-2 py-1 bg-[#CCE9D5] text-[#006920] text-xs font-medium rounded">
                   Almacen
                 </span>
               )}
