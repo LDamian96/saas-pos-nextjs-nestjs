@@ -47,7 +47,7 @@ export function SedeIndicator() {
           : <ChevronDown className="w-4 h-4 text-[#00932C] shrink-0" />}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-64" sideOffset={6}>
+      <DropdownMenuContent align="end" className="w-64 z-[100]" sideOffset={8}>
         <DropdownMenuLabel className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
           {sedeFija ? 'Sede asignada' : 'Cambiar de sede'}
         </DropdownMenuLabel>

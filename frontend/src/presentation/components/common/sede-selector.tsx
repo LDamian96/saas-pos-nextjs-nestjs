@@ -109,8 +109,17 @@ function SedeSelectorContent({
   sedeFija: boolean;
   isLoading: boolean;
 }) {
+  // Importante: side="right" + alignOffset → el dropdown se abre HACIA AFUERA
+  // del sidebar (no hacia abajo dentro de él) para evitar que se corte/oculte.
+  // z-[100] supera al sidebar (z-[70]) y al backdrop móvil (z-[60]).
   return (
-    <DropdownMenuContent align="start" className="w-64" sideOffset={6}>
+    <DropdownMenuContent
+      side="right"
+      align="start"
+      sideOffset={12}
+      alignOffset={-4}
+      className="w-64 z-[100]"
+    >
       <DropdownMenuLabel className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
         {sedeFija ? 'Sede asignada' : 'Cambiar de sede'}
       </DropdownMenuLabel>
