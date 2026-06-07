@@ -11,26 +11,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/persistence/prisma/prisma.service';
 import { RedisService } from '../../../infrastructure/cache/redis.service';
+import { normalizeSucursalId } from '../../../shared/utils/sucursal.util';
 
 const CACHE_TTL = {
   ALERTAS: 300, // 5 minutos
 };
-
-/**
- * Normaliza sucursalId: solo acepta string UUID válido.
- * Si llega array, JSON stringified array o cualquier otro tipo,
- * devuelve undefined para evitar `Prisma error: invalid UUID, found '['`.
- */
-const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-function normalizeSucursalId(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return undefined;
-  // Si vino como `["uuid"]` o `[uuid]` (array stringificado), descartar.
-  if (trimmed.startsWith('[') || trimmed.startsWith('{')) return undefined;
-  if (!UUID_RE.test(trimmed)) return undefined;
-  return trimmed;
-}
 
 export interface AlertaStockBajo {
   id: string;

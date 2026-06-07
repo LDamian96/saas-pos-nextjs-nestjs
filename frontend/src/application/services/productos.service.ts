@@ -188,6 +188,18 @@ export interface CreateProductoDto {
   ancho?: number;
   alto?: number;
   variantes?: CreateVarianteDto[];
+  /**
+   * Stock inicial por sede (opcional). Si se provee, el backend crea
+   * los registros stock_sucursal correspondientes para la variante simple
+   * creada. Para productos variables se aplica por defecto a la primera
+   * variante.
+   */
+  stockPorSucursal?: Array<{
+    sucursalId: string;
+    stock: number;
+    stockMinimo?: number;
+    stockMaximo?: number;
+  }>;
 }
 
 export interface UpdateProductoDto extends Partial<Omit<CreateProductoDto, 'variantes'>> {}

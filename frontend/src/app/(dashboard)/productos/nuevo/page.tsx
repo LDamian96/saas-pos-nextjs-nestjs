@@ -12,6 +12,7 @@ import { useCategorias } from '@/application/hooks/queries/use-categorias';
 import { useMarcas } from '@/application/hooks/queries/use-marcas';
 import { useCreateProducto } from '@/application/hooks/mutations/use-productos-mutations';
 import { CreateProductoDto } from '@/application/services/productos.service';
+import { StockPorSedeSelector, StockPorSedeItem } from '@/presentation/components/features/productos/stock-por-sede-selector';
 
 export default function NuevoProductoPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function NuevoProductoPage() {
   const { data: marcas } = useMarcas();
   const createMutation = useCreateProducto();
   const [showScanner, setShowScanner] = useState(false);
+  const [stockPorSede, setStockPorSede] = useState<StockPorSedeItem[]>([]);
 
   const {
     register,
@@ -45,6 +47,12 @@ export default function NuevoProductoPage() {
       if (!data.precioCompra) delete (data as any).precioCompra;
       if (!data.precioMayorista) delete (data as any).precioMayorista;
       if (!data.imagenPrincipal) delete (data as any).imagenPrincipal;
+      // Incluir stock por sede solo si el usuario asignó al menos una
+      if (stockPorSede.length > 0) {
+        data.stockPorSucursal = stockPorSede;
+        // Calcular stock total para retrocompat (campo stock simple)
+        data.stock = stockPorSede.reduce((sum, s) => sum + s.stock, 0);
+      }
       const producto = await createMutation.mutateAsync(data);
       router.push(`/productos/${producto.id}`);
     } catch {}
@@ -163,9 +171,12 @@ export default function NuevoProductoPage() {
           </div>
         </div>
 
+        {/* STOCK POR SEDE */}
+        <StockPorSedeSelector value={stockPorSede} onChange={setStockPorSede} />
+
         {/* GUARDAR */}
         <button type="submit" disabled={createMutation.isPending}
-          className="w-full h-14 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-semibold rounded-2xl hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/25 disabled:opacity-50">
+          className="w-full h-14 flex items-center justify-center gap-2 bg-[#00932C] hover:bg-[#006920] text-white text-lg font-semibold rounded-2xl active:scale-[0.98] transition-all shadow-xl shadow-[#00932C]/25 disabled:opacity-50">
           {createMutation.isPending ? (
             <div className="w-6 h-6 border-3 border-white/40 border-t-white rounded-full animate-spin" />
           ) : (

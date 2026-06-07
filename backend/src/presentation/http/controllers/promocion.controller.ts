@@ -24,6 +24,7 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { PromocionService } from '../../../core/application/services/promocion.service';
 import { CreatePromocionDto, UpdatePromocionDto, CalcularDescuentoDto } from '../../../core/application/dto/promocion';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 interface JwtPayload {
   sub: string;
   email: string;
@@ -59,7 +60,7 @@ export class PromocionController {
   @Get('vigentes')
   async findVigentes(
     @CurrentUser() user: JwtPayload,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.promocionService.findVigentes(user.empresaId, sucursalId);
   }

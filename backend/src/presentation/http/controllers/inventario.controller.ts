@@ -30,6 +30,7 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { Permissions } from '../decorators/permissions.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 interface UserWithEmpresa {
   id: string;
   empresaId: string;
@@ -48,7 +49,7 @@ export class InventarioController {
   @Permissions('inventario.ver')
   async getStock(
     @CurrentUser() user: UserWithEmpresa,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('categoriaId') categoriaId?: string,
     @Query('stockBajo') stockBajo?: string,
     @Query('search') search?: string,
@@ -135,7 +136,7 @@ export class InventarioController {
   async getKardex(
     @CurrentUser() user: UserWithEmpresa,
     @Query('varianteId', ParseUUIDPipe) varianteId: string,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
     @Query('page') page?: string,
@@ -159,7 +160,7 @@ export class InventarioController {
   @Permissions('inventario.ver')
   async getStockBajo(
     @CurrentUser() user: UserWithEmpresa,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.inventarioService.getStockBajo(user.empresaId, sucursalId);
   }
@@ -172,7 +173,7 @@ export class InventarioController {
   @Permissions('inventario.ver')
   async getMovimientos(
     @CurrentUser() user: UserWithEmpresa,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('tipo') tipo?: string,
     @Query('motivo') motivo?: string,
     @Query('fechaInicio') fechaInicio?: string,

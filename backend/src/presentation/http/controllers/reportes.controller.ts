@@ -21,6 +21,7 @@ import {
   ReporteDashboardFiltersDto,
 } from '../../../core/application/dto/reportes';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 interface UserWithEmpresa {
   id: string;
   email: string;
@@ -56,7 +57,7 @@ export class ReportesController {
   @Permissions('ventas.ver')
   async getVentasDiario(
     @CurrentUser() user: UserWithEmpresa,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.reportesService.getVentasDiario(user.empresaId, sucursalId);
   }

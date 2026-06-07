@@ -291,7 +291,7 @@ export class ProductoService {
 
   // Crear producto
   async create(empresaId: string, data: any) {
-    const { variantes, ...productoData } = data;
+    const { variantes, stockPorSucursal, ...productoData } = data;
 
     // Generar código interno si no existe
     if (!productoData.codigoInterno) {
@@ -350,8 +350,26 @@ export class ProductoService {
           });
         }
 
-        // Crear stockSucursal para cada sucursal
-        if (sucursales.length > 0) {
+        // Crear stockSucursal:
+        // - Si vino stockPorSucursal explícito, usarlo para ESTA variante.
+        // - Sino, distribuir stock de la variante en todas las sucursales.
+        if (Array.isArray(stockPorSucursal) && stockPorSucursal.length > 0) {
+          const sucursalIdsValidas = new Set(sucursales.map((s) => s.id));
+          const entries = stockPorSucursal.filter((e: any) =>
+            e && typeof e.sucursalId === 'string' && sucursalIdsValidas.has(e.sucursalId),
+          );
+          if (entries.length > 0) {
+            await this.prisma.stockSucursal.createMany({
+              data: entries.map((e: any) => ({
+                varianteId: variante.id,
+                sucursalId: e.sucursalId,
+                stock: Number(e.stock) || 0,
+                stockMinimo: Number(e.stockMinimo) || 0,
+                stockMaximo: Number(e.stockMaximo) || 0,
+              })),
+            });
+          }
+        } else if (sucursales.length > 0) {
           await this.prisma.stockSucursal.createMany({
             data: sucursales.map((s) => ({
               varianteId: variante.id,
@@ -376,8 +394,26 @@ export class ProductoService {
         },
       });
 
-      // Crear stockSucursal para todas las sucursales de la empresa
-      if (sucursales.length > 0) {
+      // Crear stockSucursal:
+      // - Si vino stockPorSucursal explícito, usarlo (asignar a la variante default).
+      // - Sino, distribuir stock simple en TODAS las sucursales.
+      if (Array.isArray(stockPorSucursal) && stockPorSucursal.length > 0) {
+        const sucursalIdsValidas = new Set(sucursales.map((s) => s.id));
+        const entries = stockPorSucursal.filter((e: any) =>
+          e && typeof e.sucursalId === 'string' && sucursalIdsValidas.has(e.sucursalId),
+        );
+        if (entries.length > 0) {
+          await this.prisma.stockSucursal.createMany({
+            data: entries.map((e: any) => ({
+              varianteId: defaultVariante.id,
+              sucursalId: e.sucursalId,
+              stock: Number(e.stock) || 0,
+              stockMinimo: Number(e.stockMinimo) || 0,
+              stockMaximo: Number(e.stockMaximo) || 0,
+            })),
+          });
+        }
+      } else if (sucursales.length > 0) {
         await this.prisma.stockSucursal.createMany({
           data: sucursales.map((s) => ({
             varianteId: defaultVariante.id,

@@ -27,6 +27,7 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { Permissions } from '../decorators/permissions.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 interface UserWithEmpresa {
   id: string;
   empresaId: string;
@@ -48,7 +49,7 @@ export class UsuarioController {
     @CurrentUser() user: UserWithEmpresa,
     @Query('activo') activo?: string,
     @Query('rolId') rolId?: string,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,

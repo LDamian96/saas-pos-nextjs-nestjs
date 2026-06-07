@@ -5,7 +5,6 @@
  * @description Pagina principal de inventario - Vista de stock
  */
 
-import { useState } from 'react';
 import { motion } from '@/shared/motion';
 import Link from 'next/link';
 import {
@@ -22,12 +21,19 @@ import {
 import { useProductos } from '@/application/hooks/queries/use-productos';
 import { useAlertasResumen } from '@/application/hooks/queries/use-inventario';
 import { useSucursales } from '@/application/hooks/queries/use-sucursales';
+import { useSucursalActual } from '@/application/hooks/use-sucursal-actual';
 
 export default function InventarioPage() {
-  const [selectedSucursal, setSelectedSucursal] = useState<string>('');
+  // El filtro de sede ahora viene del selector global del sidebar.
+  // Si el usuario lo quiere cambiar específicamente solo en esta pantalla,
+  // puede usar el dropdown del sidebar para alternar entre sedes.
+  const { sucursalId: selectedSucursal } = useSucursalActual();
   const { data: sucursales } = useSucursales({ activo: true });
-  const { data: productos, isLoading } = useProductos({ limit: 20, sucursalId: selectedSucursal || undefined });
-  const { data: alertasResumen } = useAlertasResumen({ sucursalId: selectedSucursal || undefined } as any);
+  const { data: productos, isLoading } = useProductos({ limit: 20 });
+  const { data: alertasResumen } = useAlertasResumen();
+  const sucursalActualNombre = selectedSucursal
+    ? sucursales?.find((s: any) => s.id === selectedSucursal)?.nombre ?? 'Sede'
+    : 'Todas las sedes';
 
   const formatPrice = (price: number | string) => {
     const num = typeof price === 'string' ? parseFloat(price) : price;
@@ -69,32 +75,20 @@ export default function InventarioPage() {
         </div>
       </motion.div>
 
-      {/* Filtro de sucursal */}
+      {/* Indicador de filtro activo (usa selector global del sidebar) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
         className="flex flex-col sm:flex-row items-start sm:items-center gap-3"
       >
-        <div className="relative w-full sm:w-72">
-          <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          <select
-            value={selectedSucursal}
-            onChange={(e) => setSelectedSucursal(e.target.value)}
-            className="w-full h-11 md:h-10 pl-10 pr-4 border-2 border-gray-200 rounded-lg bg-white text-sm text-gray-700 focus:border-[#00932C] focus:outline-none appearance-none cursor-pointer transition-colors hover:border-gray-300"
-          >
-            <option value="">Todas las sucursales</option>
-            {sucursales?.map((s) => (
-              <option key={s.id} value={s.id}>{s.nombre}</option>
-            ))}
-          </select>
-        </div>
-        {selectedSucursal && sucursales && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#CCE9D5] text-[#006920] rounded-full text-xs font-medium">
-            <Store className="h-3 w-3" />
-            {sucursales.find((s) => s.id === selectedSucursal)?.nombre}
-          </span>
-        )}
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#CCE9D5] text-[#006920] rounded-full text-xs font-medium">
+          <Store className="h-3 w-3" />
+          Viendo: {sucursalActualNombre}
+        </span>
+        <span className="text-xs text-gray-500">
+          Cambia la sede desde el selector del sidebar para ver otros datos.
+        </span>
       </motion.div>
 
       {/* Acciones rapidas */}

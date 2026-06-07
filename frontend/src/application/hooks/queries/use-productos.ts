@@ -19,10 +19,10 @@ import { useSucursalActual } from '@/application/hooks/use-sucursal-actual';
  * - Si los filtros ya traen sucursalId explícito (ej. forms internos), respeta el suyo.
  * - Si el store está en "Todas las sedes" (null), no inyecta el filtro.
  */
-function withSucursal<F extends { sucursalId?: string }>(filters: F | undefined, storeSucursalId: string | null): F | undefined {
+function withSucursal(filters: any, storeSucursalId: string | null): any {
   if (filters?.sucursalId) return filters;
   if (storeSucursalId === null || storeSucursalId === undefined) return filters;
-  return { ...(filters ?? {}), sucursalId: storeSucursalId } as F;
+  return { ...(filters ?? {}), sucursalId: storeSucursalId };
 }
 
 // =====================================================

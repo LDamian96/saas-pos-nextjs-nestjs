@@ -101,9 +101,10 @@ export function useLote(id: string) {
  * Hook para obtener lotes FEFO de una variante
  */
 export function useLotesFEFO(varianteId: string, sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: lotesKeys.variante(varianteId, sucursalId),
-    queryFn: () => lotesService.getByVarianteFEFO(varianteId, sucursalId),
+    queryKey: lotesKeys.variante(varianteId, sId),
+    queryFn: () => lotesService.getByVarianteFEFO(varianteId, sId),
     enabled: !!varianteId,
     staleTime: 60 * 1000, // 1 minuto
   });
@@ -113,9 +114,10 @@ export function useLotesFEFO(varianteId: string, sucursalId?: string) {
  * Hook para obtener lotes próximos a vencer
  */
 export function useLotesProximosVencer(dias: number = 30, sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: lotesKeys.proximosVencer(dias, sucursalId),
-    queryFn: () => lotesService.getProximosVencer(dias, sucursalId),
+    queryKey: lotesKeys.proximosVencer(dias, sId),
+    queryFn: () => lotesService.getProximosVencer(dias, sId),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }
@@ -124,9 +126,10 @@ export function useLotesProximosVencer(dias: number = 30, sucursalId?: string) {
  * Hook para obtener lotes vencidos
  */
 export function useLotesVencidos(sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: lotesKeys.vencidos(sucursalId),
-    queryFn: () => lotesService.getVencidos(sucursalId),
+    queryKey: lotesKeys.vencidos(sId),
+    queryFn: () => lotesService.getVencidos(sId),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }
@@ -162,9 +165,10 @@ export function useMovimiento(id: string) {
  * Hook para obtener resumen de movimientos
  */
 export function useMovimientosResumen(sucursalId?: string, fechaDesde?: string, fechaHasta?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: movimientosKeys.resumen(sucursalId, fechaDesde, fechaHasta),
-    queryFn: () => movimientosService.getResumen(sucursalId, fechaDesde, fechaHasta),
+    queryKey: movimientosKeys.resumen(sId, fechaDesde, fechaHasta),
+    queryFn: () => movimientosService.getResumen(sId, fechaDesde, fechaHasta),
     staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
@@ -173,9 +177,10 @@ export function useMovimientosResumen(sucursalId?: string, fechaDesde?: string, 
  * Hook para obtener kardex de una variante
  */
 export function useKardex(varianteId: string, sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: movimientosKeys.kardex(varianteId, sucursalId),
-    queryFn: () => movimientosService.getKardex(varianteId, sucursalId),
+    queryKey: movimientosKeys.kardex(varianteId, sId),
+    queryFn: () => movimientosService.getKardex(varianteId, sId),
     enabled: !!varianteId,
     staleTime: 60 * 1000, // 1 minuto
   });
@@ -189,9 +194,10 @@ export function useKardex(varianteId: string, sucursalId?: string) {
  * Hook para obtener alertas de stock bajo
  */
 export function useAlertasStockBajo(sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: alertasKeys.stockBajo(sucursalId),
-    queryFn: () => alertasInventarioService.getStockBajo(sucursalId),
+    queryKey: alertasKeys.stockBajo(sId),
+    queryFn: () => alertasInventarioService.getStockBajo(sId),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }
@@ -200,9 +206,10 @@ export function useAlertasStockBajo(sucursalId?: string) {
  * Hook para obtener alertas de vencimiento
  */
 export function useAlertasVencimiento(diasAlerta: number = 30, sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: alertasKeys.vencimientos(diasAlerta, sucursalId),
-    queryFn: () => alertasInventarioService.getVencimientos(diasAlerta, sucursalId),
+    queryKey: alertasKeys.vencimientos(diasAlerta, sId),
+    queryFn: () => alertasInventarioService.getVencimientos(diasAlerta, sId),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }
@@ -211,9 +218,10 @@ export function useAlertasVencimiento(diasAlerta: number = 30, sucursalId?: stri
  * Hook para obtener resumen de alertas
  */
 export function useAlertasResumen(sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: alertasKeys.resumen(sucursalId),
-    queryFn: () => alertasInventarioService.getResumen(sucursalId),
+    queryKey: alertasKeys.resumen(sId),
+    queryFn: () => alertasInventarioService.getResumen(sId),
     staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
@@ -226,9 +234,12 @@ export function useAlertasResumen(sucursalId?: string) {
  * Hook para obtener stock
  */
 export function useStock(filters?: StockFilters) {
+  const sId = useEffectiveSucursalId(filters?.sucursalId);
+  const merged: StockFilters = { ...filters };
+  if (sId && !merged.sucursalId) merged.sucursalId = sId;
   return useQuery({
-    queryKey: stockKeys.list(filters),
-    queryFn: () => inventarioOperacionesService.getStock(filters),
+    queryKey: stockKeys.list(merged),
+    queryFn: () => inventarioOperacionesService.getStock(merged),
     staleTime: 60 * 1000, // 1 minuto
   });
 }
@@ -237,9 +248,10 @@ export function useStock(filters?: StockFilters) {
  * Hook para obtener productos con stock bajo
  */
 export function useStockBajo(sucursalId?: string) {
+  const sId = useEffectiveSucursalId(sucursalId);
   return useQuery({
-    queryKey: stockKeys.bajo(sucursalId),
-    queryFn: () => inventarioOperacionesService.getStockBajo(sucursalId),
+    queryKey: stockKeys.bajo(sId),
+    queryFn: () => inventarioOperacionesService.getStockBajo(sId),
     staleTime: 60 * 1000,
   });
 }
@@ -257,9 +269,12 @@ export function useMovimientosHistorial(filters?: {
   page?: number;
   limit?: number;
 }) {
+  const sId = useEffectiveSucursalId(filters?.sucursalId);
+  const merged = { ...filters };
+  if (sId && !merged.sucursalId) merged.sucursalId = sId;
   return useQuery({
-    queryKey: stockKeys.movimientos(filters),
-    queryFn: () => inventarioOperacionesService.getMovimientos(filters),
+    queryKey: stockKeys.movimientos(merged),
+    queryFn: () => inventarioOperacionesService.getMovimientos(merged),
     staleTime: 30 * 1000,
   });
 }
@@ -274,9 +289,12 @@ export function useKardexVariante(varianteId: string, filters?: {
   page?: number;
   limit?: number;
 }) {
+  const sId = useEffectiveSucursalId(filters?.sucursalId);
+  const merged = { ...filters };
+  if (sId && !merged.sucursalId) merged.sucursalId = sId;
   return useQuery({
-    queryKey: stockKeys.kardex(varianteId, filters),
-    queryFn: () => inventarioOperacionesService.getKardex(varianteId, filters),
+    queryKey: stockKeys.kardex(varianteId, merged),
+    queryFn: () => inventarioOperacionesService.getKardex(varianteId, merged),
     enabled: !!varianteId,
     staleTime: 30 * 1000,
   });

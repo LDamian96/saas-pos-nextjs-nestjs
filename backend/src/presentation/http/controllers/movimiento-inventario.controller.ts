@@ -24,6 +24,7 @@ import { MovimientoInventarioService } from '../../../core/application/services/
 import { CreateMovimientoDto, MovimientoFiltersDto } from '../../../core/application/dto/movimiento-inventario';
 import { CurrentUser, UserPayload } from '../decorators/current-user.decorator';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 @ApiTags('Movimientos de Inventario')
 @Controller('movimientos-inventario')
 @UseGuards(JwtAuthGuard)
@@ -57,7 +58,7 @@ export class MovimientoInventarioController {
   @ApiOperation({ summary: 'Obtener resumen de movimientos por tipo' })
   async getResumen(
     @CurrentUser() user: UserPayload,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('fechaDesde') fechaDesde?: string,
     @Query('fechaHasta') fechaHasta?: string,
   ) {
@@ -77,7 +78,7 @@ export class MovimientoInventarioController {
   async getKardex(
     @CurrentUser() user: UserPayload,
     @Param('varianteId', ParseUUIDPipe) varianteId: string,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.movimientoService.getKardex(
       this.getEmpresaId(user),

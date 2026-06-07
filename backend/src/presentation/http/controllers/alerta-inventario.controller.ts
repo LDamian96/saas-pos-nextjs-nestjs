@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { AlertaInventarioService } from '../../../core/application/services/alerta-inventario.service';
 import { CurrentUser, UserPayload } from '../decorators/current-user.decorator';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 @ApiTags('Alertas de Inventario')
 @Controller('alertas-inventario')
 @UseGuards(JwtAuthGuard)
@@ -40,7 +41,7 @@ export class AlertaInventarioController {
   @ApiOperation({ summary: 'Obtener resumen de todas las alertas' })
   async getResumen(
     @CurrentUser() user: UserPayload,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.alertaService.getResumenAlertas(
       this.getEmpresaId(user),
@@ -55,7 +56,7 @@ export class AlertaInventarioController {
   @ApiOperation({ summary: 'Obtener productos con stock bajo' })
   async getStockBajo(
     @CurrentUser() user: UserPayload,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.alertaService.getAlertasStockBajo(
       this.getEmpresaId(user),
@@ -70,7 +71,7 @@ export class AlertaInventarioController {
   @ApiOperation({ summary: 'Obtener productos próximos a vencer' })
   async getVencimientos(
     @CurrentUser() user: UserPayload,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('dias') dias?: number,
   ) {
     return this.alertaService.getAlertasVencimiento(
@@ -87,7 +88,7 @@ export class AlertaInventarioController {
   @ApiOperation({ summary: 'Obtener productos sin movimiento (estancados)' })
   async getEstancados(
     @CurrentUser() user: UserPayload,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('dias') dias?: number,
   ) {
     return this.alertaService.getProductosEstancados(

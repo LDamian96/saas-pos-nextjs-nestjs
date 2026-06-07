@@ -26,6 +26,7 @@ import { LoteService } from '../../../core/application/services/lote.service';
 import { CreateLoteDto, UpdateLoteDto, LoteFiltersDto } from '../../../core/application/dto/lote';
 import { CurrentUser, UserPayload } from '../decorators/current-user.decorator';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 @ApiTags('Lotes')
 @Controller('lotes')
 @UseGuards(JwtAuthGuard)
@@ -60,7 +61,7 @@ export class LoteController {
   async findProximosVencer(
     @CurrentUser() user: UserPayload,
     @Query('dias') dias?: number,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.loteService.findProximosVencer(
       this.getEmpresaId(user),
@@ -76,7 +77,7 @@ export class LoteController {
   @ApiOperation({ summary: 'Obtener lotes vencidos' })
   async findVencidos(
     @CurrentUser() user: UserPayload,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.loteService.findVencidos(
       this.getEmpresaId(user),
@@ -92,7 +93,7 @@ export class LoteController {
   async findByVariante(
     @CurrentUser() user: UserPayload,
     @Param('varianteId', ParseUUIDPipe) varianteId: string,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.loteService.findByVarianteFEFO(
       this.getEmpresaId(user),

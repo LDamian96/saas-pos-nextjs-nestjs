@@ -8,6 +8,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { cajaService, HistorialOptions } from '@/application/services/caja.service';
+import { useSucursalActual } from '@/application/hooks/use-sucursal-actual';
 
 export const cajaKeys = {
   all: ['caja'] as const,
@@ -30,9 +31,12 @@ export function useCajaActual() {
 
 // Hook para obtener historial de cajas
 export function useCajaHistorial(options: HistorialOptions = {}) {
+  const { sucursalId } = useSucursalActual();
+  const merged: HistorialOptions = { ...options };
+  if (sucursalId && !merged.sucursalId) merged.sucursalId = sucursalId;
   return useQuery({
-    queryKey: cajaKeys.historial(options),
-    queryFn: () => cajaService.getHistorial(options),
+    queryKey: cajaKeys.historial(merged),
+    queryFn: () => cajaService.getHistorial(merged),
     staleTime: 60 * 1000, // 1 minuto
   });
 }

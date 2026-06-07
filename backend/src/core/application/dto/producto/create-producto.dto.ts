@@ -314,4 +314,33 @@ export class CreateProductoDto {
   @ValidateNested({ each: true })
   @Type(() => CreateVarianteDto)
   variantes?: CreateVarianteDto[];
+
+  // === Stock inicial por sede (opcional) ===
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockPorSucursalDto)
+  stockPorSucursal?: StockPorSucursalDto[];
+}
+
+export class StockPorSucursalDto {
+  @IsUUID('4', { message: 'sucursalId inválido' })
+  sucursalId!: string;
+
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  stock!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  stockMinimo?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  stockMaximo?: number;
 }

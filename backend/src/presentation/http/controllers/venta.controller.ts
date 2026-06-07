@@ -32,6 +32,7 @@ import {
   DevolucionVentaDto,
 } from '../../../core/application/dto/venta';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 // Tipo local con empresaId garantizado (TenantGuard valida esto)
 interface UserWithEmpresa {
   id: string;
@@ -78,7 +79,7 @@ export class VentaController {
   @Permissions('ventas.ver')
   async getResumenDia(
     @CurrentUser() user: UserWithEmpresa,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
   ) {
     return this.ventaService.getResumenDia(user.empresaId, sucursalId);
   }
@@ -91,7 +92,7 @@ export class VentaController {
   @Permissions('ventas.ver')
   async getEstadisticas(
     @CurrentUser() user: UserWithEmpresa,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
   ) {

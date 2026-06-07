@@ -24,6 +24,7 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { Permissions } from '../decorators/permissions.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 
+import { NormalizeSucursalIdPipe } from '../pipes/normalize-sucursal-id.pipe';
 interface UserWithEmpresa {
   id: string;
   empresaId: string;
@@ -93,7 +94,7 @@ export class CajaController {
   @Permissions('caja.historial')
   async getHistorial(
     @CurrentUser() user: UserWithEmpresa,
-    @Query('sucursalId') sucursalId?: string,
+    @Query('sucursalId', NormalizeSucursalIdPipe) sucursalId?: string,
     @Query('estado') estado?: string,
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
