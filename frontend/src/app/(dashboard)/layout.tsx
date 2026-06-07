@@ -45,6 +45,8 @@ import { useLogout } from '@/application/hooks/mutations/use-auth';
 import { useAuthStore } from '@/application/stores/auth.store';
 import { useThemeStore } from '@/application/stores/theme.store';
 import { api } from '@/infrastructure/api/axios-instance';
+import { SedeSelector } from '@/presentation/components/common/sede-selector';
+import { SedeIndicator } from '@/presentation/components/common/sede-indicator';
 
 type RolCodigo = 'super_admin' | 'admin' | 'supervisor' | 'cajero' | 'almacenero' | 'vendedor';
 
@@ -240,7 +242,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             : 'bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-lg'
         }`}
       >
-        {/* Logo */}
+        {/* Logo + collapse toggle */}
         <div className={`h-16 flex items-center justify-between px-4 border-b flex-shrink-0 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
           {(sidebarOpen || isMobile) && (
             <Link href="/dashboard" className="flex items-center gap-2" onClick={() => isMobile && setSidebarOpen(false)}>
@@ -256,6 +258,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             {sidebarOpen || isMobile ? <X size={20} /> : <Menu size={20} />}
           </button>
+        </div>
+
+        {/* Selector global de sede — visible siempre, abajo del logo */}
+        <div className={`px-3 py-2 border-b flex-shrink-0 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
+          <SedeSelector collapsed={!sidebarOpen && !isMobile} />
         </div>
 
         {/* Menu */}
@@ -398,6 +405,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
+            {/* Indicador de Sede actual */}
+            <SedeIndicator />
+
             {/* Stock Alerts Bell */}
             <Link
               href="/inventario/alertas"
