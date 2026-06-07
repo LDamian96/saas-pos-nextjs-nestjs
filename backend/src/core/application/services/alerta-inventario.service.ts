@@ -16,6 +16,22 @@ const CACHE_TTL = {
   ALERTAS: 300, // 5 minutos
 };
 
+/**
+ * Normaliza sucursalId: solo acepta string UUID válido.
+ * Si llega array, JSON stringified array o cualquier otro tipo,
+ * devuelve undefined para evitar `Prisma error: invalid UUID, found '['`.
+ */
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+function normalizeSucursalId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  // Si vino como `["uuid"]` o `[uuid]` (array stringificado), descartar.
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) return undefined;
+  if (!UUID_RE.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 export interface AlertaStockBajo {
   id: string;
   producto: {
@@ -82,7 +98,7 @@ export class AlertaInventarioService {
       where: {
         sucursal: {
           empresaId,
-          ...(sucursalId && { id: sucursalId }),
+          ...(normalizeSucursalId(sucursalId) && { id: normalizeSucursalId(sucursalId) }),
           activo: true,
         },
         variante: {
@@ -186,7 +202,7 @@ export class AlertaInventarioService {
     const lotes = await this.prisma.lote.findMany({
       where: {
         empresaId,
-        ...(sucursalId && { sucursalId }),
+        ...(normalizeSucursalId(sucursalId) && { sucursalId: normalizeSucursalId(sucursalId) }),
         estado: { in: ['disponible', 'activo', 'alerta'] },
         stock: { gt: 0 },
         fechaVencimiento: {
@@ -315,7 +331,7 @@ export class AlertaInventarioService {
         },
         stockSucursal: {
           where: {
-            ...(sucursalId && { sucursalId }),
+            ...(normalizeSucursalId(sucursalId) && { sucursalId: normalizeSucursalId(sucursalId) }),
             stock: { gt: 0 },
           },
           include: {
@@ -327,7 +343,7 @@ export class AlertaInventarioService {
         movimientosInventario: {
           where: {
             createdAt: { gte: fechaLimite },
-            ...(sucursalId && { sucursalId }),
+            ...(normalizeSucursalId(sucursalId) && { sucursalId: normalizeSucursalId(sucursalId) }),
           },
           take: 1,
         },
