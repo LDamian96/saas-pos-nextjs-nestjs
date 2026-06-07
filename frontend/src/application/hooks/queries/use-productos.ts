@@ -12,6 +12,18 @@ import {
   variantesService,
   ProductoFilters,
 } from '@/application/services/productos.service';
+import { useSucursalActual } from '@/application/hooks/use-sucursal-actual';
+
+/**
+ * Merge automático del sucursalId del store global en los filtros del hook.
+ * - Si los filtros ya traen sucursalId explícito (ej. forms internos), respeta el suyo.
+ * - Si el store está en "Todas las sedes" (null), no inyecta el filtro.
+ */
+function withSucursal<F extends { sucursalId?: string }>(filters: F | undefined, storeSucursalId: string | null): F | undefined {
+  if (filters?.sucursalId) return filters;
+  if (storeSucursalId === null || storeSucursalId === undefined) return filters;
+  return { ...(filters ?? {}), sucursalId: storeSucursalId } as F;
+}
 
 // =====================================================
 // QUERY KEYS
@@ -36,9 +48,11 @@ export const productosKeys = {
  * Hook para listar productos con filtros y paginación
  */
 export function useProductos(filters?: ProductoFilters) {
+  const { sucursalId } = useSucursalActual();
+  const merged = withSucursal(filters, sucursalId);
   return useQuery({
-    queryKey: productosKeys.list(filters),
-    queryFn: () => productosService.getAll(filters),
+    queryKey: productosKeys.list(merged),
+    queryFn: () => productosService.getAll(merged),
     staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
@@ -47,10 +61,12 @@ export function useProductos(filters?: ProductoFilters) {
  * Hook para paginación infinita de productos
  */
 export function useProductosInfinite(filters?: Omit<ProductoFilters, 'page'>) {
+  const { sucursalId } = useSucursalActual();
+  const merged = withSucursal(filters, sucursalId);
   return useInfiniteQuery({
-    queryKey: productosKeys.list(filters),
+    queryKey: productosKeys.list(merged),
     queryFn: ({ pageParam = 1 }) =>
-      productosService.getAll({ ...filters, page: pageParam }),
+      productosService.getAll({ ...merged, page: pageParam }),
     getNextPageParam: (lastPage) => {
       if (lastPage.meta.page < lastPage.meta.totalPages) {
         return lastPage.meta.page + 1;

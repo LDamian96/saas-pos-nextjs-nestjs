@@ -5,6 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { ventaService, VentaFilters } from '@/application/services/venta.service';
+import { useSucursalActual } from '@/application/hooks/use-sucursal-actual';
 
 export const VENTAS_QUERY_KEY = 'ventas';
 
@@ -12,9 +13,12 @@ export const VENTAS_QUERY_KEY = 'ventas';
  * Hook para listar ventas con filtros
  */
 export const useVentas = (filters?: VentaFilters) => {
+  const { sucursalId } = useSucursalActual();
+  const merged: VentaFilters = { ...filters };
+  if (sucursalId && !merged.sucursalId) merged.sucursalId = sucursalId;
   return useQuery({
-    queryKey: [VENTAS_QUERY_KEY, filters],
-    queryFn: () => ventaService.getAll(filters),
+    queryKey: [VENTAS_QUERY_KEY, merged],
+    queryFn: () => ventaService.getAll(merged),
     staleTime: 1 * 60 * 1000, // 1 minuto
   });
 };
@@ -35,9 +39,11 @@ export const useVenta = (id: string) => {
  * Hook para obtener resumen del dia
  */
 export const useVentaResumenDia = (sucursalId?: string) => {
+  const { sucursalId: storeSucursalId } = useSucursalActual();
+  const finalId = sucursalId ?? storeSucursalId ?? undefined;
   return useQuery({
-    queryKey: [VENTAS_QUERY_KEY, 'resumen-dia', sucursalId],
-    queryFn: () => ventaService.getResumenDia(sucursalId),
+    queryKey: [VENTAS_QUERY_KEY, 'resumen-dia', finalId],
+    queryFn: () => ventaService.getResumenDia(finalId),
     staleTime: 30 * 1000, // 30 segundos (datos mas frescos)
     refetchInterval: 60 * 1000, // Refrescar cada minuto
   });
@@ -58,9 +64,11 @@ export const useMetodosPago = () => {
  * Hook para obtener estadisticas de ventas
  */
 export const useVentaEstadisticas = (sucursalId?: string, fechaInicio?: string, fechaFin?: string) => {
+  const { sucursalId: storeSucursalId } = useSucursalActual();
+  const finalId = sucursalId ?? storeSucursalId ?? undefined;
   return useQuery({
-    queryKey: [VENTAS_QUERY_KEY, 'estadisticas', sucursalId, fechaInicio, fechaFin],
-    queryFn: () => ventaService.getEstadisticas(sucursalId, fechaInicio, fechaFin),
+    queryKey: [VENTAS_QUERY_KEY, 'estadisticas', finalId, fechaInicio, fechaFin],
+    queryFn: () => ventaService.getEstadisticas(finalId, fechaInicio, fechaFin),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 };

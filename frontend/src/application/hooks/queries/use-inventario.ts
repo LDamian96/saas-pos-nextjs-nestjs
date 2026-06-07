@@ -17,6 +17,13 @@ import {
   MovimientoFilters,
   StockFilters,
 } from '@/application/services/inventario.service';
+import { useSucursalActual } from '@/application/hooks/use-sucursal-actual';
+
+/** Helper: si no hay sucursalId explícito, usa el del store global. */
+function useEffectiveSucursalId(explicit?: string): string | undefined {
+  const { sucursalId } = useSucursalActual();
+  return explicit ?? sucursalId ?? undefined;
+}
 
 // =====================================================
 // QUERY KEYS
