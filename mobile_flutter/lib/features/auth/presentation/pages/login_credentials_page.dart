@@ -13,6 +13,7 @@ import 'package:pos_mobile/app/router/route_names.dart';
 import 'package:pos_mobile/app/theme/app_colors.dart';
 import 'package:pos_mobile/app/theme/app_spacing.dart';
 import 'package:pos_mobile/core/extensions/context_x.dart';
+import 'package:pos_mobile/core/services/toast_service.dart';
 import 'package:pos_mobile/core/widgets/buttons/primary_button.dart';
 import 'package:pos_mobile/features/auth/presentation/providers/auth_controller.dart';
 
@@ -40,6 +41,8 @@ class _LoginCredentialsPageState extends ConsumerState<LoginCredentialsPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
+    final toast = ref.read(toastServiceProvider);
+
     await ref.read(authControllerProvider.notifier).loginWithCredentials(
           _emailCtrl.text.trim(),
           _passCtrl.text,
@@ -47,13 +50,13 @@ class _LoginCredentialsPageState extends ConsumerState<LoginCredentialsPage> {
     if (!mounted) return;
     final state = ref.read(authControllerProvider);
     if (state is AuthSetupRequired) {
+      toast.success(context, message: 'Bienvenido, ahora crea tu PIN');
       context.go(RouteNames.setupPin);
     } else if (state is AuthUnauthenticated && state.message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.message!),
-          backgroundColor: AppColors.danger,
-        ),
+      toast.error(
+        context,
+        title: 'No pudimos entrar',
+        message: state.message!,
       );
     }
   }

@@ -10,6 +10,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:pos_mobile/app/router/route_names.dart';
 import 'package:pos_mobile/app/theme/app_colors.dart';
 import 'package:pos_mobile/core/extensions/context_x.dart';
+import 'package:pos_mobile/core/services/toast_service.dart';
 import 'package:pos_mobile/features/auth/presentation/providers/auth_controller.dart';
 
 class MorePage extends ConsumerWidget {
@@ -110,6 +111,11 @@ class MorePage extends ConsumerWidget {
             onTap: () async {
               await ref.read(authControllerProvider.notifier).logout();
               if (!context.mounted) return;
+              ref.read(toastServiceProvider).info(
+                    context,
+                    title: 'Sesión cerrada',
+                    message: 'Hasta pronto',
+                  );
               context.go(RouteNames.loginCredentials);
             },
           ),

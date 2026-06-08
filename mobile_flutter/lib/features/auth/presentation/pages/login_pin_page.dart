@@ -14,6 +14,7 @@ import 'package:pos_mobile/app/theme/app_colors.dart';
 import 'package:pos_mobile/app/theme/app_spacing.dart';
 import 'package:pos_mobile/core/extensions/context_x.dart';
 import 'package:pos_mobile/core/services/haptic_service.dart';
+import 'package:pos_mobile/core/services/toast_service.dart';
 import 'package:pos_mobile/features/auth/presentation/providers/auth_controller.dart';
 import 'package:pos_mobile/features/auth/presentation/widgets/pin_dots.dart';
 import 'package:pos_mobile/features/auth/presentation/widgets/pin_keypad.dart';
@@ -71,6 +72,12 @@ class _LoginPinPageState extends ConsumerState<LoginPinPage> {
         await _onSuccess();
       } else {
         await ref.read(hapticServiceProvider).error();
+        ref.read(toastServiceProvider).error(
+              context,
+              title: 'PIN incorrecto',
+              message: 'Vuelve a intentarlo',
+              duration: const Duration(milliseconds: 2200),
+            );
         setState(() => _shake = true);
         await Future<void>.delayed(const Duration(milliseconds: 450));
         if (!mounted) return;
@@ -167,6 +174,11 @@ class _LoginPinPageState extends ConsumerState<LoginPinPage> {
                 onPressed: () async {
                   await ref.read(authControllerProvider.notifier).logout();
                   if (!context.mounted) return;
+                  ref.read(toastServiceProvider).info(
+                        context,
+                        title: 'Sesión cerrada',
+                        message: 'Ingresa con tu correo y contraseña',
+                      );
                   context.go(RouteNames.loginCredentials);
                 },
                 child: Text(

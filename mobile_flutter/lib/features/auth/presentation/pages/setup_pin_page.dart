@@ -15,6 +15,7 @@ import 'package:pos_mobile/app/theme/app_spacing.dart';
 import 'package:pos_mobile/core/extensions/context_x.dart';
 import 'package:pos_mobile/core/services/biometric_service.dart';
 import 'package:pos_mobile/core/services/haptic_service.dart';
+import 'package:pos_mobile/core/services/toast_service.dart';
 import 'package:pos_mobile/core/widgets/buttons/primary_button.dart';
 import 'package:pos_mobile/features/auth/presentation/providers/auth_controller.dart';
 import 'package:pos_mobile/features/auth/presentation/widgets/pin_dots.dart';
@@ -64,10 +65,27 @@ class _SetupPinPageState extends ConsumerState<SetupPinPage> {
         final ok = await ref
             .read(authControllerProvider.notifier)
             .savePin(_first);
-        if (!ok || !mounted) return;
+        if (!mounted) return;
+        if (!ok) {
+          ref.read(toastServiceProvider).error(
+                context,
+                title: 'No se pudo guardar el PIN',
+                message: 'Intenta de nuevo o reinicia la app.',
+              );
+          return;
+        }
+        ref.read(toastServiceProvider).success(
+              context,
+              message: 'PIN configurado correctamente',
+            );
         await _askBiometric();
       } else {
         await ref.read(hapticServiceProvider).error();
+        ref.read(toastServiceProvider).warning(
+              context,
+              title: 'PINs no coinciden',
+              message: 'Vuelve a crear tu PIN',
+            );
         setState(() => _shake = true);
         await Future<void>.delayed(const Duration(milliseconds: 450));
         if (!mounted) return;
@@ -97,6 +115,13 @@ class _SetupPinPageState extends ConsumerState<SetupPinPage> {
         await ref
             .read(authControllerProvider.notifier)
             .setBiometricEnabled(true);
+        if (mounted) {
+          ref.read(toastServiceProvider).success(
+                context,
+                title: 'Huella activada',
+                message: 'Ahora puedes entrar más rápido',
+              );
+        }
       }
     }
     if (!mounted) return;
