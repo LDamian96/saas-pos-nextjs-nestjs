@@ -26,10 +26,21 @@ class LoginCredentialsPage extends ConsumerStatefulWidget {
 }
 
 class _LoginCredentialsPageState extends ConsumerState<LoginCredentialsPage> {
+  static const _demoEmail = 'admin@demo.com';
+  static const _demoPassword = 'admin123';
+
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController(text: 'admin@demo.com');
+  final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+
+  void _fillDemo() {
+    setState(() {
+      _emailCtrl.text = _demoEmail;
+      _passCtrl.text = _demoPassword;
+    });
+    _submit();
+  }
 
   @override
   void dispose() {
@@ -143,13 +154,21 @@ class _LoginCredentialsPageState extends ConsumerState<LoginCredentialsPage> {
                   loading: loading,
                   onPressed: loading ? null : _submit,
                 ).animate(delay: 240.ms).fadeIn(duration: 320.ms),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                _DemoDivider().animate(delay: 280.ms).fadeIn(duration: 320.ms),
+                const SizedBox(height: 16),
+                PrimaryButton.outline(
+                  label: 'Entrar como Demo (Tienda Demo)',
+                  icon: LucideIcons.userRound,
+                  onPressed: loading ? null : _fillDemo,
+                ).animate(delay: 320.ms).fadeIn(duration: 320.ms),
+                const SizedBox(height: 20),
                 Center(
                   child: Text(
                     'Después configurarás un PIN rápido',
                     style: context.text.bodySmall,
                   ),
-                ).animate(delay: 320.ms).fadeIn(duration: 320.ms),
+                ).animate(delay: 380.ms).fadeIn(duration: 320.ms),
               ],
             ),
           ),
@@ -212,4 +231,28 @@ class Gap extends StatelessWidget {
   final double h;
   @override
   Widget build(BuildContext context) => SizedBox(height: h);
+}
+
+class _DemoDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colors.outline;
+    return Row(
+      children: [
+        Expanded(child: Divider(color: color, thickness: 0.8)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'o prueba sin registrarte',
+            style: context.text.bodySmall?.copyWith(
+              color: context.colors.onSurface.withValues(alpha: 0.5),
+              fontSize: 11,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: color, thickness: 0.8)),
+      ],
+    );
+  }
 }

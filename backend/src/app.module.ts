@@ -42,6 +42,7 @@ import { BillingModule } from './presentation/modules/billing.module';
 import { SuperAdminModule } from './presentation/modules/superadmin.module';
 import { FacturacionModule } from './presentation/modules/facturacion.module';
 import { UploadModule } from './presentation/modules/upload.module';
+import { MobileLogsModule } from './presentation/modules/mobile-logs.module';
 
 @Module({
   imports: [
@@ -102,6 +103,7 @@ import { UploadModule } from './presentation/modules/upload.module';
     SuperAdminModule,
     FacturacionModule,
     UploadModule,
+    MobileLogsModule,
   ],
 })
 export class AppModule {}

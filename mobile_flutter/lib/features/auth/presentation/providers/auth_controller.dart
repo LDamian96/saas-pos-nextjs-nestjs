@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pos_mobile/core/services/remote_logger.dart';
 import 'package:pos_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:pos_mobile/features/auth/domain/entities/user.dart';
 import 'package:pos_mobile/features/auth/domain/repositories/auth_repository.dart';
@@ -46,11 +47,17 @@ class AuthSetupRequired extends AuthState {
 
 class AuthController extends Notifier<AuthState> {
   late AuthRepository _repo;
+  late RemoteLogger _logger;
 
   @override
   AuthState build() {
     _repo = ref.read(authRepositoryProvider);
+    _logger = ref.read(remoteLoggerProvider);
     return const AuthInitial();
+  }
+
+  void _bindSession(User user) {
+    _logger.setSession(userId: user.id, empresaId: user.empresaId);
   }
 
   /// Llamado al inicializar la app. Determina dónde se debe redirigir.
@@ -68,6 +75,7 @@ class AuthController extends Notifier<AuthState> {
         if (user == null) {
           state = const AuthUnauthenticated();
         } else {
+          _bindSession(user);
           state = AuthPinRequired(user); // → screen de PIN
         }
       },
@@ -77,13 +85,24 @@ class AuthController extends Notifier<AuthState> {
   /// Login inicial con email + password (primera vez).
   Future<void> loginWithCredentials(String email, String password) async {
     state = const AuthLoading();
+    _logger.info('login_attempt', extra: {'email': email});
     final result = await _repo.loginWithCredentials(
       email: email,
       password: password,
     );
     result.fold(
-      (fail) => state = AuthUnauthenticated(message: fail.message),
-      (user) => state = const AuthSetupRequired(),
+      (fail) {
+        _logger.warning('login_failed', extra: {
+          'email': email,
+          'reason': fail.message,
+        });
+        state = AuthUnauthenticated(message: fail.message);
+      },
+      (user) {
+        _bindSession(user);
+        _logger.info('login_success', extra: {'userId': user.id});
+        state = const AuthSetupRequired();
+      },
     );
   }
 
@@ -145,7 +164,9 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     state = const AuthLoading();
+    _logger.info('logout');
     await _repo.logout();
+    _logger.setSession();
     state = const AuthUnauthenticated();
   }
 }
