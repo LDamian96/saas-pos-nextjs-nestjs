@@ -23,6 +23,7 @@ class ToastService {
   }) {
     return _show(
       context,
+      type: ToastificationType.success,
       title: title ?? 'Listo',
       message: message,
       icon: LucideIcons.checkCheck,
@@ -40,6 +41,7 @@ class ToastService {
   }) {
     return _show(
       context,
+      type: ToastificationType.error,
       title: title ?? 'Algo salió mal',
       message: message,
       icon: LucideIcons.circleAlert,
@@ -57,6 +59,7 @@ class ToastService {
   }) {
     return _show(
       context,
+      type: ToastificationType.warning,
       title: title ?? 'Atención',
       message: message,
       icon: LucideIcons.triangleAlert,
@@ -74,6 +77,7 @@ class ToastService {
   }) {
     return _show(
       context,
+      type: ToastificationType.info,
       title: title ?? 'Aviso',
       message: message,
       icon: LucideIcons.info,
@@ -121,6 +125,7 @@ class ToastService {
 
   ToastificationItem _show(
     BuildContext context, {
+    required ToastificationType type,
     required String title,
     required String message,
     required IconData icon,
@@ -129,7 +134,7 @@ class ToastService {
   }) {
     return toastification.show(
       context: context,
-      type: ToastificationType.custom('pos_$title', iconColor, icon),
+      type: type,
       style: ToastificationStyle.flat,
       autoCloseDuration: duration ?? const Duration(milliseconds: 2500),
       alignment: Alignment.bottomCenter,

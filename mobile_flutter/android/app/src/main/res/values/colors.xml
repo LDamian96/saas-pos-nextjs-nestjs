@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Color base del splash nativo. Combina con el Flutter splash que arranca encima
+         para una transición sin pantalla blanca. Match con #050A07 del SplashPage. -->
+    <color name="splash_background">#050A07</color>
+</resources>
