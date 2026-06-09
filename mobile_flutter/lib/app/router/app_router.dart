@@ -12,7 +12,11 @@ import 'package:pos_mobile/features/auth/presentation/pages/login_credentials_pa
 import 'package:pos_mobile/features/auth/presentation/pages/login_pin_page.dart';
 import 'package:pos_mobile/features/auth/presentation/pages/setup_pin_page.dart';
 import 'package:pos_mobile/features/auth/presentation/pages/splash_page.dart';
+import 'package:pos_mobile/features/caja/presentation/pages/caja_abrir_page.dart';
+import 'package:pos_mobile/features/cart/presentation/pages/cart_page.dart';
 import 'package:pos_mobile/features/home/presentation/pages/home_shell_page.dart';
+import 'package:pos_mobile/features/sales/presentation/pages/cobrar_exito_page.dart';
+import 'package:pos_mobile/features/sales/presentation/pages/cobrar_page.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -38,6 +42,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.home,
         pageBuilder: (_, state) => _fadeThrough(const HomeShellPage()),
+      ),
+      GoRoute(
+        path: RouteNames.cart,
+        pageBuilder: (_, state) => _fadeThrough(const CartPage()),
+      ),
+      GoRoute(
+        path: RouteNames.cobrar,
+        pageBuilder: (_, state) => _fadeThrough(const CobrarPage()),
+      ),
+      GoRoute(
+        path: RouteNames.cobrarExito,
+        pageBuilder: (_, state) => _fadeThrough(const CobrarExitoPage()),
+      ),
+      GoRoute(
+        path: RouteNames.cajaAbrir,
+        pageBuilder: (_, state) => _fadeThrough(const CajaAbrirPage()),
       ),
     ],
   );

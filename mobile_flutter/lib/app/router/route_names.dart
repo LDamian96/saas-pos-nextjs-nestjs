@@ -18,4 +18,11 @@ class RouteNames {
   static const String mas = '/home/mas';
 
   static const String settings = '/settings';
+
+  static const String cart = '/cart';
+  static const String cobrar = '/cobrar';
+  static const String cobrarExito = '/cobrar-exito';
+  static const String cajaAbrir = '/caja/abrir';
+  static const String cajaCerrar = '/caja/cerrar';
+  static const String scanner = '/scanner';
 }
