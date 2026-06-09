@@ -1,149 +1,250 @@
-import { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as Haptics from 'expo-haptics';
+// =============================================================================
+// scanner.tsx — Escáner código de barras con overlay moderno.
+// =============================================================================
+
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { usePosStore } from '@/stores/pos.store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { ChevronLeft, ScanLine, X } from 'lucide-react-native';
+import { Text } from 'tamagui';
+
+import { useQuery } from '@tanstack/react-query';
 import api from '@/api/client';
-import { extractList, toastSuccess, toastError, toastInfo, getErrorMessage } from '@/api/helpers';
+import { usePosStore } from '@/stores/pos.store';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { toastError, toastSuccess } from '@/services/toast';
 
 export default function ScannerScreen() {
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanned, setScanned] = useState(false);
-  const { addToCart, scannerMode, setScannedCode, setScannerMode } = usePosStore();
+  const addToCart = usePosStore((s) => s.addToCart);
+  const scanned = useRef(false);
+  const [code, setCode] = useState<string | null>(null);
 
-  const handleBarCodeScanned = async ({ data }: { data: string }) => {
-    if (scanned) return;
-    setScanned(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const { data, isLoading } = useQuery({
+    queryKey: ['scan', code],
+    queryFn: async () => {
+      const r = await api.get(`/productos/buscar`, { params: { codigoBarras: code } });
+      return r.data?.data ?? r.data;
+    },
+    enabled: !!code,
+    retry: false,
+  });
 
-    // Modo "returnCode" - solo devuelve el codigo (para crear/editar producto)
-    if (scannerMode === 'returnCode') {
-      setScannedCode(data);
-      setScannerMode('addToCart'); // resetear modo
-      toastSuccess('Codigo escaneado', data);
-      router.back();
-      return;
-    }
+  // Animated scan line
+  const linePos = useSharedValue(0);
+  linePos.value = withRepeat(withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.ease) }), -1, true);
+  const lineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: linePos.value * 180 }],
+  }));
 
-    // Modo "addToCart" (default)
-    return doAddToCart(data);
-  };
-
-  const doAddToCart = async (data: string) => {
-    try {
-      const res = await api.get(`/productos/barcode/${data}`);
-      const prod = res.data?.data || res.data;
-      if (prod) {
-        const v = prod.variantes?.[0];
-        if (v) {
-          addToCart({
-            varianteId: v.id,
-            productoId: prod.id,
-            nombre: prod.nombre,
-            imagen: prod.imagenPrincipal,
-            precio: Number(v.precioVenta) || Number(prod.precioVenta),
-            stock: v.stock,
-          });
-          toastSuccess('Producto agregado', prod.nombre);
-          router.back();
-        } else {
-          toastError('Sin stock', 'Producto sin variantes disponibles');
-          setScanned(false);
-        }
-      } else {
-        toastError('No encontrado', `No hay producto con codigo ${data}`);
-        setScanned(false);
-      }
-    } catch {
-      toastError('No encontrado', `No hay producto con codigo ${data}`);
-      setScanned(false);
-    }
-  };
-
-  if (!permission) return <View style={s.container} />;
-
+  if (!permission) return null;
   if (!permission.granted) {
     return (
-      <View style={s.permissionWrap}>
-        <Text style={s.permissionTitle}>Permiso de camara</Text>
-        <Text style={s.permissionText}>Necesitamos acceso a la camara para escanear codigos de barras</Text>
-        <TouchableOpacity style={s.permissionBtn} onPress={requestPermission}>
-          <Text style={s.permissionBtnText}>Permitir camara</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <Text style={s.backBtnText}>Volver</Text>
-        </TouchableOpacity>
+      <View style={s.permission}>
+        <Text fontFamily="$body" fontSize={18} fontWeight="800" color="$color" textAlign="center">
+          Necesitamos acceso a la cámara
+        </Text>
+        <View style={{ height: 20 }} />
+        <PressableButton label="Permitir" onPress={requestPermission} />
       </View>
     );
   }
 
+  const handleScan = (result: { data: string }) => {
+    if (scanned.current) return;
+    scanned.current = true;
+    setCode(result.data);
+  };
+
+  const handleAdd = () => {
+    if (!data) return;
+    const v = data.variantes?.[0];
+    if (!v) {
+      toastError({ title: 'Sin stock' });
+      return;
+    }
+    addToCart({
+      varianteId: v.id,
+      productoId: data.id,
+      nombre: data.nombre,
+      imagen: data.imagenPrincipal,
+      precio: Number(v.precioVenta) || Number(data.precioVenta),
+      stock: v.stock,
+    });
+    toastSuccess({ title: 'Agregado', message: data.nombre });
+    router.back();
+  };
+
   return (
     <View style={s.container}>
       <CameraView
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         facing="back"
-        barcodeScannerSettings={{
-          barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'upc_a', 'qr'],
-        }}
-        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+        onBarcodeScanned={handleScan}
+        barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'qr', 'code128', 'code39', 'upc_a'] }}
       />
 
-      {/* Overlay */}
-      <View style={s.overlay}>
-        {/* Top bar */}
-        <View style={s.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={s.closeBtn}>
-            <Text style={s.closeBtnText}>✕</Text>
-          </TouchableOpacity>
-          <Text style={s.topTitle}>Escanear codigo</Text>
-          <View style={{ width: 44 }} />
-        </View>
-
-        {/* Scan guide */}
-        <View style={s.guideWrap}>
-          <View style={s.guide}>
-            <View style={[s.corner, s.cornerTL]} />
+      {/* Overlay oscuro con marco transparente */}
+      <View style={s.overlay} pointerEvents="none">
+        <View style={s.dim} />
+        <View style={{ flexDirection: 'row' }}>
+          <View style={s.dim} />
+          <View style={s.frameOuter}>
+            <View style={s.corner} />
             <View style={[s.corner, s.cornerTR]} />
             <View style={[s.corner, s.cornerBL]} />
             <View style={[s.corner, s.cornerBR]} />
+            <Animated.View style={[s.scanLine, lineStyle]} />
           </View>
-          <Text style={s.guideText}>Apunta al codigo de barras</Text>
+          <View style={s.dim} />
         </View>
-
-        {/* Scan again */}
-        {scanned && (
-          <TouchableOpacity style={s.scanAgainBtn} onPress={() => setScanned(false)}>
-            <Text style={s.scanAgainText}>Escanear de nuevo</Text>
-          </TouchableOpacity>
-        )}
+        <View style={s.dim} />
       </View>
+
+      {/* Top bar */}
+      <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={() => router.back()} style={s.topBtn}>
+          <X color="#FFFFFF" size={22} strokeWidth={2.4} />
+        </Pressable>
+        <Text fontFamily="$body" color="#FFFFFF" fontSize={16} fontWeight="800">
+          Escanear código
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Hint */}
+      <Animated.View entering={FadeIn.duration(400)} style={[s.hint, { bottom: insets.bottom + 120 }]}>
+        <ScanLine color="#FFFFFF" size={18} strokeWidth={2.2} />
+        <Text fontFamily="$body" color="#FFFFFF" fontSize={13} fontWeight="700" marginLeft={8}>
+          Apunta al código de barras
+        </Text>
+      </Animated.View>
+
+      {/* Result */}
+      {code && (
+        <View style={[s.result, { bottom: insets.bottom + 16 }]}>
+          {isLoading ? (
+            <Text fontFamily="$body" color="$color" fontWeight="700">
+              Buscando…
+            </Text>
+          ) : data ? (
+            <>
+              <View style={{ flex: 1 }}>
+                <Text fontFamily="$body" fontSize={14} fontWeight="700" color="$color" numberOfLines={1}>
+                  {data.nombre}
+                </Text>
+                <Text fontFamily="$body" fontSize={13} color="#00932C" fontWeight="900">
+                  S/ {Number(data.precioVenta).toFixed(2)}
+                </Text>
+              </View>
+              <PressableButton label="Agregar" onPress={handleAdd} size="md" full={false} />
+            </>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <Text fontFamily="$body" fontWeight="700" color="$color">
+                No encontrado
+              </Text>
+              <Pressable
+                onPress={() => {
+                  scanned.current = false;
+                  setCode(null);
+                }}
+              >
+                <Text fontFamily="$body" color="#00932C" fontWeight="700" marginTop={4}>
+                  Escanear otro
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
+const FRAME = 240;
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50, paddingHorizontal: 16 },
-  closeBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  closeBtnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  topTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  guideWrap: { alignItems: 'center' },
-  guide: { width: 260, height: 160, position: 'relative' },
-  corner: { position: 'absolute', width: 30, height: 30, borderColor: '#7c3aed' },
-  cornerTL: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 8 },
-  cornerTR: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 8 },
-  cornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 8 },
-  cornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 8 },
-  guideText: { color: '#fff', fontSize: 14, marginTop: 16, opacity: 0.8 },
-  scanAgainBtn: { alignSelf: 'center', marginBottom: 80, backgroundColor: '#7c3aed', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14 },
-  scanAgainText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  permissionWrap: { flex: 1, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  permissionTitle: { fontSize: 22, fontWeight: 'bold', color: '#111827', marginBottom: 8 },
-  permissionText: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginBottom: 24 },
-  permissionBtn: { width: '100%', height: 52, backgroundColor: '#7c3aed', borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  permissionBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  backBtn: { width: '100%', height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { color: '#6b7280', fontSize: 15 },
+  container: { flex: 1, backgroundColor: '#000000' },
+  permission: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F7F8FA' },
+  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  dim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
+  frameOuter: { width: FRAME, height: FRAME, position: 'relative' },
+  corner: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderColor: '#00FF95',
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    top: 0,
+    left: 0,
+    borderTopLeftRadius: 8,
+  },
+  cornerTR: { left: undefined, right: 0, borderLeftWidth: 0, borderRightWidth: 4, borderTopLeftRadius: 0, borderTopRightRadius: 8 },
+  cornerBL: { top: undefined, bottom: 0, borderTopWidth: 0, borderBottomWidth: 4, borderTopLeftRadius: 0, borderBottomLeftRadius: 8 },
+  cornerBR: { top: undefined, left: undefined, bottom: 0, right: 0, borderTopWidth: 0, borderLeftWidth: 0, borderBottomWidth: 4, borderRightWidth: 4, borderTopLeftRadius: 0, borderBottomRightRadius: 8 },
+  scanLine: {
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    top: 28,
+    height: 2,
+    backgroundColor: '#00FF95',
+    borderRadius: 2,
+    shadowColor: '#00FF95',
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+  },
+
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  hint: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 999,
+  },
+
+  result: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
 });

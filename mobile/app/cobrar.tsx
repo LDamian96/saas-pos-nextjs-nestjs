@@ -1,19 +1,45 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+// =============================================================================
+// cobrar.tsx — Cobrar con pago mixto + comprobante Ticket/Boleta/Factura.
+// =============================================================================
+
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePosStore } from '@/stores/pos.store';
-import { useNetworkStore } from '@/stores/network.store';
-import api from '@/api/client';
-import { extractList, toastSuccess, toastError, getErrorMessage } from '@/api/helpers';
-import { refreshPendingCount } from '@/services/sync.service';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  LinearTransition,
+} from 'react-native-reanimated';
+import {
+  Banknote,
+  CheckCircle2,
+  CreditCard,
+  FileSpreadsheet,
+  FileText,
+  Landmark,
+  Receipt,
+  Smartphone,
+  Wallet,
+  X,
+  type LucideIcon,
+} from 'lucide-react-native';
+import { Text } from 'tamagui';
 
-const EMOJI: Record<string, string> = {
-  efectivo: '💵', tarjeta: '💳', yape: '📱', plin: '📱', transferencia: '🏦',
-};
+import api from '@/api/client';
+import { extractList, getErrorMessage } from '@/api/helpers';
+import { useNetworkStore } from '@/stores/network.store';
+import { usePosStore } from '@/stores/pos.store';
+import { refreshPendingCount } from '@/services/sync.service';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { toastError, toastSuccess } from '@/services/toast';
+import { remoteLogger } from '@/services/remote-logger';
 
 interface Pago {
   metodoPagoId: string;
@@ -22,10 +48,27 @@ interface Pago {
   monto: number;
 }
 
+const PAYMENT_ICONS: Record<string, LucideIcon> = {
+  efectivo: Banknote,
+  tarjeta: CreditCard,
+  yape: Smartphone,
+  plin: Smartphone,
+  transferencia: Landmark,
+};
+
+function iconFor(tipo?: string, nombre?: string): LucideIcon {
+  const key = (tipo ?? nombre ?? '').toLowerCase();
+  for (const k of Object.keys(PAYMENT_ICONS)) {
+    if (key.includes(k)) return PAYMENT_ICONS[k];
+  }
+  return Wallet;
+}
+
 export default function CobrarScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const { cart, total, comprobante, setComprobante, dni, setDni, ruc, setRuc, clearCart, setLastVenta } = usePosStore();
+  const { cart, total, comprobante, setComprobante, dni, setDni, ruc, setRuc, clearCart, setLastVenta } =
+    usePosStore();
   const { isOnline } = useNetworkStore();
   const cartTotal = total();
 
@@ -35,40 +78,50 @@ export default function CobrarScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem('pos-negocio-config').then(val => {
+    AsyncStorage.getItem('pos-negocio-config').then((val) => {
       if (val) {
         const cfg = JSON.parse(val);
-        setCompConfig({ ticket: cfg.ticket ?? true, boleta: cfg.boleta ?? true, factura: cfg.factura ?? false });
+        setCompConfig({
+          ticket: cfg.ticket ?? true,
+          boleta: cfg.boleta ?? true,
+          factura: cfg.factura ?? false,
+        });
       }
     });
   }, []);
 
   const { data: cajaData } = useQuery({
     queryKey: ['caja-actual'],
-    queryFn: () => api.get('/caja/actual').then(r => r.data).catch(() => null),
+    queryFn: () =>
+      api
+        .get('/caja/actual')
+        .then((r) => r.data)
+        .catch(() => null),
   });
   const { data: metodosData } = useQuery({
     queryKey: ['metodos-pago'],
-    queryFn: () => api.get('/metodos-pago', { params: { activo: true } }).then(r => r.data),
+    queryFn: () => api.get('/metodos-pago', { params: { activo: true } }).then((r) => r.data),
   });
   const metodos = extractList(metodosData);
 
   const sumaPagos = pagos.reduce((s, p) => s + p.monto, 0);
   const restante = Math.round((cartTotal - sumaPagos) * 100) / 100;
-  const montoPagadoNum = Number(montoPagado) || 0;
-  const montoAUsar = montoPagadoNum > 0 ? montoPagadoNum : restante;
+  const montoNum = Number(montoPagado) || 0;
+  const montoAUsar = montoNum > 0 ? montoNum : restante;
   const vueltoSiPaga = montoAUsar - restante;
 
-  const seleccionarMetodo = (metodo: any) => {
+  const seleccionarMetodo = (metodo: { id: string; nombre: string; tipo?: string }) => {
     if (restante <= 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    setPagos([...pagos, {
-      metodoPagoId: metodo.id,
-      nombre: metodo.nombre,
-      tipo: metodo.tipo || metodo.nombre?.toLowerCase() || '',
-      monto: montoAUsar > restante ? restante : montoAUsar,
-    }]);
+    setPagos([
+      ...pagos,
+      {
+        metodoPagoId: metodo.id,
+        nombre: metodo.nombre,
+        tipo: metodo.tipo || metodo.nombre?.toLowerCase() || '',
+        monto: montoAUsar > restante ? restante : montoAUsar,
+      },
+    ]);
     setMontoPagado('');
   };
 
@@ -78,7 +131,8 @@ export default function CobrarScreen() {
   };
 
   const ventaMutation = useMutation({
-    mutationFn: (body: any) => api.post('/ventas', body).then(r => r.data),
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post('/ventas', body).then((r) => r.data),
     onSuccess: (data) => {
       const venta = data?.data || data;
       venta._pagos = pagos;
@@ -88,25 +142,47 @@ export default function CobrarScreen() {
       queryClient.invalidateQueries({ queryKey: ['ventas'] });
       setLastVenta(venta);
       clearCart();
+      remoteLogger.info('venta_success', { id: venta?.id });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toastSuccess('Venta exitosa');
+      toastSuccess({ title: 'Venta exitosa' });
       router.replace('/cobrar-exito');
     },
-    onError: (err: any) => toastError('Error', getErrorMessage(err)),
+    onError: (err: Error) => {
+      remoteLogger.error('venta_failed', err);
+      toastError({ title: 'Error', message: getErrorMessage(err) });
+    },
   });
 
   const handleCobrar = async () => {
-    if (pagos.length === 0) { toastError('Sin pagos', 'Selecciona un metodo de pago'); return; }
-    if (sumaPagos < cartTotal - 0.01) { toastError('Monto insuficiente', `Faltan S/ ${(cartTotal - sumaPagos).toFixed(2)}`); return; }
-    if (comprobante === 'boleta' && dni.length !== 8) { toastError('DNI', '8 digitos'); return; }
-    if (comprobante === 'factura' && ruc.length !== 11) { toastError('RUC', '11 digitos'); return; }
+    if (pagos.length === 0) {
+      toastError({ title: 'Sin pagos', message: 'Selecciona un método de pago' });
+      return;
+    }
+    if (sumaPagos < cartTotal - 0.01) {
+      toastError({ title: 'Monto insuficiente', message: `Faltan S/ ${(cartTotal - sumaPagos).toFixed(2)}` });
+      return;
+    }
+    if (comprobante === 'boleta' && dni.length !== 8) {
+      toastError({ title: 'DNI', message: '8 dígitos' });
+      return;
+    }
+    if (comprobante === 'factura' && ruc.length !== 11) {
+      toastError({ title: 'RUC', message: '11 dígitos' });
+      return;
+    }
 
     const payload = {
-      sucursalId: cajaData?.sucursalId, cajaId: cajaData?.id,
+      sucursalId: cajaData?.sucursalId,
+      cajaId: cajaData?.id,
       tipoComprobante: comprobante,
-      clienteDocumento: comprobante === 'boleta' ? dni : comprobante === 'factura' ? ruc : undefined,
-      items: cart.map(i => ({ varianteId: i.varianteId, cantidad: i.cantidad, precioUnitario: i.precio })),
-      pagos: pagos.map(p => ({ metodoPagoId: p.metodoPagoId, monto: p.monto })),
+      clienteDocumento:
+        comprobante === 'boleta' ? dni : comprobante === 'factura' ? ruc : undefined,
+      items: cart.map((i) => ({
+        varianteId: i.varianteId,
+        cantidad: i.cantidad,
+        precioUnitario: i.precio,
+      })),
+      pagos: pagos.map((p) => ({ metodoPagoId: p.metodoPagoId, monto: p.monto })),
     };
 
     if (!isOnline) {
@@ -116,385 +192,381 @@ export default function CobrarScreen() {
         await offlineDb.addVentaPendiente(payload);
         await refreshPendingCount();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setLastVenta({ numeroVenta: 'OFFLINE', total: cartTotal, items: cart, _pagos: pagos, _cart: cart, offline: true });
-        clearCart(); router.replace('/cobrar-exito');
-      } catch (err: any) { toastError('Error', getErrorMessage(err)); }
-      finally { setSubmitting(false); }
+        setLastVenta({
+          numeroVenta: 'OFFLINE',
+          total: cartTotal,
+          items: cart,
+          _pagos: pagos,
+          _cart: cart,
+          offline: true,
+        });
+        clearCart();
+        router.replace('/cobrar-exito');
+      } catch (err) {
+        toastError({ title: 'Error', message: getErrorMessage(err) });
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
-    if (!cajaData?.id) { toastError('Caja cerrada', 'Abre la caja primero'); return; }
+    if (!cajaData?.id) {
+      toastError({ title: 'Caja cerrada', message: 'Abre la caja primero' });
+      return;
+    }
     ventaMutation.mutate(payload);
   };
 
   const comprobantes = [
-    { key: 'ticket' as const, label: 'Ticket', emoji: '🧾' },
-    { key: 'boleta' as const, label: 'Boleta', emoji: '📄' },
-    { key: 'factura' as const, label: 'Factura', emoji: '📋' },
-  ].filter(c => compConfig[c.key]);
+    { key: 'ticket' as const, label: 'Ticket', icon: Receipt },
+    { key: 'boleta' as const, label: 'Boleta', icon: FileText },
+    { key: 'factura' as const, label: 'Factura', icon: FileSpreadsheet },
+  ].filter((c) => compConfig[c.key]);
 
   const canCobrar = pagos.length > 0 && sumaPagos >= cartTotal - 0.01;
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.6}>
-          <Text style={s.backArrow}>{'<'}</Text>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Cobrar</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <AppHeader title="Cobrar" subtitle={`${cart.length} producto${cart.length === 1 ? '' : 's'}`} />
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* Total Card */}
-        <View style={s.totalCard}>
-          <Text style={s.totalLabel}>TOTAL A COBRAR</Text>
-          <Text style={s.totalAmount}>S/ {cartTotal.toFixed(2)}</Text>
-          <Text style={s.totalItems}>{cart.length} producto{cart.length !== 1 ? 's' : ''}</Text>
-        </View>
+        {/* ─── Total ───────────────────────── */}
+        <Animated.View entering={FadeInUp.duration(260).easing(Easing.out(Easing.cubic))} style={s.totalCard}>
+          <Text fontFamily="$body" fontSize={11} color="rgba(255,255,255,0.7)" fontWeight="700" letterSpacing={1.4}>
+            TOTAL A COBRAR
+          </Text>
+          <Text fontFamily="$body" fontSize={40} color="#FFFFFF" fontWeight="900" marginTop={6} letterSpacing={-1}>
+            S/ {cartTotal.toFixed(2)}
+          </Text>
+        </Animated.View>
 
-        {/* Confirmed payments */}
+        {/* ─── Pagos registrados ──────────── */}
         {pagos.length > 0 && (
-          <View style={s.pagosSection}>
-            <Text style={s.sectionTitle}>Pagos registrados</Text>
+          <View style={{ marginBottom: 18 }}>
+            <SectionTitle>Pagos registrados</SectionTitle>
             {pagos.map((p, idx) => {
-              const emoji = EMOJI[p.tipo?.toLowerCase()] || EMOJI[p.nombre?.toLowerCase()] || '💰';
+              const Icon = iconFor(p.tipo, p.nombre);
               return (
-                <View key={idx} style={s.pagoCard}>
-                  <View style={s.pagoIconWrap}>
-                    <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                <Animated.View
+                  key={`${p.metodoPagoId}-${idx}`}
+                  entering={FadeIn.duration(220)}
+                  layout={LinearTransition.springify().damping(18).stiffness(220)}
+                  style={s.pagoCard}
+                >
+                  <View style={s.pagoIcon}>
+                    <Icon color="#00932C" size={20} strokeWidth={2.2} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.pagoNombre}>{p.nombre}</Text>
-                    <Text style={s.pagoMonto}>S/ {p.monto.toFixed(2)}</Text>
+                    <Text fontFamily="$body" fontSize={13} fontWeight="700" color="#15803D">
+                      {p.nombre}
+                    </Text>
+                    <Text fontFamily="$body" fontSize={18} fontWeight="900" color="#15803D">
+                      S/ {p.monto.toFixed(2)}
+                    </Text>
                   </View>
-                  <TouchableOpacity onPress={() => removePago(idx)} style={s.pagoRemove} activeOpacity={0.6}>
-                    <Text style={s.pagoRemoveText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
+                  <Pressable onPress={() => removePago(idx)} style={s.pagoRemove}>
+                    <X color="#E53935" size={14} strokeWidth={2.4} />
+                  </Pressable>
+                </Animated.View>
               );
             })}
           </View>
         )}
 
-        {/* Payment input section */}
+        {/* ─── Input de pago ───────────────── */}
         {restante > 0.01 ? (
-          <View style={s.payCard}>
-            <Text style={s.payTitle}>
-              {pagos.length === 0 ? 'Monto del cliente' : `Restante: S/ ${restante.toFixed(2)}`}
+          <Animated.View entering={FadeInDown.delay(60).duration(280)} style={s.payCard}>
+            <Text fontFamily="$body" fontSize={14} fontWeight="700" color="$color" marginBottom={14}>
+              {pagos.length === 0 ? 'Monto del cliente' : `Falta: S/ ${restante.toFixed(2)}`}
             </Text>
 
             <View style={s.payInputRow}>
-              <Text style={s.payInputPrefix}>S/</Text>
+              <Text fontFamily="$body" fontSize={28} fontWeight="900" color="#00932C" marginRight={10}>
+                S/
+              </Text>
               <TextInput
                 style={s.payInput}
                 value={montoPagado}
                 onChangeText={setMontoPagado}
                 placeholder={restante.toFixed(2)}
-                placeholderTextColor="#cbd5e1"
+                placeholderTextColor="#CBD5C9"
                 keyboardType="decimal-pad"
               />
             </View>
 
-            {/* Change/remaining indicator */}
-            {montoPagadoNum > 0 && vueltoSiPaga > 0 && (
+            {montoNum > 0 && vueltoSiPaga > 0 && (
               <View style={s.vueltoBadge}>
-                <Text style={s.vueltoBadgeText}>Vuelto: S/ {vueltoSiPaga.toFixed(2)}</Text>
-              </View>
-            )}
-            {montoPagadoNum > 0 && vueltoSiPaga < 0 && (
-              <View style={[s.vueltoBadge, s.vueltoBadgeWarn]}>
-                <Text style={[s.vueltoBadgeText, s.vueltoBadgeWarnText]}>Despues faltara: S/ {Math.abs(vueltoSiPaga).toFixed(2)}</Text>
+                <Text fontFamily="$body" fontSize={13} fontWeight="800" color="#15803D">
+                  Vuelto: S/ {vueltoSiPaga.toFixed(2)}
+                </Text>
               </View>
             )}
 
-            {/* Payment method pills */}
-            <Text style={s.metodosLabel}>Selecciona metodo de pago</Text>
+            <Text fontFamily="$body" fontSize={11} fontWeight="700" color="$colorSubtle" letterSpacing={1.4} marginTop={14} marginBottom={10}>
+              MÉTODO DE PAGO
+            </Text>
             <View style={s.metodosGrid}>
-              {metodos.map((m: any) => {
-                const emoji = EMOJI[m.tipo?.toLowerCase()] || EMOJI[m.nombre?.toLowerCase()] || '💰';
+              {metodos.map((m: { id: string; nombre: string; tipo?: string }) => {
+                const Icon = iconFor(m.tipo, m.nombre);
                 return (
-                  <TouchableOpacity key={m.id} style={s.metodoChip} onPress={() => seleccionarMetodo(m)} activeOpacity={0.7}>
-                    <Text style={{ fontSize: 22 }}>{emoji}</Text>
-                    <Text style={s.metodoNombre} numberOfLines={1}>{m.nombre}</Text>
-                  </TouchableOpacity>
+                  <Pressable key={m.id} onPress={() => seleccionarMetodo(m)} style={s.metodoChip}>
+                    <Icon color="#0C0C0C" size={22} strokeWidth={2.2} />
+                    <Text fontFamily="$body" fontSize={11} fontWeight="700" color="#475569" marginTop={6}>
+                      {m.nombre}
+                    </Text>
+                  </Pressable>
                 );
               })}
             </View>
-          </View>
+          </Animated.View>
         ) : (
-          <View style={s.completoCard}>
-            <Text style={s.completoEmoji}>✅</Text>
-            <Text style={s.completoTitle}>Pago completo</Text>
+          <Animated.View entering={FadeIn.duration(280)} style={s.completoCard}>
+            <CheckCircle2 color="#00932C" size={42} strokeWidth={2} />
+            <Text fontFamily="$body" fontSize={18} fontWeight="900" color="#15803D" marginTop={10}>
+              Pago completo
+            </Text>
             {sumaPagos > cartTotal + 0.01 && (
-              <View style={s.vueltoFinalCard}>
-                <Text style={s.vueltoFinalLabel}>VUELTO</Text>
-                <Text style={s.vueltoFinalMonto}>S/ {(sumaPagos - cartTotal).toFixed(2)}</Text>
+              <View style={s.vueltoFinal}>
+                <Text fontFamily="$body" fontSize={11} fontWeight="800" color="#166534" letterSpacing={1.4}>
+                  VUELTO
+                </Text>
+                <Text fontFamily="$body" fontSize={32} fontWeight="900" color="#00932C" marginTop={4}>
+                  S/ {(sumaPagos - cartTotal).toFixed(2)}
+                </Text>
               </View>
             )}
-          </View>
+          </Animated.View>
         )}
 
-        {/* Comprobante */}
-        <View style={s.comprobanteSection}>
-          <Text style={s.sectionTitle}>Comprobante</Text>
+        {/* ─── Comprobante ─────────────────── */}
+        <View style={{ marginTop: 18 }}>
+          <SectionTitle>Comprobante</SectionTitle>
           <View style={s.compRow}>
-            {comprobantes.map(c => (
-              <TouchableOpacity
-                key={c.key}
-                style={[s.compChip, comprobante === c.key && s.compChipActive]}
-                onPress={() => setComprobante(c.key)}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 18 }}>{c.emoji}</Text>
-                <Text style={[s.compChipText, comprobante === c.key && s.compChipTextActive]}>{c.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {comprobantes.map((c) => {
+              const active = comprobante === c.key;
+              const Icon = c.icon;
+              return (
+                <Pressable
+                  key={c.key}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setComprobante(c.key);
+                  }}
+                  style={[s.compChip, active && s.compChipActive]}
+                >
+                  <Icon color={active ? '#00932C' : '#475569'} size={18} strokeWidth={2.2} />
+                  <Text
+                    fontFamily="$body"
+                    fontSize={13}
+                    fontWeight="700"
+                    color={active ? '#00932C' : '#475569'}
+                    marginLeft={6}
+                  >
+                    {c.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
           {comprobante === 'boleta' && (
-            <TextInput style={s.docInput} value={dni} onChangeText={setDni} placeholder="DNI (8 digitos)" placeholderTextColor="#94a3b8" keyboardType="numeric" maxLength={8} />
+            <TextInput
+              style={s.docInput}
+              value={dni}
+              onChangeText={setDni}
+              placeholder="DNI (8 dígitos)"
+              placeholderTextColor="#A8B0AB"
+              keyboardType="numeric"
+              maxLength={8}
+            />
           )}
           {comprobante === 'factura' && (
-            <TextInput style={s.docInput} value={ruc} onChangeText={setRuc} placeholder="RUC (11 digitos)" placeholderTextColor="#94a3b8" keyboardType="numeric" maxLength={11} />
+            <TextInput
+              style={s.docInput}
+              value={ruc}
+              onChangeText={setRuc}
+              placeholder="RUC (11 dígitos)"
+              placeholderTextColor="#A8B0AB"
+              keyboardType="numeric"
+              maxLength={11}
+            />
           )}
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Footer button */}
-      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        <TouchableOpacity
-          style={[s.cobrarBtn, !canCobrar && s.cobrarBtnDisabled]}
+      {/* ─── Footer ────────────────────────── */}
+      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <PressableButton
+          label={
+            ventaMutation.isPending || submitting
+              ? 'Procesando…'
+              : !canCobrar
+              ? `Falta S/ ${Math.max(0, restante).toFixed(2)}`
+              : `Cobrar S/ ${cartTotal.toFixed(2)}`
+          }
+          size="lg"
+          variant="primary"
+          disabled={!canCobrar}
+          loading={ventaMutation.isPending || submitting}
           onPress={handleCobrar}
-          disabled={!canCobrar || ventaMutation.isPending || submitting}
-          activeOpacity={0.8}
-        >
-          <Text style={s.cobrarText}>
-            {ventaMutation.isPending || submitting ? 'Procesando...'
-              : !canCobrar ? `Falta S/ ${Math.max(0, restante).toFixed(2)}`
-              : `Cobrar S/ ${cartTotal.toFixed(2)}`}
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
     </View>
   );
 }
 
+function SectionTitle({ children }: { children: string }) {
+  return (
+    <Text fontFamily="$body" fontSize={13} fontWeight="700" color="$color" marginBottom={10}>
+      {children}
+    </Text>
+  );
+}
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  content: { padding: 16, paddingBottom: 30 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: { fontSize: 18, color: '#7c3aed', fontWeight: '700' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', letterSpacing: 0.2 },
-
-  content: { padding: 20, paddingBottom: 30 },
-
-  // Total card - purple accent
   totalCard: {
-    backgroundColor: '#7c3aed',
-    borderRadius: 20,
+    backgroundColor: '#00932C',
+    borderRadius: 22,
     padding: 24,
     alignItems: 'center',
     marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#7c3aed',
-    shadowOpacity: 0.25,
+    shadowColor: '#00932C',
+    shadowOpacity: 0.28,
     shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
-  totalLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.65)', letterSpacing: 1.5 },
-  totalAmount: { fontSize: 42, fontWeight: '800', color: '#ffffff', marginTop: 6 },
-  totalItems: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6 },
-
-  // Pagos section
-  pagosSection: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a', marginBottom: 12, letterSpacing: 0.2 },
 
   pagoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#EBF7EF',
     borderRadius: 16,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
+    borderColor: '#BBF7D0',
   },
-  pagoIconWrap: {
+  pagoIcon: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#dcfce7',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
-  pagoNombre: { fontSize: 13, color: '#166534', fontWeight: '600' },
-  pagoMonto: { fontSize: 18, fontWeight: '800', color: '#15803d', marginTop: 2 },
   pagoRemove: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: '#FECACA',
   },
-  pagoRemoveText: { color: '#ef4444', fontWeight: '700', fontSize: 13 },
 
-  // Payment input card
   payCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
-    elevation: 2,
+    borderColor: '#EEF0EF',
     shadowColor: '#000',
     shadowOpacity: 0.04,
-    shadowRadius: 12,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  payTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a', marginBottom: 14 },
   payInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F7F8FA',
     borderRadius: 16,
     paddingHorizontal: 18,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    borderWidth: 1.4,
+    borderColor: '#E5E7E6',
   },
-  payInputPrefix: { fontSize: 28, fontWeight: '800', color: '#7c3aed', marginRight: 10 },
-  payInput: { flex: 1, height: 64, fontSize: 34, fontWeight: '800', color: '#0f172a' },
-
+  payInput: {
+    flex: 1,
+    height: 60,
+    fontFamily: 'Mulish_900Black',
+    fontSize: 32,
+    color: '#0C0C0C',
+  },
   vueltoBadge: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: '#DCFCE7',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
     alignItems: 'center',
-    marginBottom: 14,
+    marginTop: 12,
   },
-  vueltoBadgeText: { fontSize: 13, fontWeight: '700', color: '#16a34a' },
-  vueltoBadgeWarn: { backgroundColor: '#fef3c7' },
-  vueltoBadgeWarnText: { color: '#d97706' },
 
-  metodosLabel: { fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 12, letterSpacing: 0.5, textTransform: 'uppercase' },
-  metodosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  metodosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   metodoChip: {
     flexGrow: 1,
     minWidth: '28%',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#F7F8FA',
+    borderWidth: 1.4,
+    borderColor: '#E5E7E6',
   },
-  metodoNombre: { fontSize: 11, fontWeight: '700', color: '#475569', marginTop: 6 },
 
-  // Complete state
   completoCard: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#EBF7EF',
     borderRadius: 20,
-    padding: 28,
+    padding: 26,
     alignItems: 'center',
-    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
+    borderColor: '#BBF7D0',
   },
-  completoEmoji: { fontSize: 40 },
-  completoTitle: { fontSize: 18, fontWeight: '800', color: '#15803d', marginTop: 10 },
-  vueltoFinalCard: {
-    backgroundColor: '#dcfce7',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    marginTop: 16,
+  vueltoFinal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    marginTop: 14,
     alignItems: 'center',
   },
-  vueltoFinalLabel: { fontSize: 11, fontWeight: '700', color: '#166534', letterSpacing: 1.5 },
-  vueltoFinalMonto: { fontSize: 34, fontWeight: '800', color: '#16a34a', marginTop: 4 },
 
-  // Comprobante section
-  comprobanteSection: { marginBottom: 10 },
-  compRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  compRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   compChip: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.4,
+    borderColor: '#E5E7E6',
   },
-  compChipActive: { borderColor: '#7c3aed', backgroundColor: '#faf5ff' },
-  compChipText: { fontSize: 13, fontWeight: '600', color: '#64748b' },
-  compChipTextActive: { color: '#7c3aed' },
+  compChipActive: { backgroundColor: '#EBF7EF', borderColor: '#00932C' },
   docInput: {
     height: 52,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingHorizontal: 18,
+    fontFamily: 'Mulish_700Bold',
     fontSize: 16,
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    color: '#0f172a',
+    borderWidth: 1.4,
+    borderColor: '#E5E7E6',
+    color: '#0C0C0C',
     letterSpacing: 2,
-    fontWeight: '600',
   },
 
-  // Footer
   footer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
+    borderTopColor: '#EEF0EF',
   },
-  cobrarBtn: {
-    height: 58,
-    backgroundColor: '#16a34a',
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#16a34a',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  cobrarBtnDisabled: { backgroundColor: '#cbd5e1', elevation: 0, shadowOpacity: 0 },
-  cobrarText: { color: '#ffffff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
 });

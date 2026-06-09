@@ -1,283 +1,110 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { usePosStore } from '@/stores/pos.store';
-import { useAuthStore } from '@/stores/auth.store';
-import { getSelectedPrinter, printTicket } from '@/services/printer.service';
-import { toastSuccess, toastError } from '@/api/helpers';
+// =============================================================================
+// cobrar-exito.tsx — Confirmación venta. Animación check + acciones.
+// =============================================================================
 
-const EMOJI: Record<string, string> = {
-  efectivo: '💵', tarjeta: '💳', yape: '📱', plin: '📱', transferencia: '🏦',
-};
+import { useEffect } from 'react';
+import { Linking, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { CheckCircle2, Home, MessageCircle, RefreshCcw } from 'lucide-react-native';
+import { Text } from 'tamagui';
+
+import { usePosStore } from '@/stores/pos.store';
+import { PressableButton } from '@/components/ui/PressableButton';
 
 export default function CobrarExitoScreen() {
   const insets = useSafeAreaInsets();
-  const { lastVenta, reset } = usePosStore();
-  const { usuario } = useAuthStore();
-  const ventaTotal = Number(lastVenta?.total || 0);
-  const isOffline = lastVenta?.offline;
-  const [printing, setPrinting] = useState(false);
-  const [hasPrinter, setHasPrinter] = useState(false);
-  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const lastVenta = usePosStore((s) => s.lastVenta);
 
-  const items = lastVenta?._cart || lastVenta?.items || [];
-  const pagos = lastVenta?._pagos || [];
-  const fecha = new Date();
+  const scale = useSharedValue(0);
+  const rotate = useSharedValue(0);
 
   useEffect(() => {
-    getSelectedPrinter().then((p) => setHasPrinter(!!p));
-    AsyncStorage.getItem('pos-negocio-config').then((val) => {
-      if (val) { try { setWhatsappEnabled(JSON.parse(val).whatsapp !== false); } catch {} }
-    });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    scale.value = withSequence(
+      withSpring(1.15, { damping: 10, stiffness: 220 }),
+      withSpring(1, { damping: 14, stiffness: 200 }),
+    );
+    rotate.value = withTiming(360, { duration: 600, easing: Easing.out(Easing.cubic) });
   }, []);
 
-  const handleWhatsApp = () => {
-    let msg = `*${usuario?.empresa?.nombre || 'POS Shop'}*\n`;
-    msg += `Venta: ${lastVenta?.numeroVenta || ''}\n`;
-    msg += `Fecha: ${fecha.toLocaleDateString('es-PE')} ${fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}\n\n`;
-    items.forEach((i: any) => {
-      msg += `${i.nombre} x${i.cantidad} — S/ ${(Number(i.precio || i.precioUnitario || 0) * i.cantidad).toFixed(2)}\n`;
-    });
-    msg += `\n*TOTAL: S/ ${ventaTotal.toFixed(2)}*\n`;
-    msg += `\nGracias por su compra!`;
-    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(msg)}`);
-  };
+  const checkStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { rotate: `${rotate.value}deg` }],
+  }));
 
-  const handlePrint = async () => {
-    setPrinting(true);
-    try {
-      await printTicket({
-        empresa: { nombre: usuario?.empresa?.nombre || 'POS Shop' },
-        venta: { numero: lastVenta?.numeroVenta, fecha: fecha.toLocaleString('es-PE'), tipoComprobante: lastVenta?.tipoComprobante },
-        items: items.map((i: any) => ({
-          nombre: i.nombre, cantidad: i.cantidad,
-          precio: Number(i.precio || i.precioUnitario || 0),
-          subtotal: Number(i.precio || i.precioUnitario || 0) * i.cantidad,
-        })),
-        totales: { total: ventaTotal },
-        metodoPago: pagos.map((p: any) => p.nombre).join(' + '),
-      });
-      toastSuccess('Ticket impreso');
-    } catch (err: any) { toastError('Error', err?.message || 'Verifica impresora'); }
-    finally { setPrinting(false); }
-  };
-
-  const handleNewSale = () => { reset(); router.replace('/(tabs)'); };
+  const total = Number(lastVenta?.total ?? 0);
+  const numero = lastVenta?.numeroVenta ?? lastVenta?.numero ?? '—';
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        {/* Status section */}
-        <View style={s.statusSection}>
-          <View style={s.statusIconWrap}>
-            <Text style={s.statusEmoji}>{isOffline ? '📡' : '✅'}</Text>
-          </View>
-          <Text style={s.statusTitle}>{isOffline ? 'Guardada offline' : 'Venta Completada'}</Text>
-          {isOffline && <Text style={s.statusOffline}>Se sincronizara al volver internet</Text>}
-        </View>
+    <View style={[s.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}>
+      <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+        <Animated.View style={[s.checkRing, checkStyle]}>
+          <CheckCircle2 color="#FFFFFF" size={72} strokeWidth={2.4} />
+        </Animated.View>
 
-        {/* Ticket card */}
-        <View style={s.ticket}>
-          {/* Ticket header */}
-          <View style={s.ticketHeader}>
-            <Text style={s.ticketEmpresa}>{usuario?.empresa?.nombre || 'POS Shop'}</Text>
-            {lastVenta?.numeroVenta && (
-              <View style={s.ticketNumeroBadge}>
-                <Text style={s.ticketNumero}>{lastVenta.numeroVenta}</Text>
-              </View>
-            )}
-            <Text style={s.ticketFecha}>
-              {fecha.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })} — {fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          </View>
+        <Animated.View entering={FadeInDown.delay(200).duration(280)}>
+          <Text fontFamily="$body" fontSize={28} fontWeight="900" color="$color" marginTop={24} textAlign="center" letterSpacing={-0.6}>
+            ¡Venta exitosa!
+          </Text>
+          <Text fontFamily="$body" fontSize={14} color="$colorMuted" marginTop={6} textAlign="center">
+            Venta #{numero}
+          </Text>
+          <Text fontFamily="$body" fontSize={44} fontWeight="900" color="#00932C" marginTop={20} textAlign="center" letterSpacing={-1.2}>
+            S/ {total.toFixed(2)}
+          </Text>
+        </Animated.View>
+      </View>
 
-          <View style={s.ticketDivider} />
-
-          {/* Items */}
-          {items.map((item: any, idx: number) => {
-            const precio = Number(item.precio || item.precioUnitario || 0);
-            const sub = precio * item.cantidad;
-            return (
-              <View key={idx} style={s.ticketItem}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.ticketItemName} numberOfLines={1}>{item.nombre}</Text>
-                  <Text style={s.ticketItemQty}>{item.cantidad} x S/ {precio.toFixed(2)}</Text>
-                </View>
-                <Text style={s.ticketItemSub}>S/ {sub.toFixed(2)}</Text>
-              </View>
-            );
-          })}
-
-          <View style={s.ticketDivider} />
-
-          {/* Total */}
-          <View style={s.ticketTotalRow}>
-            <Text style={s.ticketTotalLabel}>TOTAL</Text>
-            <Text style={s.ticketTotalValue}>S/ {ventaTotal.toFixed(2)}</Text>
-          </View>
-
-          {/* Payments */}
-          {pagos.length > 0 && (
-            <>
-              <View style={s.ticketDividerDashed} />
-              <View style={s.ticketPagos}>
-                {pagos.map((p: any, idx: number) => {
-                  const emoji = EMOJI[p.tipo?.toLowerCase()] || EMOJI[p.nombre?.toLowerCase()] || '💰';
-                  return (
-                    <View key={idx} style={s.ticketPagoRow}>
-                      <Text style={{ fontSize: 14 }}>{emoji}</Text>
-                      <Text style={s.ticketPagoNombre}>{p.nombre}</Text>
-                      <Text style={s.ticketPagoMonto}>S/ {Number(p.monto).toFixed(2)}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </>
-          )}
-
-          {/* Thank you */}
-          <View style={s.ticketGraciasWrap}>
-            <Text style={s.ticketGracias}>Gracias por su compra</Text>
-          </View>
-        </View>
-
-        {/* Action buttons */}
-        <View style={s.actions}>
-          {hasPrinter && (
-            <TouchableOpacity style={s.printBtn} onPress={handlePrint} disabled={printing} activeOpacity={0.8}>
-              {printing ? <ActivityIndicator color="#ffffff" /> : <Text style={s.printText}>🖨  Imprimir ticket</Text>}
-            </TouchableOpacity>
-          )}
-          {whatsappEnabled && (
-            <TouchableOpacity style={s.wspBtn} onPress={handleWhatsApp} activeOpacity={0.8}>
-              <Text style={s.wspText}>📱  Enviar por WhatsApp</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={s.newBtn} onPress={handleNewSale} activeOpacity={0.8}>
-            <Text style={s.newText}>Nueva Venta</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      <Animated.View entering={FadeInDown.delay(360).duration(280)} style={{ gap: 10 }}>
+        <PressableButton
+          label="Compartir por WhatsApp"
+          icon={MessageCircle}
+          variant="outline"
+          onPress={() => {
+            const text = `Compra exitosa: S/ ${total.toFixed(2)} - Venta #${numero}`;
+            Linking.openURL(`whatsapp://send?text=${encodeURIComponent(text)}`).catch(() => {});
+          }}
+        />
+        <PressableButton
+          label="Nueva venta"
+          icon={RefreshCcw}
+          variant="ghost"
+          onPress={() => router.replace('/(tabs)')}
+        />
+        <PressableButton
+          label="Volver al inicio"
+          icon={Home}
+          variant="primary"
+          onPress={() => router.replace('/(tabs)')}
+        />
+      </Animated.View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  scroll: { padding: 20, paddingBottom: 40 },
-
-  // Status
-  statusSection: { alignItems: 'center', marginBottom: 24, marginTop: 16 },
-  statusIconWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#f0fdf4',
+  container: { flex: 1, backgroundColor: '#F7F8FA', paddingHorizontal: 20 },
+  checkRing: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#00932C',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#bbf7d0',
+    shadowColor: '#00932C',
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
   },
-  statusEmoji: { fontSize: 44 },
-  statusTitle: { fontSize: 24, fontWeight: '800', color: '#0f172a', letterSpacing: 0.2 },
-  statusOffline: { fontSize: 13, color: '#d97706', fontWeight: '600', marginTop: 6 },
-
-  // Ticket
-  ticket: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 28,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  ticketHeader: { alignItems: 'center', marginBottom: 4 },
-  ticketEmpresa: { fontSize: 18, fontWeight: '800', color: '#0f172a', letterSpacing: 0.3 },
-  ticketNumeroBadge: {
-    marginTop: 8,
-    backgroundColor: '#faf5ff',
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ede9fe',
-  },
-  ticketNumero: { fontSize: 13, color: '#7c3aed', fontWeight: '700' },
-  ticketFecha: { fontSize: 12, color: '#94a3b8', marginTop: 8, fontWeight: '500' },
-
-  ticketDivider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 16 },
-  ticketDividerDashed: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 14 },
-
-  ticketItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  ticketItemName: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
-  ticketItemQty: { fontSize: 12, color: '#94a3b8', marginTop: 3, fontWeight: '500' },
-  ticketItemSub: { fontSize: 15, fontWeight: '700', color: '#334155' },
-
-  ticketTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ticketTotalLabel: { fontSize: 14, fontWeight: '700', color: '#64748b', letterSpacing: 1.5 },
-  ticketTotalValue: { fontSize: 28, fontWeight: '800', color: '#16a34a' },
-
-  ticketPagos: { gap: 8 },
-  ticketPagoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ticketPagoNombre: { flex: 1, fontSize: 13, color: '#64748b', fontWeight: '500' },
-  ticketPagoMonto: { fontSize: 14, color: '#334155', fontWeight: '600' },
-
-  ticketGraciasWrap: {
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    alignItems: 'center',
-  },
-  ticketGracias: { fontSize: 14, color: '#94a3b8', fontWeight: '600', letterSpacing: 0.5 },
-
-  // Actions
-  actions: { gap: 12 },
-  printBtn: {
-    height: 56,
-    backgroundColor: '#0891b2',
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#0891b2',
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  printText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  wspBtn: {
-    height: 56,
-    backgroundColor: '#22c55e',
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#22c55e',
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  wspText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  newBtn: {
-    height: 56,
-    backgroundColor: '#7c3aed',
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#7c3aed',
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  newText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
 });

@@ -1,156 +1,88 @@
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, Modal } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import api from '@/api/client';
-import { extractList, toastSuccess, toastError, getErrorMessage } from '@/api/helpers';
+// =============================================================================
+// config/categorias.tsx — Lista + crear categorías.
+// =============================================================================
 
-export default function CategoriasScreen() {
-  const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-  const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { Plus, Sparkles, Trash2 } from 'lucide-react-native';
+import { Text } from 'tamagui';
+
+import api from '@/api/client';
+import { extractList, getErrorMessage } from '@/api/helpers';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { Card } from '@/components/ui/Card';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { Screen } from '@/components/ui/Screen';
+import { toastError, toastSuccess } from '@/services/toast';
+
+export default function CategoriasConfig() {
+  const qc = useQueryClient();
   const [nombre, setNombre] = useState('');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data } = useQuery({
     queryKey: ['categorias'],
-    queryFn: () => api.get('/categorias').then(r => r.data),
+    queryFn: () => api.get('/categorias').then((r) => r.data),
   });
   const categorias = extractList(data);
 
-  const saveMutation = useMutation({
-    mutationFn: (body: any) => {
-      if (editId) return api.put(`/categorias/${editId}`, body).then(r => r.data);
-      return api.post('/categorias', body).then(r => r.data);
-    },
+  const create = useMutation({
+    mutationFn: () => api.post('/categorias', { nombre }).then((r) => r.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categorias'] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toastSuccess(editId ? 'Categoria actualizada' : 'Categoria creada');
-      setShowModal(false);
-      setEditId(null);
+      qc.invalidateQueries({ queryKey: ['categorias'] });
       setNombre('');
+      toastSuccess({ title: 'Creada' });
     },
-    onError: (err: any) => toastError('Error', getErrorMessage(err)),
+    onError: (err: Error) => toastError({ title: 'Error', message: getErrorMessage(err) }),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/categorias/${id}`).then(r => r.data),
+  const del = useMutation({
+    mutationFn: (id: string) => api.delete(`/categorias/${id}`).then((r) => r.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categorias'] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      toastSuccess('Eliminada', 'Categoria eliminada');
+      qc.invalidateQueries({ queryKey: ['categorias'] });
+      toastSuccess({ title: 'Eliminada' });
     },
-    onError: (err: any) => toastError('Error', getErrorMessage(err)),
+    onError: (err: Error) => toastError({ title: 'Error', message: getErrorMessage(err) }),
   });
-
-  const openEdit = (cat: any) => {
-    setEditId(cat.id);
-    setNombre(cat.nombre);
-    setShowModal(true);
-  };
-
-  const openNew = () => {
-    setEditId(null);
-    setNombre('');
-    setShowModal(true);
-  };
-
-  const handleDelete = (cat: any) => {
-    Alert.alert('Eliminar', `¿Eliminar "${cat.nombre}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => deleteMutation.mutate(cat.id) },
-    ]);
-  };
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={s.backText}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Categorias</Text>
-        <TouchableOpacity onPress={openNew}>
-          <Text style={s.addText}>+ Nueva</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={categorias}
-        keyExtractor={(i: any) => i.id}
-        refreshing={isLoading}
-        onRefresh={refetch}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        ListEmptyComponent={
-          <View style={s.empty}>
-            <Text style={{ fontSize: 40, marginBottom: 8 }}>📂</Text>
-            <Text style={s.emptyText}>No hay categorias</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View style={s.card}>
-            <Text style={{ fontSize: 20 }}>📂</Text>
-            <Text style={s.cardName}>{item.nombre}</Text>
-            <TouchableOpacity onPress={() => openEdit(item)} style={s.cardAction}>
-              <Text style={{ color: '#7c3aed', fontWeight: '600' }}>Editar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleDelete(item)} style={s.cardAction}>
-              <Text style={{ color: '#ef4444', fontWeight: '600' }}>🗑</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
-
-      {/* Modal add/edit */}
-      <Modal visible={showModal} transparent animationType="fade">
-        <View style={s.modalOverlay}>
-          <View style={s.modal}>
-            <Text style={s.modalTitle}>{editId ? 'Editar' : 'Nueva'} Categoria</Text>
-            <TextInput
-              style={s.modalInput}
-              value={nombre}
-              onChangeText={setNombre}
-              placeholder="Nombre de la categoria"
-              placeholderTextColor="#9ca3af"
-              autoFocus
-            />
-            <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancel} onPress={() => { setShowModal(false); setEditId(null); setNombre(''); }}>
-                <Text style={{ color: '#6b7280', fontWeight: '600' }}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.modalSave, saveMutation.isPending && { opacity: 0.6 }]}
-                onPress={() => { if (nombre.trim()) saveMutation.mutate({ nombre: nombre.trim() }); }}
-                disabled={saveMutation.isPending}
-              >
-                <Text style={{ color: '#fff', fontWeight: '700' }}>Guardar</Text>
-              </TouchableOpacity>
+    <Screen>
+      <AppHeader title="Categorías" subtitle={`${categorias.length} categorías`} />
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
+        <Animated.View entering={FadeInDown.duration(280)}>
+          <Card>
+            <Text fontFamily="$body" fontSize={11} fontWeight="700" color="$colorSubtle" letterSpacing={1.2}>
+              NUEVA CATEGORÍA
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 }}>
+              <TextInput style={s.input} value={nombre} onChangeText={setNombre} placeholder="Ej. Bebidas" placeholderTextColor="#A8B0AB" />
+              <PressableButton label="Agregar" icon={Plus} size="sm" full={false} loading={create.isPending} onPress={() => nombre.trim() && create.mutate()} />
             </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+          </Card>
+        </Animated.View>
+
+        <View style={{ height: 20 }} />
+        {categorias.map((c: { id: string; nombre: string }, i: number) => (
+          <Animated.View key={c.id} entering={FadeIn.delay(i * 30).duration(220)} style={s.row}>
+            <View style={s.iconWrap}>
+              <Sparkles color="#00932C" size={18} strokeWidth={2.2} />
+            </View>
+            <Text fontFamily="$body" fontSize={14} fontWeight="700" color="$color" flex={1} marginLeft={12}>
+              {c.nombre}
+            </Text>
+            <Pressable onPress={() => del.mutate(c.id)} hitSlop={8}>
+              <Trash2 color="#E53935" size={18} strokeWidth={2.2} />
+            </Pressable>
+          </Animated.View>
+        ))}
+      </ScrollView>
+    </Screen>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  backText: { fontSize: 15, color: '#7c3aed', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
-  addText: { fontSize: 15, color: '#7c3aed', fontWeight: '700' },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, elevation: 1, gap: 10 },
-  cardName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111827' },
-  cardAction: { paddingHorizontal: 8, paddingVertical: 4 },
-  empty: { alignItems: 'center', marginTop: 60 },
-  emptyText: { fontSize: 15, color: '#9ca3af' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modal: { width: '85%', backgroundColor: '#fff', borderRadius: 20, padding: 24 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 16 },
-  modalInput: { height: 50, backgroundColor: '#f9fafb', borderRadius: 12, paddingHorizontal: 14, fontSize: 15, borderWidth: 1, borderColor: '#e5e7eb', color: '#111827', marginBottom: 20 },
-  modalActions: { flexDirection: 'row', gap: 10 },
-  modalCancel: { flex: 1, height: 46, borderRadius: 12, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
-  modalSave: { flex: 1, height: 46, borderRadius: 12, backgroundColor: '#7c3aed', alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, height: 44, fontFamily: 'Mulish_700Bold', fontSize: 15, color: '#0C0C0C', paddingHorizontal: 14, backgroundColor: '#F7F8FA', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7E6' },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#EEF0EF', marginBottom: 8 },
+  iconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#E8F5EC', alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,154 +1,161 @@
+// =============================================================================
+// caja/cerrar.tsx — Cierre de caja con arqueo.
+// =============================================================================
+
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
+import { CheckCircle2, XCircle } from 'lucide-react-native';
+import { Text } from 'tamagui';
+
 import api from '@/api/client';
-import { toastSuccess, toastError, getErrorMessage } from '@/api/helpers';
+import { getErrorMessage } from '@/api/helpers';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { Card } from '@/components/ui/Card';
+import { Screen } from '@/components/ui/Screen';
+import { toastError, toastSuccess } from '@/services/toast';
 
-export default function CerrarCajaScreen() {
-  const insets = useSafeAreaInsets();
+export default function CajaCerrarScreen() {
   const queryClient = useQueryClient();
-  const [montoCierre, setMontoCierre] = useState('');
+  const [monto, setMonto] = useState('');
 
-  const { data: cajaData } = useQuery({
+  const { data: caja } = useQuery({
     queryKey: ['caja-actual'],
-    queryFn: () => api.get('/caja/actual').then(r => r.data).catch(() => null),
+    queryFn: () => api.get('/caja/actual').then((r) => r.data?.data ?? r.data),
   });
 
-  const montoApertura = Number(cajaData?.montoApertura || cajaData?.montoInicial || 0);
-  const montoVentas = Number(cajaData?.montoEfectivo || cajaData?.totalVentas || 0);
-  const totalEsperado = montoApertura + montoVentas;
-  const montoCierreNum = Number(montoCierre) || 0;
-  const diferencia = montoCierreNum - totalEsperado;
+  const efectivoEsperado = Number(caja?.totalEfectivo ?? caja?.montoInicial ?? 0);
+  const montoNum = Number(monto) || 0;
+  const diferencia = montoNum - efectivoEsperado;
 
-  const cerrarMutation = useMutation({
-    mutationFn: (body: any) => api.post(`/caja/${cajaData?.id}/cerrar`, body).then(r => r.data),
+  const m = useMutation({
+    mutationFn: (montoFinal: number) =>
+      api.post('/caja/cerrar', { cajaId: caja?.id, montoFinal }).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caja-actual'] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toastSuccess('Caja cerrada', 'Caja cerrada correctamente');
+      toastSuccess({ title: 'Caja cerrada' });
       router.back();
     },
-    onError: (err: any) => toastError('Error', getErrorMessage(err)),
+    onError: (err: Error) => toastError({ title: 'Error', message: getErrorMessage(err) }),
   });
 
-  const handleCerrar = () => {
-    if (!cajaData?.id) { toastError('Error', 'No hay caja abierta'); return; }
-    Alert.alert(
-      'Cerrar caja',
-      `Monto cierre: S/ ${montoCierreNum.toFixed(2)}\nEsperado: S/ ${totalEsperado.toFixed(2)}\nDiferencia: S/ ${diferencia.toFixed(2)}`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar', style: 'destructive', onPress: () => {
-            cerrarMutation.mutate({
-              montoCierre: montoCierreNum,
-              observaciones: diferencia !== 0 ? `Diferencia: S/ ${diferencia.toFixed(2)}` : undefined,
-            });
-          },
-        },
-      ]
-    );
-  };
-
-  if (!cajaData?.id) {
-    return (
-      <View style={[s.container, { alignItems: 'center', justifyContent: 'center', paddingTop: insets.top }]}>
-        <Text style={{ fontSize: 48, marginBottom: 16 }}>📦</Text>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 8 }}>No hay caja abierta</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: '#7c3aed', fontSize: 16, fontWeight: '600' }}>← Volver</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={s.backText}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Cerrar Caja</Text>
-        <View style={{ width: 60 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        {/* Resumen */}
-        <View style={s.resumenCard}>
-          <View style={s.resumenRow}>
-            <Text style={s.resumenLabel}>Monto apertura</Text>
-            <Text style={s.resumenValue}>S/ {montoApertura.toFixed(2)}</Text>
-          </View>
-          <View style={s.resumenRow}>
-            <Text style={s.resumenLabel}>Ventas en efectivo</Text>
-            <Text style={s.resumenValue}>S/ {montoVentas.toFixed(2)}</Text>
-          </View>
-          <View style={[s.resumenRow, s.resumenTotal]}>
-            <Text style={s.resumenLabel}>Total esperado</Text>
-            <Text style={[s.resumenValue, { fontSize: 20, color: '#7c3aed' }]}>S/ {totalEsperado.toFixed(2)}</Text>
-          </View>
-        </View>
-
-        {/* Monto cierre */}
-        <Text style={s.label}>Cuanto dinero hay en caja?</Text>
-        <View style={s.montoWrap}>
-          <Text style={s.montoPrefix}>S/</Text>
-          <TextInput
-            style={s.montoInput}
-            value={montoCierre}
-            onChangeText={setMontoCierre}
-            placeholder="0.00"
-            placeholderTextColor="#d1d5db"
-            keyboardType="decimal-pad"
-          />
-        </View>
-
-        {/* Diferencia */}
-        {montoCierreNum > 0 && (
-          <View style={[s.difCard, { borderColor: diferencia === 0 ? '#16a34a' : diferencia > 0 ? '#f59e0b' : '#ef4444' }]}>
-            <Text style={s.difLabel}>
-              {diferencia === 0 ? '✅ Cuadra perfecto' : diferencia > 0 ? '⬆️ Hay sobrante' : '⬇️ Falta dinero'}
+    <Screen>
+      <AppHeader title="Cerrar caja" subtitle="Arqueo del turno" />
+      <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        <Animated.View entering={FadeInDown.duration(280).easing(Easing.out(Easing.cubic))}>
+          <Card>
+            <Text fontFamily="$body" fontSize={11} fontWeight="700" color="$colorSubtle" letterSpacing={1.4}>
+              EFECTIVO ESPERADO
             </Text>
-            <Text style={[s.difValue, { color: diferencia === 0 ? '#16a34a' : diferencia > 0 ? '#f59e0b' : '#ef4444' }]}>
-              {diferencia >= 0 ? '+' : ''}S/ {diferencia.toFixed(2)}
+            <Text fontFamily="$body" fontSize={28} fontWeight="900" color="#00932C" marginTop={4}>
+              S/ {efectivoEsperado.toFixed(2)}
             </Text>
+          </Card>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(120).duration(280)}>
+          <Text
+            fontFamily="$body"
+            fontSize={14}
+            fontWeight="700"
+            color="$color"
+            marginTop={22}
+            marginBottom={10}
+          >
+            Cuenta el efectivo físico
+          </Text>
+          <View style={s.inputCard}>
+            <Text fontFamily="$body" fontSize={28} fontWeight="900" color="#00932C" marginRight={10}>
+              S/
+            </Text>
+            <TextInput
+              style={s.input}
+              value={monto}
+              onChangeText={setMonto}
+              placeholder="0.00"
+              placeholderTextColor="#CBD5C9"
+              keyboardType="decimal-pad"
+              autoFocus
+            />
           </View>
+        </Animated.View>
+
+        {montoNum > 0 && (
+          <Animated.View entering={FadeInDown.duration(220)}>
+            <Card
+              style={[
+                s.diffCard,
+                Math.abs(diferencia) < 0.01
+                  ? { backgroundColor: '#EBF7EF', borderColor: '#BBF7D0' }
+                  : { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
+              ]}
+            >
+              {Math.abs(diferencia) < 0.01 ? (
+                <CheckCircle2 color="#00932C" size={24} strokeWidth={2.2} />
+              ) : (
+                <XCircle color="#B45309" size={24} strokeWidth={2.2} />
+              )}
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text
+                  fontFamily="$body"
+                  fontSize={12}
+                  fontWeight="800"
+                  color={Math.abs(diferencia) < 0.01 ? '#15803D' : '#B45309'}
+                  letterSpacing={1}
+                >
+                  {Math.abs(diferencia) < 0.01
+                    ? 'CUADRADO'
+                    : diferencia > 0
+                    ? 'SOBRANTE'
+                    : 'FALTANTE'}
+                </Text>
+                <Text
+                  fontFamily="$body"
+                  fontSize={20}
+                  fontWeight="900"
+                  color={Math.abs(diferencia) < 0.01 ? '#15803D' : '#B45309'}
+                >
+                  S/ {Math.abs(diferencia).toFixed(2)}
+                </Text>
+              </View>
+            </Card>
+          </Animated.View>
         )}
 
-        <TouchableOpacity
-          style={[s.cerrarBtn, cerrarMutation.isPending && { opacity: 0.6 }]}
-          onPress={handleCerrar}
-          disabled={cerrarMutation.isPending}
-          activeOpacity={0.8}
-        >
-          <Text style={s.cerrarBtnText}>{cerrarMutation.isPending ? 'Cerrando...' : 'Cerrar Caja'}</Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInDown.delay(220).duration(280)} style={{ marginTop: 28 }}>
+          <PressableButton
+            label="Cerrar caja"
+            variant="danger"
+            size="lg"
+            loading={m.isPending}
+            onPress={() => m.mutate(montoNum)}
+          />
+        </Animated.View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  backText: { fontSize: 15, color: '#7c3aed', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
   content: { padding: 20, paddingBottom: 40 },
-  resumenCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 24, elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  resumenRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  resumenTotal: { borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 10, marginTop: 4 },
-  resumenLabel: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
-  resumenValue: { fontSize: 16, fontWeight: 'bold', color: '#111827' },
-  label: { fontSize: 15, fontWeight: '700', color: '#374151', marginBottom: 10 },
-  montoWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', paddingHorizontal: 16, marginBottom: 16 },
-  montoPrefix: { fontSize: 28, fontWeight: 'bold', color: '#9ca3af', marginRight: 8 },
-  montoInput: { flex: 1, height: 70, fontSize: 36, fontWeight: 'bold', color: '#111827' },
-  difCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 2, marginBottom: 16 },
-  difLabel: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  difValue: { fontSize: 18, fontWeight: 'bold' },
-  cerrarBtn: { height: 56, backgroundColor: '#dc2626', borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 8, elevation: 4 },
-  cerrarBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  inputCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    borderWidth: 1.4,
+    borderColor: '#E5E7E6',
+  },
+  input: { flex: 1, height: 62, fontFamily: 'Mulish_900Black', fontSize: 32, color: '#0C0C0C' },
+  diffCard: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
 });

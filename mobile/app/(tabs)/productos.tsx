@@ -1,85 +1,205 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+// =============================================================================
+// (tabs)/productos.tsx — Lista de productos con búsqueda + FAB nuevo.
+// =============================================================================
+
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { FlashList } from '@shopify/flash-list';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { ChevronRight, Package2, Plus, Search } from 'lucide-react-native';
+import { Text } from 'tamagui';
+
 import api from '@/api/client';
-import { extractList, toastError } from '@/api/helpers';
+import { extractList } from '@/api/helpers';
+
+interface Producto {
+  id: string;
+  nombre: string;
+  sku: string;
+  precioVenta: number;
+  imagenPrincipal: string | null;
+  variantes?: { stock: number }[];
+}
 
 export default function ProductosScreen() {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
-
-  const { data, isLoading, refetch, error } = useQuery({
-    queryKey: ['productos-list', search],
-    queryFn: () => api.get('/productos', { params: { search: search || undefined, limit: 50, activo: true } }).then(r => r.data),
-  });
-  const productos = extractList(data);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    if (error) toastError('Error', 'No se pudieron cargar los productos');
-  }, [error]);
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data } = useQuery({
+    queryKey: ['productos', 'list', debouncedSearch],
+    queryFn: () =>
+      api
+        .get('/productos', {
+          params: { search: debouncedSearch || undefined, activo: true, limit: 200 },
+        })
+        .then((r) => r.data),
+  });
+
+  const productos: Producto[] = extractList(data);
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      <View style={s.header}>
-        <Text style={s.title}>Productos</Text>
-        <View style={s.headerRight}>
-          <View style={s.badge}><Text style={s.badgeText}>{productos.length}</Text></View>
-          <TouchableOpacity style={s.addBtn} onPress={() => router.push('/productos/nuevo')} activeOpacity={0.7}>
-            <Text style={s.addBtnText}>+ Nuevo</Text>
-          </TouchableOpacity>
+      <Animated.View entering={FadeIn.duration(220)} style={s.header}>
+        <View style={{ flex: 1 }}>
+          <Text fontFamily="$body" fontSize={13} color="$colorMuted" fontWeight="600">
+            Mi catálogo
+          </Text>
+          <Text fontFamily="$body" fontSize={22} fontWeight="900" color="$color" letterSpacing={-0.4}>
+            Productos
+          </Text>
         </View>
-      </View>
-      <View style={s.searchWrap}>
-        <TextInput style={s.searchInput} value={search} onChangeText={setSearch}
-          placeholder="Buscar producto..." placeholderTextColor="#9ca3af" />
-      </View>
-      <FlatList data={productos} keyExtractor={i => i.id}
-        onRefresh={refetch} refreshing={isLoading}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={s.card} activeOpacity={0.7} onPress={() => router.push(`/productos/${item.id}`)}>
-            {item.imagenPrincipal ? (
-              <Image source={{ uri: item.imagenPrincipal }} style={s.cardImg} />
-            ) : (
-              <View style={[s.cardImg, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }]}>
-                <Text style={{ fontSize: 20, color: '#d1d5db' }}>{item.nombre?.charAt(0)}</Text>
-              </View>
-            )}
-            <View style={s.cardInfo}>
-              <Text style={s.cardName} numberOfLines={1}>{item.nombre}</Text>
-              <Text style={s.cardSku}>{item.sku}</Text>
-              <View style={s.cardBottom}>
-                <Text style={s.cardPrice}>S/ {Number(item.precioVenta).toFixed(2)}</Text>
-                <Text style={s.cardStock}>Stock: {item.variantes?.[0]?.stock ?? 0}</Text>
-              </View>
-            </View>
-            <Text style={{ color: '#d1d5db', fontSize: 18, alignSelf: 'center' }}>›</Text>
-          </TouchableOpacity>
-        )} />
+        <Pressable
+          onPress={() => router.push('/productos/nuevo')}
+          style={s.addBtn}
+        >
+          <Plus color="#FFFFFF" size={20} strokeWidth={2.4} />
+        </Pressable>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(60).duration(240)} style={s.searchWrap}>
+        <Search color="#8A938D" size={18} strokeWidth={2} />
+        <TextInput
+          style={s.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Buscar por nombre o SKU"
+          placeholderTextColor="#A8B0AB"
+        />
+      </Animated.View>
+
+      <FlashList
+        data={productos}
+        keyExtractor={(item) => item.id}
+        estimatedItemSize={88}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        renderItem={({ item, index }) => <Row producto={item} index={index} />}
+        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        ListEmptyComponent={
+          <View style={s.empty}>
+            <Package2 color="#A8B0AB" size={48} strokeWidth={1.6} />
+            <Text fontFamily="$body" color="$colorMuted" marginTop={12} fontWeight="600">
+              {search ? 'Sin resultados' : 'Sin productos'}
+            </Text>
+          </View>
+        }
+      />
     </View>
   );
 }
 
+function Row({ producto, index }: { producto: Producto; index: number }) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  const totalStock = (producto.variantes ?? []).reduce((acc, v) => acc + Number(v.stock ?? 0), 0);
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/productos/${producto.id}`)}
+      onPressIn={() => (scale.value = withSpring(0.98, { damping: 14, stiffness: 400 }))}
+      onPressOut={() => (scale.value = withSpring(1, { damping: 14, stiffness: 400 }))}
+    >
+      <Animated.View
+        entering={FadeInDown.delay(index * 24).duration(220).easing(Easing.out(Easing.cubic))}
+        style={[s.row, animStyle]}
+      >
+        {producto.imagenPrincipal ? (
+          <Image source={{ uri: producto.imagenPrincipal }} style={s.rowImg} contentFit="cover" />
+        ) : (
+          <View style={[s.rowImg, s.rowImgPlaceholder]}>
+            <Text fontFamily="$body" fontSize={20} fontWeight="800" color="#00932C">
+              {producto.nombre.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text fontFamily="$body" fontSize={14} fontWeight="700" color="$color" numberOfLines={1}>
+            {producto.nombre}
+          </Text>
+          <Text fontFamily="$body" fontSize={12} color="$colorMuted" fontWeight="600" marginTop={2}>
+            SKU · {producto.sku} · Stock {totalStock}
+          </Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text fontFamily="$body" fontSize={15} fontWeight="900" color="#00932C">
+            S/ {Number(producto.precioVenta).toFixed(2)}
+          </Text>
+          <ChevronRight color="#A8B0AB" size={14} strokeWidth={2.2} />
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#111827' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  badge: { backgroundColor: '#7c3aed', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 },
-  badgeText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  addBtn: { backgroundColor: '#7c3aed', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  searchWrap: { paddingHorizontal: 16, marginBottom: 12 },
-  searchInput: { height: 48, backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16, fontSize: 15, borderWidth: 1, borderColor: '#e5e7eb', color: '#111827' },
-  card: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 14, marginBottom: 10, overflow: 'hidden', elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, paddingRight: 12 },
-  cardImg: { width: 70, height: 70 },
-  cardInfo: { flex: 1, padding: 12, justifyContent: 'center' },
-  cardName: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  cardSku: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  cardPrice: { fontSize: 15, fontWeight: 'bold', color: '#16a34a' },
-  cardStock: { fontSize: 11, color: '#6b7280' },
+  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  addBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#00932C',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#00932C',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#EEF0EF',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'Mulish_600SemiBold',
+    fontSize: 15,
+    color: '#0C0C0C',
+    padding: 0,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EEF0EF',
+  },
+  rowImg: { width: 60, height: 60, borderRadius: 14 },
+  rowImgPlaceholder: { backgroundColor: '#E8F5EC', alignItems: 'center', justifyContent: 'center' },
+  empty: { alignItems: 'center', marginTop: 60 },
 });
