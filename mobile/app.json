@@ -70,7 +70,8 @@
         {
           "cameraPermission": "POS Shop necesita acceso a la camara para escanear codigos de barras"
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

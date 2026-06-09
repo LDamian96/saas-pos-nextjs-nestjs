@@ -1,234 +1,417 @@
-import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Animated, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// =============================================================================
+// login.tsx — Login ULTRAMODERNO sobrio.
+//   • Tamagui Stack/YStack para layout limpio
+//   • Reanimated 4 para animaciones de entrada nativas 60fps
+//   • lucide-react-native para iconos finos consistentes con la web
+//   • burnt toast nativo para feedback
+//   • Mulish via expo-google-fonts
+//   • Sin glass/orbes — fondo claro + verde DineTrack solo en acentos
+// =============================================================================
+
+import { useEffect, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { Eye, EyeOff, Lock, LogIn, Mail, ShoppingBag, UserRound } from 'lucide-react-native';
+import { Text, YStack } from 'tamagui';
+
 import { useAuthStore } from '@/stores/auth.store';
-import { toastSuccess, toastError } from '@/api/helpers';
+import { toastError, toastSuccess } from '@/services/toast';
+import { remoteLogger } from '@/services/remote-logger';
+
+const DEMO_EMAIL = 'admin@demo.com';
+const DEMO_PASS = 'admin123';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const login = useAuthStore((s) => s.login);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
-  const login = useAuthStore(s => s.login);
-
-  // Animaciones de entrada
-  const logoScale = useRef(new Animated.Value(0.5)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const formSlide = useRef(new Animated.Value(30)).current;
-  const formOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 50 }),
-      Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-    ]).start();
-
-    setTimeout(() => {
-      Animated.parallel([
-        Animated.spring(formSlide, { toValue: 0, useNativeDriver: true, friction: 8, tension: 40 }),
-        Animated.timing(formOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-      ]).start();
-    }, 200);
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e?: string, p?: string) => {
-    const em = e || email.trim();
-    const pw = p || password;
-    if (!em || !pw) { toastError('Error', 'Ingresa email y contrasena'); return; }
+    const em = (e ?? email).trim();
+    const pw = p ?? password;
+    if (!em || !pw) {
+      toastError({ title: 'Datos incompletos', message: 'Ingresa correo y contraseña' });
+      return;
+    }
     setLoading(true);
+    remoteLogger.info('login_attempt', { email: em });
     try {
       await login(em, pw);
-      toastSuccess('Bienvenido', 'Sesion iniciada');
+      remoteLogger.info('login_success');
+      toastSuccess({ title: 'Bienvenido', message: 'Sesión iniciada' });
       router.replace('/(tabs)');
     } catch (err: any) {
-      toastError('Error', err?.response?.data?.message || 'Credenciales incorrectas');
+      const msg = err?.response?.data?.message ?? 'Credenciales incorrectas';
+      remoteLogger.warning('login_failed', { reason: msg });
+      toastError({ title: 'No pudimos entrar', message: msg });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.container}>
-      <View style={[s.inner, { paddingTop: insets.top }]}>
-        {/* Logo animado */}
-        <Animated.View style={[s.logoSection, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
-          <View style={s.logoOuter}>
-            <View style={s.logo}>
-              <Text style={s.logoText}>P</Text>
-            </View>
-          </View>
-          <Text style={s.title}>POS Shop</Text>
-          <Text style={s.subtitle}>Sistema de Punto de Venta</Text>
+    <KeyboardAvoidingView
+      style={s.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <YStack
+        flex={1}
+        paddingHorizontal={24}
+        paddingTop={insets.top + 32}
+        paddingBottom={insets.bottom + 24}
+      >
+        {/* ─── Header ─────────────────────────────── */}
+        <Animated.View entering={FadeIn.duration(260).easing(Easing.out(Easing.cubic))}>
+          <LogoBadge />
         </Animated.View>
 
-        {/* Form animado */}
-        <Animated.View style={[s.formSection, { opacity: formOpacity, transform: [{ translateY: formSlide }] }]}>
-          <View style={s.formCard}>
-            <View style={s.fieldWrap}>
-              <Text style={s.label}>Correo electronico</Text>
-              <View style={s.inputWrap}>
-                <Text style={s.inputIcon}>✉</Text>
-                <TextInput
-                  style={s.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="tu@email.com"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
-
-            <View style={s.fieldWrap}>
-              <Text style={s.label}>Contrasena</Text>
-              <View style={s.inputWrap}>
-                <Text style={s.inputIcon}>🔒</Text>
-                <TextInput
-                  style={s.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor="#94a3b8"
-                  secureTextEntry={!showPwd}
-                />
-                <TouchableOpacity onPress={() => setShowPwd(!showPwd)} style={s.eyeBtn}>
-                  <Text style={s.eyeText}>{showPwd ? '🙈' : '👁'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[s.loginBtn, loading && s.loginBtnLoading]}
-              onPress={() => handleLogin()}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={s.loginBtnText}>Iniciar Sesion</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Demo */}
-          <View style={s.demoSection}>
-            <View style={s.dividerRow}>
-              <View style={s.dividerLine} />
-              <Text style={s.dividerText}>o continua con</Text>
-              <View style={s.dividerLine} />
-            </View>
-            <TouchableOpacity
-              style={s.demoBtn}
-              onPress={() => { setEmail('admin@demo.com'); setPassword('admin123'); handleLogin('admin@demo.com', 'admin123'); }}
-              activeOpacity={0.7}
-            >
-              <Text style={s.demoBtnText}>👤  Cuenta Demo</Text>
-            </TouchableOpacity>
-          </View>
+        <Animated.View
+          entering={FadeInUp.delay(80).duration(280).easing(Easing.out(Easing.cubic))}
+        >
+          <Text fontFamily="$body" fontWeight="900" fontSize={30} color="$color" marginTop={28} letterSpacing={-0.6}>
+            Bienvenido
+          </Text>
+          <Text fontFamily="$body" fontWeight="500" fontSize={15} color="$colorMuted" marginTop={4}>
+            Inicia sesión para empezar a vender
+          </Text>
         </Animated.View>
 
-        <Text style={s.footer}>Powered by POS Shop v1.0</Text>
-      </View>
+        {/* ─── Form ───────────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(160).duration(300).easing(Easing.out(Easing.cubic))}
+          style={{ marginTop: 32 }}
+        >
+          <FloatingInput
+            icon={Mail}
+            label="Correo"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="tu@email.com"
+            keyboardType="email-address"
+          />
+          <View style={{ height: 14 }} />
+          <FloatingInput
+            icon={Lock}
+            label="Contraseña"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="••••••••"
+            secureTextEntry={!showPwd}
+            rightIcon={showPwd ? EyeOff : Eye}
+            onRightPress={() => setShowPwd((v) => !v)}
+          />
+        </Animated.View>
+
+        {/* ─── CTA ────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(240).duration(300).easing(Easing.out(Easing.cubic))}
+          style={{ marginTop: 28 }}
+        >
+          <PrimaryButton
+            label={loading ? 'Entrando…' : 'Entrar'}
+            icon={LogIn}
+            loading={loading}
+            onPress={() => handleLogin()}
+          />
+        </Animated.View>
+
+        {/* ─── Divider ────────────────────────────── */}
+        <Animated.View
+          entering={FadeIn.delay(340).duration(280)}
+          style={s.dividerWrap}
+        >
+          <View style={s.dividerLine} />
+          <Text fontFamily="$body" fontSize={11} color="$colorSubtle" marginHorizontal={12} letterSpacing={0.6}>
+            o usa cuenta demo
+          </Text>
+          <View style={s.dividerLine} />
+        </Animated.View>
+
+        {/* ─── Demo button ────────────────────────── */}
+        <Animated.View
+          entering={FadeInDown.delay(380).duration(300).easing(Easing.out(Easing.cubic))}
+        >
+          <OutlineButton
+            label="Probar con cuenta demo"
+            icon={UserRound}
+            onPress={() => {
+              setEmail(DEMO_EMAIL);
+              setPassword(DEMO_PASS);
+              handleLogin(DEMO_EMAIL, DEMO_PASS);
+            }}
+          />
+        </Animated.View>
+
+        <View style={{ flex: 1 }} />
+
+        <Animated.View entering={FadeIn.delay(500).duration(260)}>
+          <Text
+            fontFamily="$body"
+            fontSize={12}
+            color="$colorSubtle"
+            textAlign="center"
+            marginTop={16}
+            letterSpacing={0.3}
+          >
+            POS Shop · v0.1
+          </Text>
+        </Animated.View>
+      </YStack>
     </KeyboardAvoidingView>
   );
 }
 
+// =============================================================================
+// Sub-componentes
+// =============================================================================
+
+function LogoBadge() {
+  const scale = useSharedValue(0.6);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
+    scale.value = withSpring(1, { damping: 14, stiffness: 220 });
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View style={[s.logoBadge, animStyle]}>
+      <ShoppingBag color="#FFFFFF" size={30} strokeWidth={2.4} />
+    </Animated.View>
+  );
+}
+
+interface InputProps {
+  icon: typeof Mail;
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'numeric';
+  rightIcon?: typeof Eye;
+  onRightPress?: () => void;
+}
+
+function FloatingInput({
+  icon: Icon,
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
+  keyboardType = 'default',
+  rightIcon: RightIcon,
+  onRightPress,
+}: InputProps) {
+  const [focused, setFocused] = useState(false);
+  const borderProgress = useSharedValue(0);
+
+  useEffect(() => {
+    borderProgress.value = withTiming(focused ? 1 : 0, {
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [focused]);
+
+  const animBorder = useAnimatedStyle(() => ({
+    borderColor: borderProgress.value > 0.5 ? '#00932C' : '#E5E7E6',
+    borderWidth: 1.4,
+  }));
+
+  return (
+    <Animated.View style={[s.input, animBorder]}>
+      <Icon color={focused ? '#00932C' : '#8A938D'} size={20} strokeWidth={2} />
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text fontFamily="$body" fontSize={10} fontWeight="700" color="$colorSubtle" letterSpacing={1.2}>
+          {label.toUpperCase()}
+        </Text>
+        <TextInput
+          style={s.inputText}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#C8CDC9"
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+          autoCorrect={false}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+      </View>
+      {RightIcon && (
+        <Pressable onPress={onRightPress} hitSlop={10}>
+          <RightIcon color="#8A938D" size={18} strokeWidth={2} />
+        </Pressable>
+      )}
+    </Animated.View>
+  );
+}
+
+interface BtnProps {
+  label: string;
+  icon: typeof LogIn;
+  onPress: () => void;
+  loading?: boolean;
+}
+
+function PrimaryButton({ label, icon: Icon, onPress, loading }: BtnProps) {
+  const scale = useSharedValue(1);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const onPressIn = () => {
+    scale.value = withSpring(0.96, { damping: 14, stiffness: 400 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { damping: 14, stiffness: 400 });
+  };
+
+  return (
+    <Pressable
+      onPress={() => {
+        if (loading) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onPress();
+      }}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+    >
+      <Animated.View style={[s.primaryBtn, animStyle, loading && { opacity: 0.85 }]}>
+        <Icon color="#FFFFFF" size={20} strokeWidth={2.4} />
+        <Text fontFamily="$body" color="#FFFFFF" fontWeight="800" fontSize={16} marginLeft={10} letterSpacing={0.2}>
+          {label}
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function OutlineButton({ label, icon: Icon, onPress }: BtnProps) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      onPressIn={() => (scale.value = withSpring(0.97, { damping: 14, stiffness: 400 }))}
+      onPressOut={() => (scale.value = withSpring(1, { damping: 14, stiffness: 400 }))}
+    >
+      <Animated.View style={[s.outlineBtn, animStyle]}>
+        <Icon color="#00932C" size={18} strokeWidth={2.2} />
+        <Text fontFamily="$body" color="$primary" fontWeight="700" fontSize={14} marginLeft={10}>
+          {label}
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// =============================================================================
+// Styles
+// =============================================================================
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: '#F7F8FA' },
 
-  logoSection: { alignItems: 'center', marginBottom: 32 },
-  logoOuter: {
-    width: 100,
-    height: 100,
-    borderRadius: 28,
-    backgroundColor: '#f5f3ff',
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#00932C',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#ede9fe',
+    shadowColor: '#00932C',
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 22,
-    backgroundColor: '#7c3aed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 8,
-    shadowColor: '#7c3aed',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  logoText: { color: '#fff', fontSize: 40, fontWeight: '800' },
-  title: { color: '#0f172a', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 },
-  subtitle: { color: '#94a3b8', fontSize: 15, marginTop: 6, fontWeight: '500' },
 
-  formSection: {},
-  formCard: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  fieldWrap: { marginBottom: 18 },
-  label: { color: '#64748b', fontSize: 13, marginBottom: 8, fontWeight: '600', letterSpacing: 0.3 },
-  inputWrap: {
+  input: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    paddingHorizontal: 14,
+    minHeight: 64,
   },
-  inputIcon: { fontSize: 16, marginRight: 10 },
-  input: { flex: 1, height: 52, fontSize: 16, color: '#0f172a', fontWeight: '500' },
-  eyeBtn: { padding: 8 },
-  eyeText: { fontSize: 18 },
+  inputText: {
+    fontFamily: 'Mulish_600SemiBold',
+    fontSize: 15,
+    color: '#0C0C0C',
+    padding: 0,
+    margin: 0,
+  },
 
-  loginBtn: {
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00932C',
     height: 56,
-    borderRadius: 18,
-    backgroundColor: '#7c3aed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-    elevation: 6,
-    shadowColor: '#7c3aed',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  loginBtnLoading: { opacity: 0.7 },
-  loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
-
-  demoSection: { marginTop: 28 },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
-  dividerText: { color: '#94a3b8', fontSize: 13, fontWeight: '500', marginHorizontal: 14 },
-  demoBtn: {
-    height: 50,
     borderRadius: 16,
-    backgroundColor: '#faf5ff',
-    borderWidth: 1.5,
-    borderColor: '#ede9fe',
+    shadowColor: '#00932C',
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+
+  outlineBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1.4,
+    borderColor: '#E5E7E6',
   },
-  demoBtnText: { color: '#7c3aed', fontWeight: '700', fontSize: 15 },
 
-  footer: { color: '#cbd5e1', textAlign: 'center', fontSize: 12, marginTop: 32, fontWeight: '500' },
+  dividerWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 22,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7E6',
+  },
 });
