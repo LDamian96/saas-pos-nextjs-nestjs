@@ -310,7 +310,7 @@ class _GlassLogo extends StatelessWidget {
                   ],
                 ),
                 child: const Icon(
-                  LucideIcons.store,
+                  LucideIcons.shoppingCart,
                   color: Colors.white,
                   size: 38,
                 ),

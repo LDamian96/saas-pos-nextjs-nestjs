@@ -56,7 +56,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           {};
       final access = body['accessToken'] as String?;
       final refresh = body['refreshToken'] as String?;
-      final userJson = body['user'] as Map<String, dynamic>?;
+      // Backend NestJS envía 'usuario' (español). Aceptamos también 'user'
+      // por compatibilidad si en el futuro lo renombran.
+      final userJson = (body['usuario'] ?? body['user']) as Map<String, dynamic>?;
       if (access == null || refresh == null || userJson == null) {
         throw ServerException(message: 'Respuesta de login incompleta');
       }
