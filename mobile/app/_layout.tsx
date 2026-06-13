@@ -1,18 +1,16 @@
 // =============================================================================
 // _layout.tsx — Root layout.
-//   • TamaguiProvider (theme + tokens compile-time)
-//   • Mulish font loader (misma tipografía que la web)
-//   • RemoteLogger global (captura errores + envío al backend)
-//   • Splash custom animado mientras carga
-//   • Stack screens con transiciones suaves
+// Mulish fonts + telemetría remota + tracking de rutas + transiciones suaves.
 // =============================================================================
 
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import {
@@ -33,17 +31,93 @@ import {
   setLoggerRoute,
   setLoggerSession,
 } from '@/services/remote-logger';
+import { colors, fonts } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
+const LightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: colors.bg,
+    card: colors.surface,
+    text: colors.text,
+    primary: colors.brand,
   },
+};
+
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: colors.success,
+        borderLeftWidth: 5,
+        backgroundColor: colors.surface,
+        borderRadius: 14,
+        elevation: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        marginHorizontal: 12,
+        minHeight: 56,
+        height: undefined,
+        paddingVertical: 10,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 14 }}
+      text1Style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.text }}
+      text2Style={{ fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted, marginTop: 2 }}
+      text1NumberOfLines={2}
+      text2NumberOfLines={2}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{
+        borderLeftColor: colors.danger,
+        borderLeftWidth: 5,
+        backgroundColor: colors.surface,
+        borderRadius: 14,
+        elevation: 12,
+        marginHorizontal: 12,
+        minHeight: 56,
+        height: undefined,
+        paddingVertical: 10,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 14 }}
+      text1Style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.danger }}
+      text2Style={{ fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted, marginTop: 2 }}
+      text1NumberOfLines={2}
+      text2NumberOfLines={2}
+    />
+  ),
+  info: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: colors.brand,
+        borderLeftWidth: 5,
+        backgroundColor: colors.surface,
+        borderRadius: 14,
+        elevation: 12,
+        marginHorizontal: 12,
+        minHeight: 56,
+        height: undefined,
+        paddingVertical: 10,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 14 }}
+      text1Style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.brand }}
+      text2Style={{ fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted, marginTop: 2 }}
+      text1NumberOfLines={2}
+      text2NumberOfLines={2}
+    />
+  ),
+};
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30000, retry: 1, refetchOnWindowFocus: false } },
 });
 
 export default function RootLayout() {
@@ -61,11 +135,9 @@ export default function RootLayout() {
     Mulish_900Black,
   });
 
-  // ── Errores globales + checkAuth + servicios offline ───────────
   useEffect(() => {
     installGlobalErrorHandlers();
     remoteLogger.info('app_opened');
-
     checkAuth();
     SplashScreen.hideAsync().catch(() => {});
 
@@ -86,37 +158,29 @@ export default function RootLayout() {
     }
   }, []);
 
-  // ── Tracking de ruta actual (para diagnóstico remoto) ───────────
   useEffect(() => {
-    const route = '/' + (segments?.join('/') ?? '');
-    setLoggerRoute(route);
+    setLoggerRoute('/' + (segments?.join('/') ?? ''));
   }, [segments]);
 
-  // ── Bind userId al logger cuando cambia ─────────────────────────
   useEffect(() => {
-    if (usuario?.id) {
-      setLoggerSession({
-        userId: usuario.id,
-        empresaId: usuario.empresa?.id,
-      });
-    }
+    if (usuario?.id) setLoggerSession({ userId: usuario.id, empresaId: usuario.empresa?.id });
   }, [usuario?.id]);
 
   if (!fontsLoaded) {
-    // No bloquea con loader — el splash custom lo cubre.
-    return <View style={{ flex: 1, backgroundColor: '#F7F8FA' }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F7F8FA' }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <ThemeProvider value={LightTheme}>
             <Stack
               screenOptions={{
                 headerShown: false,
                 animation: 'fade_from_bottom',
                 animationDuration: 240,
-                contentStyle: { backgroundColor: '#F7F8FA' },
+                contentStyle: { backgroundColor: colors.bg },
               }}
             >
               <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
@@ -137,8 +201,10 @@ export default function RootLayout() {
               <Stack.Screen name="config/impresora" options={{ animation: 'slide_from_right' }} />
             </Stack>
             <StatusBar style="dark" />
-          </GestureHandlerRootView>
-        </QueryClientProvider>
+          </ThemeProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+      <Toast config={toastConfig} topOffset={54} />
       {!splashDone && <AnimatedSplash onAnimationEnd={() => setSplashDone(true)} />}
     </View>
   );

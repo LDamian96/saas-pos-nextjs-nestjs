@@ -1,45 +1,37 @@
 // =============================================================================
-// cobrar.tsx — Cobrar con pago mixto + comprobante Ticket/Boleta/Factura.
+// cobrar.tsx — Cobro pago mixto + comprobante.
 // =============================================================================
 
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ComponentType, useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-  LinearTransition,
-} from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import {
   Banknote,
   CheckCircle2,
   CreditCard,
-  FileSpreadsheet,
   FileText,
   Landmark,
   Receipt,
   Smartphone,
+  Ticket,
   Wallet,
   X,
-  type LucideIcon,
 } from 'lucide-react-native';
-import { Text } from '@/components/ui/PText';
 
-import api from '@/api/client';
-import { extractList, getErrorMessage } from '@/api/helpers';
-import { useNetworkStore } from '@/stores/network.store';
 import { usePosStore } from '@/stores/pos.store';
+import { useNetworkStore } from '@/stores/network.store';
+import api from '@/api/client';
+import { extractList, getErrorMessage, toastError, toastSuccess } from '@/api/helpers';
 import { refreshPendingCount } from '@/services/sync.service';
-import { AppHeader } from '@/components/ui/AppHeader';
-import { PressableButton } from '@/components/ui/PressableButton';
-import { toastError, toastSuccess } from '@/services/toast';
 import { remoteLogger } from '@/services/remote-logger';
+import { Header } from '@/components/ui/Header';
+import { Button } from '@/components/ui/Button';
+import { colors, fonts, radius, shadows } from '@/theme';
 
 interface Pago {
   metodoPagoId: string;
@@ -48,7 +40,7 @@ interface Pago {
   monto: number;
 }
 
-const PAYMENT_ICONS: Record<string, LucideIcon> = {
+const METODO_ICON: Record<string, ComponentType<{ color?: string; size?: number; strokeWidth?: number }>> = {
   efectivo: Banknote,
   tarjeta: CreditCard,
   yape: Smartphone,
@@ -56,19 +48,16 @@ const PAYMENT_ICONS: Record<string, LucideIcon> = {
   transferencia: Landmark,
 };
 
-function iconFor(tipo?: string, nombre?: string): LucideIcon {
-  const key = (tipo ?? nombre ?? '').toLowerCase();
-  for (const k of Object.keys(PAYMENT_ICONS)) {
-    if (key.includes(k)) return PAYMENT_ICONS[k];
-  }
-  return Wallet;
+function iconFor(tipo?: string, nombre?: string) {
+  const k1 = tipo?.toLowerCase() ?? '';
+  const k2 = nombre?.toLowerCase() ?? '';
+  return METODO_ICON[k1] ?? METODO_ICON[k2] ?? Wallet;
 }
 
 export default function CobrarScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const { cart, total, comprobante, setComprobante, dni, setDni, ruc, setRuc, clearCart, setLastVenta } =
-    usePosStore();
+  const { cart, total, comprobante, setComprobante, dni, setDni, ruc, setRuc, clearCart, setLastVenta } = usePosStore();
   const { isOnline } = useNetworkStore();
   const cartTotal = total();
 
@@ -81,22 +70,14 @@ export default function CobrarScreen() {
     AsyncStorage.getItem('pos-negocio-config').then((val) => {
       if (val) {
         const cfg = JSON.parse(val);
-        setCompConfig({
-          ticket: cfg.ticket ?? true,
-          boleta: cfg.boleta ?? true,
-          factura: cfg.factura ?? false,
-        });
+        setCompConfig({ ticket: cfg.ticket ?? true, boleta: cfg.boleta ?? true, factura: cfg.factura ?? false });
       }
     });
   }, []);
 
   const { data: cajaData } = useQuery({
     queryKey: ['caja-actual'],
-    queryFn: () =>
-      api
-        .get('/caja/actual')
-        .then((r) => r.data)
-        .catch(() => null),
+    queryFn: () => api.get('/caja/actual').then((r) => r.data).catch(() => null),
   });
   const { data: metodosData } = useQuery({
     queryKey: ['metodos-pago'],
@@ -106,11 +87,11 @@ export default function CobrarScreen() {
 
   const sumaPagos = pagos.reduce((s, p) => s + p.monto, 0);
   const restante = Math.round((cartTotal - sumaPagos) * 100) / 100;
-  const montoNum = Number(montoPagado) || 0;
-  const montoAUsar = montoNum > 0 ? montoNum : restante;
+  const montoPagadoNum = Number(montoPagado) || 0;
+  const montoAUsar = montoPagadoNum > 0 ? montoPagadoNum : restante;
   const vueltoSiPaga = montoAUsar - restante;
 
-  const seleccionarMetodo = (metodo: { id: string; nombre: string; tipo?: string }) => {
+  const seleccionarMetodo = (metodo: any) => {
     if (restante <= 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setPagos([
@@ -131,8 +112,7 @@ export default function CobrarScreen() {
   };
 
   const ventaMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      api.post('/ventas', body).then((r) => r.data),
+    mutationFn: (body: any) => api.post('/ventas', body).then((r) => r.data),
     onSuccess: (data) => {
       const venta = data?.data || data;
       venta._pagos = pagos;
@@ -142,32 +122,32 @@ export default function CobrarScreen() {
       queryClient.invalidateQueries({ queryKey: ['ventas'] });
       setLastVenta(venta);
       clearCart();
-      remoteLogger.info('venta_success', { id: venta?.id });
+      remoteLogger.info('venta_ok', { total: cartTotal });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toastSuccess({ title: 'Venta exitosa' });
+      toastSuccess('Venta exitosa');
       router.replace('/cobrar-exito');
     },
-    onError: (err: Error) => {
-      remoteLogger.error('venta_failed', err);
-      toastError({ title: 'Error', message: getErrorMessage(err) });
+    onError: (err: any) => {
+      remoteLogger.error('venta_failed', err, { total: cartTotal });
+      toastError('Error', getErrorMessage(err));
     },
   });
 
   const handleCobrar = async () => {
     if (pagos.length === 0) {
-      toastError({ title: 'Sin pagos', message: 'Selecciona un método de pago' });
+      toastError('Sin pagos', 'Selecciona un método de pago');
       return;
     }
     if (sumaPagos < cartTotal - 0.01) {
-      toastError({ title: 'Monto insuficiente', message: `Faltan S/ ${(cartTotal - sumaPagos).toFixed(2)}` });
+      toastError('Monto insuficiente', `Faltan S/ ${(cartTotal - sumaPagos).toFixed(2)}`);
       return;
     }
     if (comprobante === 'boleta' && dni.length !== 8) {
-      toastError({ title: 'DNI', message: '8 dígitos' });
+      toastError('DNI', '8 dígitos');
       return;
     }
     if (comprobante === 'factura' && ruc.length !== 11) {
-      toastError({ title: 'RUC', message: '11 dígitos' });
+      toastError('RUC', '11 dígitos');
       return;
     }
 
@@ -175,13 +155,8 @@ export default function CobrarScreen() {
       sucursalId: cajaData?.sucursalId,
       cajaId: cajaData?.id,
       tipoComprobante: comprobante,
-      clienteDocumento:
-        comprobante === 'boleta' ? dni : comprobante === 'factura' ? ruc : undefined,
-      items: cart.map((i) => ({
-        varianteId: i.varianteId,
-        cantidad: i.cantidad,
-        precioUnitario: i.precio,
-      })),
+      clienteDocumento: comprobante === 'boleta' ? dni : comprobante === 'factura' ? ruc : undefined,
+      items: cart.map((i) => ({ varianteId: i.varianteId, cantidad: i.cantidad, precioUnitario: i.precio })),
       pagos: pagos.map((p) => ({ metodoPagoId: p.metodoPagoId, monto: p.monto })),
     };
 
@@ -202,69 +177,65 @@ export default function CobrarScreen() {
         });
         clearCart();
         router.replace('/cobrar-exito');
-      } catch (err) {
-        toastError({ title: 'Error', message: getErrorMessage(err) });
+      } catch (err: any) {
+        toastError('Error', getErrorMessage(err));
       } finally {
         setSubmitting(false);
       }
       return;
     }
     if (!cajaData?.id) {
-      toastError({ title: 'Caja cerrada', message: 'Abre la caja primero' });
+      toastError('Caja cerrada', 'Abre la caja primero');
       return;
     }
     ventaMutation.mutate(payload);
   };
 
   const comprobantes = [
-    { key: 'ticket' as const, label: 'Ticket', icon: Receipt },
-    { key: 'boleta' as const, label: 'Boleta', icon: FileText },
-    { key: 'factura' as const, label: 'Factura', icon: FileSpreadsheet },
+    { key: 'ticket' as const, label: 'Ticket', Icon: Ticket },
+    { key: 'boleta' as const, label: 'Boleta', Icon: Receipt },
+    { key: 'factura' as const, label: 'Factura', Icon: FileText },
   ].filter((c) => compConfig[c.key]);
 
   const canCobrar = pagos.length > 0 && sumaPagos >= cartTotal - 0.01;
+  const exceso = sumaPagos > cartTotal + 0.01 ? sumaPagos - cartTotal : 0;
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      <AppHeader title="Cobrar" subtitle={`${cart.length} producto${cart.length === 1 ? '' : 's'}`} />
+      <Header title="Cobrar" subtitle={`${cart.length} producto${cart.length !== 1 ? 's' : ''}`} />
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* ─── Total ───────────────────────── */}
-        <Animated.View entering={FadeInUp.duration(260).easing(Easing.out(Easing.cubic))} style={s.totalCard}>
-          <Text fontFamily="$body" fontSize={11} color="rgba(255,255,255,0.7)" fontWeight="700" letterSpacing={1.4}>
-            TOTAL A COBRAR
-          </Text>
-          <Text fontFamily="$body" fontSize={40} color="#FFFFFF" fontWeight="900" marginTop={6} letterSpacing={-1}>
-            S/ {cartTotal.toFixed(2)}
-          </Text>
+        <Animated.View entering={FadeIn.duration(260)} style={s.totalCard}>
+          <Text style={s.totalLabel}>TOTAL A COBRAR</Text>
+          <Text style={s.totalAmount}>S/ {cartTotal.toFixed(2)}</Text>
+          {restante > 0.01 ? (
+            <Text style={s.totalRestante}>Restante S/ {restante.toFixed(2)}</Text>
+          ) : (
+            <Text style={s.totalCompleto}>Pago completo</Text>
+          )}
         </Animated.View>
 
-        {/* ─── Pagos registrados ──────────── */}
         {pagos.length > 0 && (
           <View style={{ marginBottom: 18 }}>
-            <SectionTitle>Pagos registrados</SectionTitle>
+            <Text style={s.sectionTitle}>PAGOS REGISTRADOS</Text>
             {pagos.map((p, idx) => {
               const Icon = iconFor(p.tipo, p.nombre);
               return (
                 <Animated.View
                   key={`${p.metodoPagoId}-${idx}`}
-                  entering={FadeIn.duration(220)}
-                  layout={LinearTransition.springify().damping(18).stiffness(220)}
+                  entering={FadeInDown.duration(220).easing(Easing.out(Easing.cubic))}
+                  exiting={FadeOut.duration(180)}
                   style={s.pagoCard}
                 >
                   <View style={s.pagoIcon}>
-                    <Icon color="#00932C" size={20} strokeWidth={2.2} />
+                    <Icon color={colors.brandDark} size={18} strokeWidth={2.2} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text fontFamily="$body" fontSize={13} fontWeight="700" color="#15803D">
-                      {p.nombre}
-                    </Text>
-                    <Text fontFamily="$body" fontSize={18} fontWeight="900" color="#15803D">
-                      S/ {p.monto.toFixed(2)}
-                    </Text>
+                    <Text style={s.pagoNombre}>{p.nombre}</Text>
+                    <Text style={s.pagoMonto}>S/ {p.monto.toFixed(2)}</Text>
                   </View>
                   <Pressable onPress={() => removePago(idx)} style={s.pagoRemove}>
-                    <X color="#E53935" size={14} strokeWidth={2.4} />
+                    <X color={colors.danger} size={14} strokeWidth={2.6} />
                   </Pressable>
                 </Animated.View>
               );
@@ -272,131 +243,114 @@ export default function CobrarScreen() {
           </View>
         )}
 
-        {/* ─── Input de pago ───────────────── */}
         {restante > 0.01 ? (
-          <Animated.View entering={FadeInDown.delay(60).duration(280)} style={s.payCard}>
-            <Text fontFamily="$body" fontSize={14} fontWeight="700" color="$color" marginBottom={14}>
-              {pagos.length === 0 ? 'Monto del cliente' : `Falta: S/ ${restante.toFixed(2)}`}
-            </Text>
+          <View style={s.payCard}>
+            <Text style={s.payTitle}>{pagos.length === 0 ? 'Monto que entrega el cliente' : 'Monto del próximo pago'}</Text>
 
             <View style={s.payInputRow}>
-              <Text fontFamily="$body" fontSize={28} fontWeight="900" color="#00932C" marginRight={10}>
-                S/
-              </Text>
+              <Text style={s.payInputPrefix}>S/</Text>
               <TextInput
                 style={s.payInput}
                 value={montoPagado}
                 onChangeText={setMontoPagado}
                 placeholder={restante.toFixed(2)}
-                placeholderTextColor="#CBD5C9"
+                placeholderTextColor={colors.textPlaceholder}
                 keyboardType="decimal-pad"
               />
             </View>
 
-            {montoNum > 0 && vueltoSiPaga > 0 && (
+            {montoPagadoNum > 0 && vueltoSiPaga > 0 && (
               <View style={s.vueltoBadge}>
-                <Text fontFamily="$body" fontSize={13} fontWeight="800" color="#15803D">
-                  Vuelto: S/ {vueltoSiPaga.toFixed(2)}
-                </Text>
+                <Text style={s.vueltoText}>Vuelto: S/ {vueltoSiPaga.toFixed(2)}</Text>
+              </View>
+            )}
+            {montoPagadoNum > 0 && vueltoSiPaga < 0 && (
+              <View style={[s.vueltoBadge, s.vueltoBadgeWarn]}>
+                <Text style={s.vueltoWarnText}>Aún faltará S/ {Math.abs(vueltoSiPaga).toFixed(2)}</Text>
               </View>
             )}
 
-            <Text fontFamily="$body" fontSize={11} fontWeight="700" color="$colorSubtle" letterSpacing={1.4} marginTop={14} marginBottom={10}>
-              MÉTODO DE PAGO
-            </Text>
+            <Text style={[s.sectionTitle, { marginTop: 4, marginBottom: 12 }]}>MÉTODO DE PAGO</Text>
             <View style={s.metodosGrid}>
-              {metodos.map((m: { id: string; nombre: string; tipo?: string }) => {
+              {metodos.map((m: any) => {
                 const Icon = iconFor(m.tipo, m.nombre);
                 return (
-                  <Pressable key={m.id} onPress={() => seleccionarMetodo(m)} style={s.metodoChip}>
-                    <Icon color="#0C0C0C" size={22} strokeWidth={2.2} />
-                    <Text fontFamily="$body" fontSize={11} fontWeight="700" color="#475569" marginTop={6}>
+                  <Pressable
+                    key={m.id}
+                    style={({ pressed }) => [s.metodoChip, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+                    onPress={() => seleccionarMetodo(m)}
+                  >
+                    <Icon color={colors.brand} size={22} strokeWidth={2.2} />
+                    <Text style={s.metodoNombre} numberOfLines={1}>
                       {m.nombre}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
-          </Animated.View>
+          </View>
         ) : (
-          <Animated.View entering={FadeIn.duration(280)} style={s.completoCard}>
-            <CheckCircle2 color="#00932C" size={42} strokeWidth={2} />
-            <Text fontFamily="$body" fontSize={18} fontWeight="900" color="#15803D" marginTop={10}>
-              Pago completo
-            </Text>
-            {sumaPagos > cartTotal + 0.01 && (
+          <Animated.View entering={FadeInDown.duration(260).easing(Easing.out(Easing.cubic))} style={s.completoCard}>
+            <View style={s.completoIcon}>
+              <CheckCircle2 color={colors.brand} size={36} strokeWidth={2.2} />
+            </View>
+            <Text style={s.completoTitle}>Pago completo</Text>
+            {exceso > 0 && (
               <View style={s.vueltoFinal}>
-                <Text fontFamily="$body" fontSize={11} fontWeight="800" color="#166534" letterSpacing={1.4}>
-                  VUELTO
-                </Text>
-                <Text fontFamily="$body" fontSize={32} fontWeight="900" color="#00932C" marginTop={4}>
-                  S/ {(sumaPagos - cartTotal).toFixed(2)}
-                </Text>
+                <Text style={s.vueltoFinalLabel}>VUELTO</Text>
+                <Text style={s.vueltoFinalMonto}>S/ {exceso.toFixed(2)}</Text>
               </View>
             )}
           </Animated.View>
         )}
 
-        {/* ─── Comprobante ─────────────────── */}
-        <View style={{ marginTop: 18 }}>
-          <SectionTitle>Comprobante</SectionTitle>
-          <View style={s.compRow}>
-            {comprobantes.map((c) => {
-              const active = comprobante === c.key;
-              const Icon = c.icon;
-              return (
-                <Pressable
-                  key={c.key}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setComprobante(c.key);
-                  }}
-                  style={[s.compChip, active && s.compChipActive]}
-                >
-                  <Icon color={active ? '#00932C' : '#475569'} size={18} strokeWidth={2.2} />
-                  <Text
-                    fontFamily="$body"
-                    fontSize={13}
-                    fontWeight="700"
-                    color={active ? '#00932C' : '#475569'}
-                    marginLeft={6}
-                  >
-                    {c.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {comprobante === 'boleta' && (
-            <TextInput
-              style={s.docInput}
-              value={dni}
-              onChangeText={setDni}
-              placeholder="DNI (8 dígitos)"
-              placeholderTextColor="#A8B0AB"
-              keyboardType="numeric"
-              maxLength={8}
-            />
-          )}
-          {comprobante === 'factura' && (
-            <TextInput
-              style={s.docInput}
-              value={ruc}
-              onChangeText={setRuc}
-              placeholder="RUC (11 dígitos)"
-              placeholderTextColor="#A8B0AB"
-              keyboardType="numeric"
-              maxLength={11}
-            />
-          )}
+        <Text style={s.sectionTitle}>COMPROBANTE</Text>
+        <View style={s.compRow}>
+          {comprobantes.map(({ key, label, Icon }) => {
+            const active = comprobante === key;
+            return (
+              <Pressable
+                key={key}
+                style={({ pressed }) => [s.compChip, active && s.compChipActive, pressed && { opacity: 0.88 }]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setComprobante(key);
+                }}
+              >
+                <Icon color={active ? colors.brand : colors.textMuted} size={18} strokeWidth={2.2} />
+                <Text style={[s.compText, active && s.compTextActive]}>{label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
+        {comprobante === 'boleta' && (
+          <TextInput
+            style={s.docInput}
+            value={dni}
+            onChangeText={setDni}
+            placeholder="DNI · 8 dígitos"
+            placeholderTextColor={colors.textPlaceholder}
+            keyboardType="numeric"
+            maxLength={8}
+          />
+        )}
+        {comprobante === 'factura' && (
+          <TextInput
+            style={s.docInput}
+            value={ruc}
+            onChangeText={setRuc}
+            placeholder="RUC · 11 dígitos"
+            placeholderTextColor={colors.textPlaceholder}
+            keyboardType="numeric"
+            maxLength={11}
+          />
+        )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 36 }} />
       </ScrollView>
 
-      {/* ─── Footer ────────────────────────── */}
-      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <PressableButton
+      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 18) }]}>
+        <Button
           label={
             ventaMutation.isPending || submitting
               ? 'Procesando…'
@@ -404,61 +358,60 @@ export default function CobrarScreen() {
               ? `Falta S/ ${Math.max(0, restante).toFixed(2)}`
               : `Cobrar S/ ${cartTotal.toFixed(2)}`
           }
-          size="lg"
-          variant="primary"
-          disabled={!canCobrar}
-          loading={ventaMutation.isPending || submitting}
           onPress={handleCobrar}
+          loading={ventaMutation.isPending || submitting}
+          disabled={!canCobrar}
+          size="lg"
         />
       </View>
     </View>
   );
 }
 
-function SectionTitle({ children }: { children: string }) {
-  return (
-    <Text fontFamily="$body" fontSize={13} fontWeight="700" color="$color" marginBottom={10}>
-      {children}
-    </Text>
-  );
-}
-
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
-  content: { padding: 16, paddingBottom: 30 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 28 },
 
   totalCard: {
-    backgroundColor: '#00932C',
-    borderRadius: 22,
-    padding: 24,
+    backgroundColor: colors.brand,
+    borderRadius: radius.xl,
+    padding: 22,
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#00932C',
-    shadowOpacity: 0.28,
-    shadowRadius: 16,
+    marginBottom: 22,
+    shadowColor: colors.brand,
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
+  totalLabel: { fontFamily: fonts.bold, fontSize: 10.5, color: 'rgba(255,255,255,0.78)', letterSpacing: 1.6 },
+  totalAmount: { fontFamily: fonts.black, fontSize: 40, color: '#FFFFFF', marginTop: 6, letterSpacing: -1 },
+  totalRestante: { fontFamily: fonts.bold, fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6, letterSpacing: 0.3 },
+  totalCompleto: { fontFamily: fonts.extrabold, fontSize: 12, color: '#FFFFFF', marginTop: 6, letterSpacing: 0.6 },
+
+  sectionTitle: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4, marginBottom: 10 },
 
   pagoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF7EF',
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: colors.brandTint,
+    borderRadius: radius.lg,
+    padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.brandSoft,
   },
   pagoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 12,
   },
+  pagoNombre: { fontFamily: fonts.semibold, fontSize: 12, color: colors.brandDark },
+  pagoMonto: { fontFamily: fonts.black, fontSize: 16, color: colors.brandDark, marginTop: 2 },
   pagoRemove: {
     width: 30,
     height: 30,
@@ -467,106 +420,124 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.dangerBorder,
   },
 
   payCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
     padding: 18,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#EEF0EF',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    borderColor: colors.divider,
+    ...shadows.soft,
   },
+  payTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.text, marginBottom: 12 },
   payInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F8FA',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    borderWidth: 1.4,
-    borderColor: '#E5E7E6',
-  },
-  payInput: {
-    flex: 1,
-    height: 60,
-    fontFamily: 'Mulish_900Black',
-    fontSize: 32,
-    color: '#0C0C0C',
-  },
-  vueltoBadge: {
-    backgroundColor: '#DCFCE7',
-    borderRadius: 12,
-    paddingVertical: 10,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.lg,
     paddingHorizontal: 16,
-    alignItems: 'center',
-    marginTop: 12,
+    marginBottom: 10,
+    borderWidth: 1.4,
+    borderColor: colors.border,
   },
+  payInputPrefix: { fontFamily: fonts.black, fontSize: 26, color: colors.brand, marginRight: 10 },
+  payInput: { flex: 1, height: 60, fontFamily: fonts.black, fontSize: 30, color: colors.text, padding: 0 },
+
+  vueltoBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.brandTint,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
+  },
+  vueltoText: { fontFamily: fonts.extrabold, fontSize: 12, color: colors.brandDark },
+  vueltoBadgeWarn: { backgroundColor: colors.warningSoft, borderColor: colors.warningBorder },
+  vueltoWarnText: { fontFamily: fonts.extrabold, fontSize: 12, color: colors.warningText },
 
   metodosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   metodoChip: {
     flexGrow: 1,
-    minWidth: '28%',
+    minWidth: '30%',
     alignItems: 'center',
     paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: '#F7F8FA',
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1.4,
-    borderColor: '#E5E7E6',
+    borderColor: colors.border,
+    gap: 6,
   },
+  metodoNombre: { fontFamily: fonts.bold, fontSize: 11, color: colors.text, letterSpacing: 0.2 },
 
   completoCard: {
-    backgroundColor: '#EBF7EF',
-    borderRadius: 20,
-    padding: 26,
+    backgroundColor: colors.brandTint,
+    borderRadius: radius.xl,
+    padding: 24,
     alignItems: 'center',
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.brandSoft,
   },
-  vueltoFinal: {
+  completoIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 22,
-    marginTop: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
+    marginBottom: 10,
   },
+  completoTitle: { fontFamily: fonts.black, fontSize: 18, color: colors.brandDark, letterSpacing: -0.3 },
+  vueltoFinal: { marginTop: 14, alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: radius.lg, paddingVertical: 14, paddingHorizontal: 28, borderWidth: 1, borderColor: colors.brandSoft },
+  vueltoFinalLabel: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.brandDark, letterSpacing: 1.4 },
+  vueltoFinalMonto: { fontFamily: fonts.black, fontSize: 32, color: colors.brand, marginTop: 4 },
 
-  compRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  compRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   compChip: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    gap: 8,
+    height: 50,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     borderWidth: 1.4,
-    borderColor: '#E5E7E6',
+    borderColor: colors.divider,
   },
-  compChipActive: { backgroundColor: '#EBF7EF', borderColor: '#00932C' },
+  compChipActive: { backgroundColor: colors.brandTint, borderColor: colors.brand },
+  compText: { fontFamily: fonts.bold, fontSize: 13, color: colors.textMuted },
+  compTextActive: { color: colors.brand, fontFamily: fonts.extrabold },
   docInput: {
     height: 52,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    fontFamily: 'Mulish_700Bold',
-    fontSize: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: 16,
+    fontFamily: fonts.bold,
+    fontSize: 15.5,
     borderWidth: 1.4,
-    borderColor: '#E5E7E6',
-    color: '#0C0C0C',
+    borderColor: colors.divider,
+    color: colors.text,
     letterSpacing: 2,
   },
 
   footer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#EEF0EF',
+    borderTopColor: colors.divider,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 8,
   },
 });

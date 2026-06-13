@@ -1,205 +1,209 @@
 // =============================================================================
-// (tabs)/productos.tsx — Lista de productos con búsqueda + FAB nuevo.
+// (tabs)/productos.tsx — Listado de productos con búsqueda y FAB +.
 // =============================================================================
 
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { FlatList } from 'react-native';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
-import { ChevronRight, Package2, Plus, Search } from 'lucide-react-native';
-import { Text } from '@/components/ui/PText';
+import Animated, { Easing, FadeIn, FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { ChevronRight, Package, Plus, Search } from 'lucide-react-native';
 
 import api from '@/api/client';
-import { extractList } from '@/api/helpers';
-
-interface Producto {
-  id: string;
-  nombre: string;
-  sku: string;
-  precioVenta: number;
-  imagenPrincipal: string | null;
-  variantes?: { stock: number }[];
-}
+import { extractList, toastError } from '@/api/helpers';
+import { remoteLogger } from '@/services/remote-logger';
+import { colors, fonts, radius, shadows } from '@/theme';
 
 export default function ProductosScreen() {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const { data, isLoading, refetch, error } = useQuery({
+    queryKey: ['productos-list', search],
+    queryFn: () =>
+      api.get('/productos', { params: { search: search || undefined, limit: 50, activo: true } }).then((r) => r.data),
+  });
+  const productos = extractList(data);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data } = useQuery({
-    queryKey: ['productos', 'list', debouncedSearch],
-    queryFn: () =>
-      api
-        .get('/productos', {
-          params: { search: debouncedSearch || undefined, activo: true, limit: 200 },
-        })
-        .then((r) => r.data),
-  });
-
-  const productos: Producto[] = extractList(data);
+    if (error) {
+      remoteLogger.error('productos_list_failed', error as any);
+      toastError('Error', 'No se pudieron cargar los productos');
+    }
+  }, [error]);
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      <Animated.View entering={FadeIn.duration(220)} style={s.header}>
+      <Animated.View entering={FadeIn.duration(260)} style={s.header}>
         <View style={{ flex: 1 }}>
-          <Text fontFamily="$body" fontSize={13} color="$colorMuted" fontWeight="600">
-            Mi catálogo
-          </Text>
-          <Text fontFamily="$body" fontSize={22} fontWeight="900" color="$color" letterSpacing={-0.4}>
-            Productos
-          </Text>
+          <Text style={s.eyebrow}>CATÁLOGO</Text>
+          <Text style={s.title}>Productos</Text>
         </View>
-        <Pressable
-          onPress={() => router.push('/productos/nuevo')}
-          style={s.addBtn}
-        >
-          <Plus color="#FFFFFF" size={20} strokeWidth={2.4} />
-        </Pressable>
+        <View style={s.countPill}>
+          <Text style={s.countPillText}>{productos.length}</Text>
+        </View>
       </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(60).duration(240)} style={s.searchWrap}>
-        <Search color="#8A938D" size={18} strokeWidth={2} />
-        <TextInput
-          style={s.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Buscar por nombre o SKU"
-          placeholderTextColor="#A8B0AB"
-        />
+      <Animated.View entering={FadeIn.delay(80).duration(220)} style={s.searchRow}>
+        <View style={s.searchWrap}>
+          <Search color={colors.textSubtle} size={18} strokeWidth={2.2} />
+          <TextInput
+            style={s.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Buscar producto…"
+            placeholderTextColor={colors.textPlaceholder}
+          />
+        </View>
+        <Pressable
+          style={s.addBtn}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/productos/nuevo');
+          }}
+        >
+          <Plus color="#FFFFFF" size={22} strokeWidth={2.6} />
+        </Pressable>
       </Animated.View>
 
       <FlatList
         data={productos}
-        keyExtractor={(item) => item.id}
-        
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        renderItem={({ item, index }) => <Row producto={item} index={index} />}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        keyExtractor={(i) => i.id}
+        onRefresh={refetch}
+        refreshing={isLoading}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(index * 28).duration(240).easing(Easing.out(Easing.cubic))}>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push(`/productos/${item.id}`);
+              }}
+              style={({ pressed }) => [s.card, { opacity: pressed ? 0.82 : 1 }]}
+            >
+              {item.imagenPrincipal ? (
+                <Image source={{ uri: item.imagenPrincipal }} style={s.cardImg} contentFit="cover" />
+              ) : (
+                <View style={[s.cardImg, s.placeholder]}>
+                  <Text style={s.placeholderInitial}>{(item.nombre || '?').charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+              <View style={s.cardInfo}>
+                <Text style={s.cardName} numberOfLines={1}>{item.nombre}</Text>
+                <Text style={s.cardSku}>{item.sku}</Text>
+                <View style={s.cardRow}>
+                  <Text style={s.cardPrice}>S/ {Number(item.precioVenta).toFixed(2)}</Text>
+                  <View style={s.stockChip}>
+                    <Text style={s.stockText}>{item.variantes?.[0]?.stock ?? 0} u</Text>
+                  </View>
+                </View>
+              </View>
+              <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.2} />
+            </Pressable>
+          </Animated.View>
+        )}
         ListEmptyComponent={
-          <View style={s.empty}>
-            <Package2 color="#A8B0AB" size={48} strokeWidth={1.6} />
-            <Text fontFamily="$body" color="$colorMuted" marginTop={12} fontWeight="600">
-              {search ? 'Sin resultados' : 'Sin productos'}
-            </Text>
-          </View>
+          !isLoading ? (
+            <View style={s.emptyWrap}>
+              <View style={s.emptyIcon}>
+                <Package color={colors.textSubtle} size={30} strokeWidth={2} />
+              </View>
+              <Text style={s.emptyText}>{search ? 'Sin resultados' : 'Aún no hay productos'}</Text>
+            </View>
+          ) : null
         }
       />
     </View>
   );
 }
 
-function Row({ producto, index }: { producto: Producto; index: number }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  const totalStock = (producto.variantes ?? []).reduce((acc, v) => acc + Number(v.stock ?? 0), 0);
-
-  return (
-    <Pressable
-      onPress={() => router.push(`/productos/${producto.id}`)}
-      onPressIn={() => (scale.value = withSpring(0.98, { damping: 14, stiffness: 400 }))}
-      onPressOut={() => (scale.value = withSpring(1, { damping: 14, stiffness: 400 }))}
-    >
-      <Animated.View
-        entering={FadeInDown.delay(index * 24).duration(220).easing(Easing.out(Easing.cubic))}
-        style={[s.row, animStyle]}
-      >
-        {producto.imagenPrincipal ? (
-          <Image source={{ uri: producto.imagenPrincipal }} style={s.rowImg} contentFit="cover" />
-        ) : (
-          <View style={[s.rowImg, s.rowImgPlaceholder]}>
-            <Text fontFamily="$body" fontSize={20} fontWeight="800" color="#00932C">
-              {producto.nombre.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text fontFamily="$body" fontSize={14} fontWeight="700" color="$color" numberOfLines={1}>
-            {producto.nombre}
-          </Text>
-          <Text fontFamily="$body" fontSize={12} color="$colorMuted" fontWeight="600" marginTop={2}>
-            SKU · {producto.sku} · Stock {totalStock}
-          </Text>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text fontFamily="$body" fontSize={15} fontWeight="900" color="#00932C">
-            S/ {Number(producto.precioVenta).toFixed(2)}
-          </Text>
-          <ChevronRight color="#A8B0AB" size={14} strokeWidth={2.2} />
-        </View>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+  container: { flex: 1, backgroundColor: colors.bg },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, gap: 10 },
+  eyebrow: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4 },
+  title: { fontFamily: fonts.black, fontSize: 24, color: colors.text, letterSpacing: -0.4, marginTop: 2 },
+  countPill: {
+    backgroundColor: colors.brandTint,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
   },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#00932C',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#00932C',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
+  countPillText: { color: colors.brandDark, fontFamily: fonts.extrabold, fontSize: 13 },
+
+  searchRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 14, gap: 10 },
   searchWrap: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    height: 50,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#EEF0EF',
-    marginHorizontal: 16,
-    marginBottom: 12,
+    borderColor: colors.divider,
     gap: 10,
+    ...shadows.soft,
   },
-  searchInput: {
-    flex: 1,
-    fontFamily: 'Mulish_600SemiBold',
-    fontSize: 15,
-    color: '#0C0C0C',
-    padding: 0,
+  searchInput: { flex: 1, fontFamily: fonts.semibold, fontSize: 14.5, color: colors.text, padding: 0 },
+  addBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: radius.lg,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.brand,
+    shadowOpacity: 0.32,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
-  row: {
+
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    marginBottom: 10,
+    paddingRight: 14,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#EEF0EF',
+    borderColor: colors.divider,
+    ...shadows.soft,
   },
-  rowImg: { width: 60, height: 60, borderRadius: 14 },
-  rowImgPlaceholder: { backgroundColor: '#E8F5EC', alignItems: 'center', justifyContent: 'center' },
-  empty: { alignItems: 'center', marginTop: 60 },
+  cardImg: { width: 78, height: 78, backgroundColor: colors.surfaceAlt },
+  placeholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brandTint },
+  placeholderInitial: { fontFamily: fonts.black, fontSize: 26, color: colors.brand },
+  cardInfo: { flex: 1, padding: 12, justifyContent: 'center' },
+  cardName: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+  cardSku: { fontFamily: fonts.semibold, fontSize: 11, color: colors.textSubtle, marginTop: 2, letterSpacing: 0.3 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 },
+  cardPrice: { fontFamily: fonts.extrabold, fontSize: 15, color: colors.brand },
+  stockChip: {
+    backgroundColor: colors.brandTint,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  stockText: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.brandDark, letterSpacing: 0.2 },
+
+  emptyWrap: { alignItems: 'center', marginTop: 70 },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  emptyText: { fontFamily: fonts.semibold, fontSize: 14, color: colors.textMuted },
 });

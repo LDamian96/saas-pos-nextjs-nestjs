@@ -1,83 +1,184 @@
 // =============================================================================
-// config/nubefact.tsx — Credenciales NubeFact (SUNAT).
+// config/nubefact.tsx — Token + URL + modo demo de Nubefact.
 // =============================================================================
 
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { FileSpreadsheet, Save } from 'lucide-react-native';
-import { Text } from '@/components/ui/PText';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { CircleAlert, Eye, EyeOff, FileText, Save } from 'lucide-react-native';
 
-import { AppHeader } from '@/components/ui/AppHeader';
-import { Card } from '@/components/ui/Card';
-import { PressableButton } from '@/components/ui/PressableButton';
-import { Screen } from '@/components/ui/Screen';
-import { toastSuccess } from '@/services/toast';
+import { toastSuccess } from '@/api/helpers';
+import { Header } from '@/components/ui/Header';
+import { Button } from '@/components/ui/Button';
+import { colors, fonts, radius, shadows } from '@/theme';
 
-const KEY = 'pos-nubefact-config';
+const STORAGE_KEY = 'pos-nubefact-config';
 
-export default function NubefactConfig() {
-  const [token, setToken] = useState('');
-  const [ruc, setRuc] = useState('');
+interface NubefactConfig {
+  urlApi: string;
+  token: string;
+  modoDemo: boolean;
+}
+
+export default function NubefactScreen() {
+  const insets = useSafeAreaInsets();
+  const [config, setConfig] = useState<NubefactConfig>({ urlApi: '', token: '', modoDemo: true });
+  const [showToken, setShowToken] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY).then((v) => {
-      if (v) {
-        const c = JSON.parse(v);
-        setToken(c.token ?? '');
-        setRuc(c.ruc ?? '');
-      }
+    AsyncStorage.getItem(STORAGE_KEY).then((val) => {
+      if (val) setConfig(JSON.parse(val));
     });
   }, []);
 
+  const handleSave = async () => {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    toastSuccess('Guardado', 'Configuración Nubefact guardada');
+  };
+
   return (
-    <Screen>
-      <AppHeader title="NubeFact" subtitle="Facturación electrónica SUNAT" />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
-        <Animated.View entering={FadeInDown.duration(280)} style={s.hero}>
-          <FileSpreadsheet color="#FFFFFF" size={36} strokeWidth={2.2} />
-          <Text fontFamily="$body" fontSize={16} fontWeight="800" color="#FFFFFF" marginTop={12}>
-            Conecta con NubeFact
-          </Text>
-          <Text fontFamily="$body" fontSize={12} color="rgba(255,255,255,0.85)" marginTop={4} textAlign="center">
-            Crea tu cuenta en nubefact.com y pega aquí tu token
-          </Text>
+    <View style={[s.container, { paddingTop: insets.top }]}>
+      <Header title="Nubefact" subtitle="Facturación electrónica" />
+
+      <ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+        <Animated.View entering={FadeIn.duration(220)} style={s.iconWrap}>
+          <View style={s.iconCircle}>
+            <FileText color={colors.brand} size={32} strokeWidth={2.2} />
+          </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(120).duration(280)} style={{ marginTop: 20 }}>
-          <Card>
-            <Text fontFamily="$body" fontSize={11} fontWeight="700" color="$colorSubtle" letterSpacing={1.2}>
-              RUC DEL NEGOCIO
+        <View style={s.modoCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.modoLabel}>Modo demo</Text>
+            <Text style={s.modoDesc}>
+              {config.modoDemo
+                ? 'Pruebas sin emitir comprobantes reales'
+                : 'Producción — comprobantes válidos ante SUNAT'}
             </Text>
-            <TextInput style={s.input} value={ruc} onChangeText={setRuc} placeholder="20XXXXXXXXX" keyboardType="numeric" maxLength={11} placeholderTextColor="#A8B0AB" />
-          </Card>
-        </Animated.View>
+          </View>
+          <Switch
+            value={config.modoDemo}
+            onValueChange={(v) => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setConfig((prev) => ({ ...prev, modoDemo: v }));
+            }}
+            trackColor={{ false: colors.dangerBorder, true: colors.brandSoft }}
+            thumbColor={config.modoDemo ? colors.brand : colors.danger}
+          />
+        </View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(280)} style={{ marginTop: 10 }}>
-          <Card>
-            <Text fontFamily="$body" fontSize={11} fontWeight="700" color="$colorSubtle" letterSpacing={1.2}>
-              TOKEN NUBEFACT
+        {!config.modoDemo && (
+          <View style={s.warningCard}>
+            <CircleAlert color={colors.danger} size={18} strokeWidth={2.2} />
+            <Text style={s.warningText}>
+              Modo producción activo · los comprobantes serán válidos ante SUNAT
             </Text>
-            <TextInput style={s.input} value={token} onChangeText={setToken} placeholder="Tu token de API" placeholderTextColor="#A8B0AB" autoCapitalize="none" />
-          </Card>
-        </Animated.View>
+          </View>
+        )}
 
-        <View style={{ height: 24 }} />
-        <PressableButton
-          label="Guardar credenciales"
-          icon={Save}
-          onPress={async () => {
-            await AsyncStorage.setItem(KEY, JSON.stringify({ token, ruc }));
-            toastSuccess({ title: 'Guardado' });
-          }}
+        <Text style={s.label}>URL DEL API</Text>
+        <TextInput
+          style={s.input}
+          value={config.urlApi}
+          onChangeText={(v) => setConfig((prev) => ({ ...prev, urlApi: v }))}
+          placeholder="https://api.nubefact.com/api/v1/…"
+          placeholderTextColor={colors.textPlaceholder}
+          autoCapitalize="none"
         />
+
+        <Text style={s.label}>TOKEN</Text>
+        <View style={s.tokenRow}>
+          <TextInput
+            style={[s.input, { flex: 1 }]}
+            value={config.token}
+            onChangeText={(v) => setConfig((prev) => ({ ...prev, token: v }))}
+            placeholder="Token de Nubefact"
+            placeholderTextColor={colors.textPlaceholder}
+            secureTextEntry={!showToken}
+            autoCapitalize="none"
+          />
+          <Pressable style={s.showBtn} onPress={() => setShowToken(!showToken)}>
+            {showToken ? (
+              <EyeOff color={colors.textMuted} size={18} strokeWidth={2.2} />
+            ) : (
+              <Eye color={colors.textMuted} size={18} strokeWidth={2.2} />
+            )}
+          </Pressable>
+        </View>
+
+        <View style={{ marginTop: 28 }}>
+          <Button label="Guardar" onPress={handleSave} icon={Save} size="lg" />
+        </View>
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  hero: { backgroundColor: '#00932C', borderRadius: 20, padding: 20, alignItems: 'center', shadowColor: '#00932C', shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  input: { fontFamily: 'Mulish_700Bold', fontSize: 16, color: '#0C0C0C', paddingVertical: 8 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  form: { padding: 20, paddingBottom: 40 },
+  iconWrap: { alignItems: 'center', marginVertical: 8 },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.brandTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
+  },
+  modoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    ...shadows.soft,
+  },
+  modoLabel: { fontFamily: fonts.extrabold, fontSize: 14, color: colors.text },
+  modoDesc: { fontFamily: fonts.semibold, fontSize: 11.5, color: colors.textMuted, marginTop: 3 },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+  },
+  warningText: { flex: 1, color: colors.danger, fontFamily: fonts.semibold, fontSize: 12.5 },
+  label: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4, marginBottom: 8, marginTop: 16 },
+  input: {
+    height: 50,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    fontFamily: fonts.semibold,
+    fontSize: 14.5,
+    borderWidth: 1.2,
+    borderColor: colors.divider,
+    color: colors.text,
+  },
+  tokenRow: { flexDirection: 'row', gap: 10 },
+  showBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1.2,
+    borderColor: colors.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.soft,
+  },
 });

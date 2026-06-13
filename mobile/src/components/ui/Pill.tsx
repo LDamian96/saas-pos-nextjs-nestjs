@@ -1,8 +1,8 @@
 // =============================================================================
-// Pill.tsx — Chip rounded para categorías / filtros con scale on press.
+// Pill.tsx — Chip con scale spring + haptic. Para categorías/filtros.
 // =============================================================================
 
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Text } from '@/components/ui/PText';
+import { colors, fonts, radius } from '@/theme';
 
 interface Props {
   label: string;
@@ -21,13 +21,12 @@ interface Props {
 export function Pill({ label, active, onPress }: Props) {
   const scale = useSharedValue(1);
   const bg = useSharedValue(active ? 1 : 0);
-
   bg.value = withTiming(active ? 1 : 0, { duration: 180 });
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    backgroundColor: bg.value > 0.5 ? '#00932C' : '#FFFFFF',
-    borderColor: bg.value > 0.5 ? '#00932C' : '#E5E7E6',
+    backgroundColor: bg.value > 0.5 ? colors.brand : colors.surface,
+    borderColor: bg.value > 0.5 ? colors.brand : colors.border,
   }));
 
   return (
@@ -40,24 +39,13 @@ export function Pill({ label, active, onPress }: Props) {
       onPressOut={() => (scale.value = withSpring(1, { damping: 14, stiffness: 400 }))}
     >
       <Animated.View style={[s.pill, animStyle]}>
-        <Text
-          fontFamily="$body"
-          fontWeight="700"
-          fontSize={12.5}
-          color={active ? '#FFFFFF' : '#5E6A63'}
-        >
-          {label}
-        </Text>
+        <Text style={[s.text, { color: active ? '#FFFFFF' : colors.textMuted }]}>{label}</Text>
       </Animated.View>
     </Pressable>
   );
 }
 
 const s = StyleSheet.create({
-  pill: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1.4,
-  },
+  pill: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1.4 },
+  text: { fontFamily: fonts.bold, fontSize: 12.5 },
 });

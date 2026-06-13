@@ -1,65 +1,57 @@
 // =============================================================================
-// (tabs)/config.tsx — Ajustes: perfil, secciones de config y logout.
+// (tabs)/config.tsx — Configuración del POS + cerrar sesión.
 // =============================================================================
 
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import {
-  Bluetooth,
   Building2,
   ChevronRight,
-  FileSpreadsheet,
+  FileText,
   LogOut,
+  Printer,
   Receipt,
-  ShoppingBag,
-  Sparkles,
+  Settings,
   Tag,
-  type LucideIcon,
+  Tags,
 } from 'lucide-react-native';
-import { Text } from '@/components/ui/PText';
 
 import { useAuthStore } from '@/stores/auth.store';
-import { Card } from '@/components/ui/Card';
-import { toastInfo } from '@/services/toast';
+import { remoteLogger } from '@/services/remote-logger';
+import { colors, fonts, radius, shadows } from '@/theme';
 
-interface Section {
-  icon: LucideIcon;
+type MenuItem = {
   label: string;
-  description?: string;
-  href: string;
-}
+  desc: string;
+  route: string;
+  Icon: typeof Building2;
+};
 
-const SECTIONS: Section[][] = [
-  [
-    { icon: Building2, label: 'Negocio', description: 'Datos generales', href: '/config/negocio' },
-    { icon: Receipt, label: 'Comprobantes', description: 'Ticket, boleta, factura', href: '/config/comprobantes' },
-    { icon: FileSpreadsheet, label: 'NubeFact (SUNAT)', description: 'Facturación electrónica', href: '/config/nubefact' },
-    { icon: Bluetooth, label: 'Impresora', description: 'Bluetooth térmica', href: '/config/impresora' },
-  ],
-  [
-    { icon: Sparkles, label: 'Categorías', href: '/config/categorias' },
-    { icon: Tag, label: 'Marcas', href: '/config/marcas' },
-  ],
+const MENU: MenuItem[] = [
+  { label: 'Mi negocio', desc: 'Nombre, RUC, dirección', route: '/config/negocio', Icon: Building2 },
+  { label: 'Impresora', desc: 'Conectar impresora Bluetooth', route: '/config/impresora', Icon: Printer },
+  { label: 'Comprobantes', desc: 'Ticket, boleta, factura', route: '/config/comprobantes', Icon: Receipt },
+  { label: 'Nubefact', desc: 'Facturación electrónica', route: '/config/nubefact', Icon: FileText },
+  { label: 'Categorías', desc: 'Organizar productos', route: '/config/categorias', Icon: Tags },
+  { label: 'Marcas', desc: 'Marcas de productos', route: '/config/marcas', Icon: Tag },
 ];
 
 export default function ConfigScreen() {
   const insets = useSafeAreaInsets();
-  const usuario = useAuthStore((s) => s.usuario);
-  const logout = useAuthStore((s) => s.logout);
+  const { usuario, logout } = useAuthStore();
 
   const handleLogout = () => {
-    Alert.alert('Cerrar sesión', '¿Deseas salir de tu cuenta?', [
+    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Salir',
         style: 'destructive',
         onPress: async () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          remoteLogger.info('logout');
           await logout();
-          toastInfo({ title: 'Sesión cerrada' });
           router.replace('/login');
         },
       },
@@ -68,148 +60,167 @@ export default function ConfigScreen() {
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      <Animated.View entering={FadeIn.duration(220)} style={s.header}>
-        <Text fontFamily="$body" fontSize={13} color="$colorMuted" fontWeight="600">
-          Mi negocio
-        </Text>
-        <Text fontFamily="$body" fontSize={22} fontWeight="900" color="$color" letterSpacing={-0.4}>
-          Ajustes
-        </Text>
-      </Animated.View>
-
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        {/* ─── Perfil ──────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(280).easing(Easing.out(Easing.cubic))}>
-          <Card style={s.profile}>
-            <View style={s.avatar}>
-              <ShoppingBag color="#FFFFFF" size={28} strokeWidth={2.4} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text fontFamily="$body" fontSize={16} fontWeight="800" color="$color">
-                {usuario?.nombre ?? 'Usuario'} {usuario?.apellido ?? ''}
-              </Text>
-              <Text fontFamily="$body" fontSize={12} color="$colorMuted" fontWeight="600" numberOfLines={1}>
-                {usuario?.email ?? ''}
-              </Text>
-              {usuario?.empresa?.nombre && (
-                <View style={s.badge}>
-                  <Text fontFamily="$body" fontSize={10} fontWeight="800" color="#00932C" letterSpacing={0.4}>
-                    {usuario.empresa.nombre}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </Card>
+      <ScrollView contentContainerStyle={{ paddingBottom: 90, paddingHorizontal: 20 }} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeIn.duration(260)} style={s.headerRow}>
+          <View style={s.headerIcon}>
+            <Settings color={colors.brand} size={20} strokeWidth={2.2} />
+          </View>
+          <View>
+            <Text style={s.eyebrow}>SISTEMA</Text>
+            <Text style={s.title}>Ajustes</Text>
+          </View>
         </Animated.View>
 
-        {/* ─── Grupos de secciones ─────────── */}
-        {SECTIONS.map((group, gIdx) => (
-          <View key={gIdx} style={{ marginTop: 18 }}>
-            {group.map((sec, i) => (
-              <Animated.View
-                key={sec.href}
-                entering={FadeInDown.delay(120 + gIdx * 200 + i * 40)
-                  .duration(240)
-                  .easing(Easing.out(Easing.cubic))}
-                style={{ marginBottom: 8 }}
-              >
-                <Pressable
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    router.push(sec.href);
-                  }}
-                  style={({ pressed }) => [s.row, pressed && { opacity: 0.85 }]}
-                >
-                  <View style={s.rowIcon}>
-                    <sec.icon color="#00932C" size={20} strokeWidth={2.2} />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 14 }}>
-                    <Text fontFamily="$body" fontSize={14.5} fontWeight="700" color="$color">
-                      {sec.label}
-                    </Text>
-                    {sec.description && (
-                      <Text fontFamily="$body" fontSize={12} color="$colorMuted" fontWeight="600" marginTop={2}>
-                        {sec.description}
-                      </Text>
-                    )}
-                  </View>
-                  <ChevronRight color="#A8B0AB" size={18} strokeWidth={2.2} />
-                </Pressable>
-              </Animated.View>
-            ))}
+        <Animated.View entering={FadeInDown.delay(60).duration(280).easing(Easing.out(Easing.cubic))} style={s.userCard}>
+          <View style={s.avatar}>
+            <Text style={s.avatarText}>{usuario?.nombre?.charAt(0).toUpperCase() ?? '?'}</Text>
           </View>
-        ))}
+          <View style={{ flex: 1 }}>
+            <Text style={s.userName} numberOfLines={1}>
+              {usuario?.nombre} {usuario?.apellido ?? ''}
+            </Text>
+            <Text style={s.userEmail} numberOfLines={1}>
+              {usuario?.email}
+            </Text>
+            {usuario?.empresa?.nombre && (
+              <View style={s.companyChip}>
+                <Building2 color={colors.brandDark} size={11} strokeWidth={2.4} />
+                <Text style={s.companyText} numberOfLines={1}>
+                  {usuario.empresa.nombre}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
 
-        {/* ─── Logout ──────────────────────── */}
-        <Pressable onPress={handleLogout} style={({ pressed }) => [s.logout, pressed && { opacity: 0.85 }]}>
-          <LogOut color="#E53935" size={18} strokeWidth={2.2} />
-          <Text fontFamily="$body" fontSize={14} fontWeight="800" color="#E53935" marginLeft={8}>
-            Cerrar sesión
-          </Text>
-        </Pressable>
+        <Animated.Text entering={FadeIn.delay(140).duration(220)} style={s.sectionTitle}>
+          PREFERENCIAS
+        </Animated.Text>
 
-        <Text fontFamily="$body" fontSize={11} color="$colorSubtle" textAlign="center" marginTop={16}>
-          POS Shop · v0.1
-        </Text>
+        <View style={s.menu}>
+          {MENU.map((item, i) => (
+            <Animated.View
+              key={item.route}
+              entering={FadeInDown.delay(160 + i * 32).duration(260).easing(Easing.out(Easing.cubic))}
+            >
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  router.push(item.route as any);
+                }}
+                style={({ pressed }) => [s.menuItem, { backgroundColor: pressed ? colors.surfaceAlt : colors.surface }]}
+              >
+                <View style={s.menuIcon}>
+                  <item.Icon color={colors.brand} size={18} strokeWidth={2.2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.menuLabel}>{item.label}</Text>
+                  <Text style={s.menuDesc}>{item.desc}</Text>
+                </View>
+                <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.2} />
+              </Pressable>
+              {i < MENU.length - 1 && <View style={s.menuDivider} />}
+            </Animated.View>
+          ))}
+        </View>
+
+        <Animated.View entering={FadeInDown.delay(380).duration(280).easing(Easing.out(Easing.cubic))}>
+          <Pressable onPress={handleLogout} style={({ pressed }) => [s.logoutBtn, { opacity: pressed ? 0.75 : 1 }]}>
+            <LogOut color={colors.danger} size={18} strokeWidth={2.2} />
+            <Text style={s.logoutText}>Cerrar sesión</Text>
+          </Pressable>
+        </Animated.View>
+
+        <Text style={s.version}>POS Shop · v1.0.0</Text>
       </ScrollView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
-  header: { paddingHorizontal: 16, paddingVertical: 12 },
-  content: { padding: 16, paddingBottom: 120 },
-
-  profile: { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: '#00932C',
+  container: { flex: 1, backgroundColor: colors.bg },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 14, paddingBottom: 18, gap: 12 },
+  headerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.brandTint,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00932C',
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
   },
-  badge: {
+  eyebrow: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4 },
+  title: { fontFamily: fonts.black, fontSize: 24, color: colors.text, letterSpacing: -0.4, marginTop: 2 },
+
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    ...shadows.soft,
+    gap: 14,
+    marginBottom: 22,
+  },
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.brand,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  avatarText: { color: '#FFFFFF', fontFamily: fonts.black, fontSize: 22 },
+  userName: { fontFamily: fonts.extrabold, fontSize: 15, color: colors.text },
+  userEmail: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textMuted, marginTop: 1 },
+  companyChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#E8F5EC',
+    backgroundColor: colors.brandTint,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     marginTop: 6,
+    gap: 4,
   },
+  companyText: { fontFamily: fonts.bold, fontSize: 11, color: colors.brandDark, maxWidth: 200 },
 
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#EEF0EF',
-  },
-  rowIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#E8F5EC',
+  sectionTitle: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4, marginBottom: 10 },
+  menu: { borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.divider, ...shadows.soft },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  menuIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.brandTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  menuLabel: { fontFamily: fonts.extrabold, fontSize: 14.5, color: colors.text },
+  menuDesc: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textMuted, marginTop: 2 },
+  menuDivider: { height: 1, marginLeft: 64, backgroundColor: colors.divider },
 
-  logout: {
-    flexDirection: 'row',
+  logoutBtn: {
+    marginTop: 26,
+    height: 52,
+    borderRadius: radius.lg,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingVertical: 14,
-    borderRadius: 16,
-    marginTop: 24,
+    flexDirection: 'row',
+    gap: 8,
   },
+  logoutText: { color: colors.danger, fontFamily: fonts.extrabold, fontSize: 14.5 },
+  version: { textAlign: 'center', color: colors.textSubtle, fontFamily: fonts.medium, fontSize: 11, marginTop: 22, letterSpacing: 0.3 },
 });

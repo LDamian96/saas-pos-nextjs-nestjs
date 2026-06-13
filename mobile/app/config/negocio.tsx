@@ -1,104 +1,132 @@
 // =============================================================================
-// config/negocio.tsx — Datos del negocio.
+// config/negocio.tsx — Datos del negocio (nombre, RUC, dirección).
 // =============================================================================
 
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Save } from 'lucide-react-native';
-import { Text } from '@/components/ui/PText';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { Building2, Save } from 'lucide-react-native';
 
-import { AppHeader } from '@/components/ui/AppHeader';
-import { Card } from '@/components/ui/Card';
-import { PressableButton } from '@/components/ui/PressableButton';
-import { Screen } from '@/components/ui/Screen';
-import { toastSuccess } from '@/services/toast';
+import api from '@/api/client';
+import { getErrorMessage, toastError, toastSuccess } from '@/api/helpers';
+import { remoteLogger } from '@/services/remote-logger';
+import { Header } from '@/components/ui/Header';
+import { Button } from '@/components/ui/Button';
+import { colors, fonts, radius } from '@/theme';
 
-const KEY = 'pos-negocio-info';
-
-export default function NegocioConfig() {
+export default function NegocioScreen() {
+  const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const [nombre, setNombre] = useState('');
   const [ruc, setRuc] = useState('');
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
 
-  useEffect(() => {
-    AsyncStorage.getItem(KEY).then((v) => {
-      if (v) {
-        const c = JSON.parse(v);
-        setNombre(c.nombre ?? '');
-        setRuc(c.ruc ?? '');
-        setDireccion(c.direccion ?? '');
-        setTelefono(c.telefono ?? '');
-      }
-    });
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ['empresa-me'],
+    queryFn: () => api.get('/empresas/me').then((r) => r.data),
+  });
 
-  const save = async () => {
-    await AsyncStorage.setItem(KEY, JSON.stringify({ nombre, ruc, direccion, telefono }));
-    toastSuccess({ title: 'Guardado' });
-    router.back();
-  };
+  useEffect(() => {
+    const emp = data?.data || data;
+    if (emp) {
+      setNombre(emp.nombre || '');
+      setRuc(emp.ruc || '');
+      setDireccion(emp.direccion || '');
+      setTelefono(emp.telefono || '');
+    }
+  }, [data]);
+
+  const updateMutation = useMutation({
+    mutationFn: (body: any) => api.put('/empresas/me', body).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['empresa-me'] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      remoteLogger.info('empresa_actualizada');
+      toastSuccess('Guardado', 'Datos del negocio actualizados');
+    },
+    onError: (err: any) => {
+      remoteLogger.error('empresa_update_failed', err);
+      toastError('Error', getErrorMessage(err));
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <View style={[s.container, { paddingTop: insets.top, alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.brand} />
+      </View>
+    );
+  }
 
   return (
-    <Screen>
-      <AppHeader title="Negocio" subtitle="Datos generales" />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
-        <Field label="NOMBRE DEL NEGOCIO" value={nombre} onChange={setNombre} placeholder="Mi Tienda" delay={0} />
-        <Field label="RUC" value={ruc} onChange={setRuc} placeholder="20XXXXXXXXX" delay={80} keyboard="numeric" maxLen={11} />
-        <Field label="DIRECCIÓN" value={direccion} onChange={setDireccion} placeholder="Av. Lima 123" delay={160} />
-        <Field label="TELÉFONO" value={telefono} onChange={setTelefono} placeholder="999 999 999" delay={240} keyboard="phone-pad" />
-        <View style={{ height: 24 }} />
-        <PressableButton label="Guardar" icon={Save} onPress={save} />
+    <View style={[s.container, { paddingTop: insets.top }]}>
+      <Header title="Mi negocio" subtitle="Datos fiscales y contacto" />
+
+      <ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+        <Animated.View entering={FadeIn.duration(220)} style={s.iconWrap}>
+          <View style={s.iconCircle}>
+            <Building2 color={colors.brand} size={32} strokeWidth={2.2} />
+          </View>
+        </Animated.View>
+
+        <Label>NOMBRE DEL NEGOCIO</Label>
+        <TextInput style={s.input} value={nombre} onChangeText={setNombre} placeholder="Mi Tienda" placeholderTextColor={colors.textPlaceholder} />
+
+        <Label>RUC</Label>
+        <TextInput style={s.input} value={ruc} onChangeText={setRuc} placeholder="20123456789" placeholderTextColor={colors.textPlaceholder} keyboardType="numeric" maxLength={11} />
+
+        <Label>DIRECCIÓN</Label>
+        <TextInput style={s.input} value={direccion} onChangeText={setDireccion} placeholder="Av. Principal 123" placeholderTextColor={colors.textPlaceholder} />
+
+        <Label>TELÉFONO</Label>
+        <TextInput style={s.input} value={telefono} onChangeText={setTelefono} placeholder="999 999 999" placeholderTextColor={colors.textPlaceholder} keyboardType="phone-pad" />
+
+        <View style={{ marginTop: 28 }}>
+          <Button
+            label={updateMutation.isPending ? 'Guardando…' : 'Guardar'}
+            onPress={() => updateMutation.mutate({ nombre, ruc, direccion, telefono })}
+            loading={updateMutation.isPending}
+            icon={Save}
+            size="lg"
+          />
+        </View>
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  delay,
-  keyboard,
-  maxLen,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  delay: number;
-  keyboard?: 'default' | 'numeric' | 'phone-pad';
-  maxLen?: number;
-}) {
-  return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(280)} style={{ marginBottom: 10 }}>
-      <Card>
-        <Text fontFamily="$body" fontSize={11} fontWeight="700" color="$colorSubtle" letterSpacing={1.2}>
-          {label}
-        </Text>
-        <TextInput
-          style={s.input}
-          value={value}
-          onChangeText={onChange}
-          placeholder={placeholder}
-          placeholderTextColor="#A8B0AB"
-          keyboardType={keyboard}
-          maxLength={maxLen}
-        />
-      </Card>
-    </Animated.View>
-  );
+function Label({ children }: { children: string }) {
+  return <Text style={s.label}>{children}</Text>;
 }
 
 const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  form: { padding: 20, paddingBottom: 40 },
+  iconWrap: { alignItems: 'center', marginVertical: 12 },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.brandTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
+  },
+  label: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4, marginBottom: 8, marginTop: 16 },
   input: {
-    fontFamily: 'Mulish_700Bold',
-    fontSize: 16,
-    color: '#0C0C0C',
-    paddingVertical: 8,
+    height: 50,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    fontFamily: fonts.semibold,
+    fontSize: 14.5,
+    borderWidth: 1.2,
+    borderColor: colors.divider,
+    color: colors.text,
   },
 });

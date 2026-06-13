@@ -3,123 +3,177 @@
 // =============================================================================
 
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
-import { ArrowRight, Wallet } from 'lucide-react-native';
-import { Text } from '@/components/ui/PText';
+import Animated, { Easing, FadeIn, FadeInUp } from 'react-native-reanimated';
+import { Building2, CheckCircle2, CircleAlert, KeyRound, Wallet } from 'lucide-react-native';
 
 import api from '@/api/client';
-import { getErrorMessage } from '@/api/helpers';
-import { AppHeader } from '@/components/ui/AppHeader';
-import { PressableButton } from '@/components/ui/PressableButton';
-import { Screen } from '@/components/ui/Screen';
-import { toastError, toastSuccess } from '@/services/toast';
+import { useAuthStore } from '@/stores/auth.store';
+import { getErrorMessage, toastError, toastSuccess } from '@/api/helpers';
+import { remoteLogger } from '@/services/remote-logger';
+import { Header } from '@/components/ui/Header';
+import { Button } from '@/components/ui/Button';
+import { colors, fonts, radius, shadows } from '@/theme';
 
-export default function CajaAbrirScreen() {
+export default function AbrirCajaScreen() {
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const [monto, setMonto] = useState('');
+  const { usuario } = useAuthStore();
+  const [montoInicial, setMontoInicial] = useState('');
+  const sucursalId = usuario?.sucursal?.id;
 
-  const m = useMutation({
-    mutationFn: (montoInicial: number) =>
-      api.post('/caja/abrir', { montoInicial }).then((r) => r.data),
+  const abrirMutation = useMutation({
+    mutationFn: (body: any) => api.post('/caja/abrir', body).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caja-actual'] });
-      toastSuccess({ title: 'Caja abierta' });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      remoteLogger.info('caja_abierta', { sucursalId, monto: Number(montoInicial) });
+      toastSuccess('Caja abierta', 'Ya puedes vender');
       router.back();
     },
-    onError: (err: Error) => toastError({ title: 'Error', message: getErrorMessage(err) }),
+    onError: (err: any) => {
+      remoteLogger.error('caja_abrir_failed', err);
+      toastError('Error', getErrorMessage(err));
+    },
   });
 
   const handleAbrir = () => {
-    const n = Number(monto) || 0;
-    if (n < 0) {
-      toastError({ title: 'Monto inválido' });
+    if (!sucursalId) {
+      toastError('Sin sucursal', 'No tienes sucursal asignada');
       return;
     }
-    m.mutate(n);
+    abrirMutation.mutate({ sucursalId, montoInicial: Number(montoInicial) || 0 });
   };
 
   return (
-    <Screen>
-      <AppHeader title="Abrir caja" subtitle="Empieza tu turno" />
+    <View style={[s.container, { paddingTop: insets.top }]}>
+      <Header title="Abrir caja" subtitle="Empieza la jornada" />
+
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-        <Animated.View entering={FadeInDown.duration(280).easing(Easing.out(Easing.cubic))} style={s.iconWrap}>
+        <Animated.View entering={FadeIn.duration(260)} style={s.iconWrap}>
           <View style={s.iconCircle}>
-            <Wallet color="#FFFFFF" size={40} strokeWidth={2.2} />
+            <KeyRound color={colors.brand} size={36} strokeWidth={2.2} />
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(120).duration(280)}>
-          <Text fontFamily="$body" fontSize={22} fontWeight="900" color="$color" textAlign="center" letterSpacing={-0.4}>
-            Monto inicial de la caja
-          </Text>
-          <Text fontFamily="$body" fontSize={13} color="$colorMuted" textAlign="center" marginTop={6}>
-            Ingresa el efectivo con el que empiezas
-          </Text>
-        </Animated.View>
+        <Animated.Text entering={FadeIn.delay(60).duration(220)} style={s.label}>
+          SUCURSAL
+        </Animated.Text>
+        {sucursalId ? (
+          <Animated.View entering={FadeInUp.delay(80).duration(260).easing(Easing.out(Easing.cubic))} style={s.sucCard}>
+            <View style={s.sucIcon}>
+              <Building2 color={colors.brand} size={18} strokeWidth={2.2} />
+            </View>
+            <Text style={s.sucName}>{usuario?.sucursal?.nombre || 'Sucursal'}</Text>
+            <View style={s.checkCircle}>
+              <CheckCircle2 color="#FFFFFF" size={14} strokeWidth={2.6} />
+            </View>
+          </Animated.View>
+        ) : (
+          <View style={s.sucWarning}>
+            <CircleAlert color={colors.warningText} size={18} strokeWidth={2.2} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={s.warnTitle}>Sin sucursal asignada</Text>
+              <Text style={s.warnDesc}>Contacta al administrador</Text>
+            </View>
+          </View>
+        )}
 
-        <Animated.View entering={FadeInDown.delay(200).duration(280)} style={s.inputCard}>
-          <Text fontFamily="$body" fontSize={32} fontWeight="900" color="#00932C" marginRight={10}>
-            S/
-          </Text>
+        <Text style={s.label}>MONTO INICIAL · EFECTIVO EN CAJA</Text>
+        <View style={s.montoWrap}>
+          <Wallet color={colors.brand} size={22} strokeWidth={2.2} />
+          <Text style={s.montoPrefix}>S/</Text>
           <TextInput
-            style={s.input}
-            value={monto}
-            onChangeText={setMonto}
+            style={s.montoInput}
+            value={montoInicial}
+            onChangeText={setMontoInicial}
             placeholder="0.00"
-            placeholderTextColor="#CBD5C9"
+            placeholderTextColor={colors.textPlaceholder}
             keyboardType="decimal-pad"
-            autoFocus
           />
-        </Animated.View>
+        </View>
 
-        <Animated.View entering={FadeInDown.delay(280).duration(280)} style={{ marginTop: 24 }}>
-          <PressableButton
-            label="Abrir caja"
-            rightIcon={ArrowRight}
-            size="lg"
-            loading={m.isPending}
+        <View style={{ marginTop: 12 }}>
+          <Button
+            label={abrirMutation.isPending ? 'Abriendo…' : 'Abrir caja'}
             onPress={handleAbrir}
+            loading={abrirMutation.isPending}
+            disabled={!sucursalId}
+            size="lg"
+            icon={KeyRound}
           />
-        </Animated.View>
+        </View>
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  content: { padding: 20 },
-  iconWrap: { alignItems: 'center', marginTop: 24, marginBottom: 28 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: 20, paddingBottom: 40 },
+
+  iconWrap: { alignItems: 'center', marginVertical: 20 },
   iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 30,
-    backgroundColor: '#00932C',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.brandTint,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00932C',
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
   },
-  inputCard: {
+
+  label: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4, marginBottom: 10, marginTop: 16 },
+
+  sucCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    paddingHorizontal: 20,
-    marginTop: 28,
+    backgroundColor: colors.brandTint,
+    borderRadius: radius.lg,
+    padding: 14,
     borderWidth: 1.4,
-    borderColor: '#E5E7E6',
+    borderColor: colors.brand,
+    gap: 12,
   },
-  input: {
-    flex: 1,
-    height: 70,
-    fontFamily: 'Mulish_900Black',
-    fontSize: 38,
-    color: '#0C0C0C',
+  sucIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  sucName: { flex: 1, fontFamily: fonts.extrabold, fontSize: 14.5, color: colors.brandDark },
+  checkCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
+  sucWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.warningSoft,
+    borderRadius: radius.lg,
+    padding: 14,
+    borderWidth: 1.4,
+    borderColor: colors.warningBorder,
+  },
+  warnTitle: { fontFamily: fonts.extrabold, fontSize: 13, color: colors.warningText },
+  warnDesc: { fontFamily: fonts.semibold, fontSize: 12, color: colors.warningText, opacity: 0.85, marginTop: 2 },
+
+  montoWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1.4,
+    borderColor: colors.divider,
+    paddingHorizontal: 16,
+    gap: 10,
+    ...shadows.soft,
+  },
+  montoPrefix: { fontFamily: fonts.black, fontSize: 24, color: colors.brand },
+  montoInput: { flex: 1, height: 64, fontFamily: fonts.black, fontSize: 32, color: colors.text, padding: 0, letterSpacing: -0.6 },
 });

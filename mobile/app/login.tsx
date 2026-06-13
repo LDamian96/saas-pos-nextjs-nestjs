@@ -1,22 +1,9 @@
 // =============================================================================
-// login.tsx — Login ULTRAMODERNO sobrio.
-//   • Tamagui Stack/YStack para layout limpio
-//   • Reanimated 4 para animaciones de entrada nativas 60fps
-//   • lucide-react-native para iconos finos consistentes con la web
-//   • burnt toast nativo para feedback
-//   • Mulish via expo-google-fonts
-//   • Sin glass/orbes — fondo claro + verde DineTrack solo en acentos
+// login.tsx — Login ultramoderno sobrio premium.
 // =============================================================================
 
-import { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { ComponentType, useEffect, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -29,13 +16,13 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Eye, EyeOff, Lock, LogIn, Mail, ShoppingBag, UserRound } from 'lucide-react-native';
-import { Text, YStack } from '@/components/ui/PText';
 
 import { useAuthStore } from '@/stores/auth.store';
-import { toastError, toastSuccess } from '@/services/toast';
+import { toastError, toastSuccess } from '@/api/helpers';
 import { remoteLogger } from '@/services/remote-logger';
+import { Button } from '@/components/ui/Button';
+import { colors, fonts, radius } from '@/theme';
 
 const DEMO_EMAIL = 'admin@demo.com';
 const DEMO_PASS = 'admin123';
@@ -53,7 +40,7 @@ export default function LoginScreen() {
     const em = (e ?? email).trim();
     const pw = p ?? password;
     if (!em || !pw) {
-      toastError({ title: 'Datos incompletos', message: 'Ingresa correo y contraseña' });
+      toastError('Datos incompletos', 'Ingresa correo y contraseña');
       return;
     }
     setLoading(true);
@@ -61,49 +48,30 @@ export default function LoginScreen() {
     try {
       await login(em, pw);
       remoteLogger.info('login_success');
-      toastSuccess({ title: 'Bienvenido', message: 'Sesión iniciada' });
+      toastSuccess('Bienvenido', 'Sesión iniciada');
       router.replace('/(tabs)');
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? 'Credenciales incorrectas';
       remoteLogger.warning('login_failed', { reason: msg });
-      toastError({ title: 'No pudimos entrar', message: msg });
+      toastError('No pudimos entrar', msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={s.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <YStack
-        flex={1}
-        paddingHorizontal={24}
-        paddingTop={insets.top + 32}
-        paddingBottom={insets.bottom + 24}
-      >
-        {/* ─── Header ─────────────────────────────── */}
+    <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }}>
         <Animated.View entering={FadeIn.duration(260).easing(Easing.out(Easing.cubic))}>
           <LogoBadge />
         </Animated.View>
 
-        <Animated.View
-          entering={FadeInUp.delay(80).duration(280).easing(Easing.out(Easing.cubic))}
-        >
-          <Text fontFamily="$body" fontWeight="900" fontSize={30} color="$color" marginTop={28} letterSpacing={-0.6}>
-            Bienvenido
-          </Text>
-          <Text fontFamily="$body" fontWeight="500" fontSize={15} color="$colorMuted" marginTop={4}>
-            Inicia sesión para empezar a vender
-          </Text>
+        <Animated.View entering={FadeInUp.delay(80).duration(280).easing(Easing.out(Easing.cubic))}>
+          <Text style={s.title}>Bienvenido</Text>
+          <Text style={s.subtitle}>Inicia sesión para empezar a vender</Text>
         </Animated.View>
 
-        {/* ─── Form ───────────────────────────────── */}
-        <Animated.View
-          entering={FadeInUp.delay(160).duration(300).easing(Easing.out(Easing.cubic))}
-          style={{ marginTop: 32 }}
-        >
+        <Animated.View entering={FadeInUp.delay(160).duration(300).easing(Easing.out(Easing.cubic))} style={{ marginTop: 32 }}>
           <FloatingInput
             icon={Mail}
             label="Correo"
@@ -125,38 +93,21 @@ export default function LoginScreen() {
           />
         </Animated.View>
 
-        {/* ─── CTA ────────────────────────────────── */}
-        <Animated.View
-          entering={FadeInUp.delay(240).duration(300).easing(Easing.out(Easing.cubic))}
-          style={{ marginTop: 28 }}
-        >
-          <PrimaryButton
-            label={loading ? 'Entrando…' : 'Entrar'}
-            icon={LogIn}
-            loading={loading}
-            onPress={() => handleLogin()}
-          />
+        <Animated.View entering={FadeInUp.delay(240).duration(300).easing(Easing.out(Easing.cubic))} style={{ marginTop: 28 }}>
+          <Button label={loading ? 'Entrando…' : 'Entrar'} icon={LogIn} loading={loading} onPress={() => handleLogin()} size="lg" />
         </Animated.View>
 
-        {/* ─── Divider ────────────────────────────── */}
-        <Animated.View
-          entering={FadeIn.delay(340).duration(280)}
-          style={s.dividerWrap}
-        >
+        <Animated.View entering={FadeIn.delay(340).duration(280)} style={s.divider}>
           <View style={s.dividerLine} />
-          <Text fontFamily="$body" fontSize={11} color="$colorSubtle" marginHorizontal={12} letterSpacing={0.6}>
-            o usa cuenta demo
-          </Text>
+          <Text style={s.dividerText}>O USA CUENTA DEMO</Text>
           <View style={s.dividerLine} />
         </Animated.View>
 
-        {/* ─── Demo button ────────────────────────── */}
-        <Animated.View
-          entering={FadeInDown.delay(380).duration(300).easing(Easing.out(Easing.cubic))}
-        >
-          <OutlineButton
+        <Animated.View entering={FadeInDown.delay(380).duration(300).easing(Easing.out(Easing.cubic))}>
+          <Button
             label="Probar con cuenta demo"
             icon={UserRound}
+            variant="outline"
             onPress={() => {
               setEmail(DEMO_EMAIL);
               setPassword(DEMO_PASS);
@@ -168,25 +119,12 @@ export default function LoginScreen() {
         <View style={{ flex: 1 }} />
 
         <Animated.View entering={FadeIn.delay(500).duration(260)}>
-          <Text
-            fontFamily="$body"
-            fontSize={12}
-            color="$colorSubtle"
-            textAlign="center"
-            marginTop={16}
-            letterSpacing={0.3}
-          >
-            POS Shop · v0.1
-          </Text>
+          <Text style={s.footer}>POS Shop · v1.0</Text>
         </Animated.View>
-      </YStack>
+      </View>
     </KeyboardAvoidingView>
   );
 }
-
-// =============================================================================
-// Sub-componentes
-// =============================================================================
 
 function LogoBadge() {
   const scale = useSharedValue(0.6);
@@ -203,21 +141,21 @@ function LogoBadge() {
   }));
 
   return (
-    <Animated.View style={[s.logoBadge, animStyle]}>
+    <Animated.View style={[s.logo, animStyle]}>
       <ShoppingBag color="#FFFFFF" size={30} strokeWidth={2.4} />
     </Animated.View>
   );
 }
 
 interface InputProps {
-  icon: typeof Mail;
+  icon: ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric';
-  rightIcon?: typeof Eye;
+  rightIcon?: ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
   onRightPress?: () => void;
 }
 
@@ -233,33 +171,25 @@ function FloatingInput({
   onRightPress,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
-  const borderProgress = useSharedValue(0);
-
-  useEffect(() => {
-    borderProgress.value = withTiming(focused ? 1 : 0, {
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [focused]);
+  const border = useSharedValue(0);
+  border.value = withTiming(focused ? 1 : 0, { duration: 180, easing: Easing.out(Easing.cubic) });
 
   const animBorder = useAnimatedStyle(() => ({
-    borderColor: borderProgress.value > 0.5 ? '#00932C' : '#E5E7E6',
+    borderColor: border.value > 0.5 ? colors.brand : colors.border,
     borderWidth: 1.4,
   }));
 
   return (
     <Animated.View style={[s.input, animBorder]}>
-      <Icon color={focused ? '#00932C' : '#8A938D'} size={20} strokeWidth={2} />
+      <Icon color={focused ? colors.brand : colors.textSubtle} size={20} strokeWidth={2} />
       <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text fontFamily="$body" fontSize={10} fontWeight="700" color="$colorSubtle" letterSpacing={1.2}>
-          {label.toUpperCase()}
-        </Text>
+        <Text style={s.inputLabel}>{label.toUpperCase()}</Text>
         <TextInput
           style={s.inputText}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#C8CDC9"
+          placeholderTextColor={colors.textPlaceholder}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize="none"
@@ -270,148 +200,43 @@ function FloatingInput({
       </View>
       {RightIcon && (
         <Pressable onPress={onRightPress} hitSlop={10}>
-          <RightIcon color="#8A938D" size={18} strokeWidth={2} />
+          <RightIcon color={colors.textSubtle} size={18} strokeWidth={2} />
         </Pressable>
       )}
     </Animated.View>
   );
 }
 
-interface BtnProps {
-  label: string;
-  icon: typeof LogIn;
-  onPress: () => void;
-  loading?: boolean;
-}
-
-function PrimaryButton({ label, icon: Icon, onPress, loading }: BtnProps) {
-  const scale = useSharedValue(1);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const onPressIn = () => {
-    scale.value = withSpring(0.96, { damping: 14, stiffness: 400 });
-  };
-  const onPressOut = () => {
-    scale.value = withSpring(1, { damping: 14, stiffness: 400 });
-  };
-
-  return (
-    <Pressable
-      onPress={() => {
-        if (loading) return;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        onPress();
-      }}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-    >
-      <Animated.View style={[s.primaryBtn, animStyle, loading && { opacity: 0.85 }]}>
-        <Icon color="#FFFFFF" size={20} strokeWidth={2.4} />
-        <Text fontFamily="$body" color="#FFFFFF" fontWeight="800" fontSize={16} marginLeft={10} letterSpacing={0.2}>
-          {label}
-        </Text>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-function OutlineButton({ label, icon: Icon, onPress }: BtnProps) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  return (
-    <Pressable
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-      onPressIn={() => (scale.value = withSpring(0.97, { damping: 14, stiffness: 400 }))}
-      onPressOut={() => (scale.value = withSpring(1, { damping: 14, stiffness: 400 }))}
-    >
-      <Animated.View style={[s.outlineBtn, animStyle]}>
-        <Icon color="#00932C" size={18} strokeWidth={2.2} />
-        <Text fontFamily="$body" color="$primary" fontWeight="700" fontSize={14} marginLeft={10}>
-          {label}
-        </Text>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-// =============================================================================
-// Styles
-// =============================================================================
-
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
-
-  logoBadge: {
+  container: { flex: 1, backgroundColor: colors.bg },
+  logo: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#00932C',
+    backgroundColor: colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00932C',
-    shadowOpacity: 0.25,
+    shadowColor: colors.brand,
+    shadowOpacity: 0.28,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
-
+  title: { fontFamily: fonts.black, fontSize: 30, color: colors.text, marginTop: 28, letterSpacing: -0.6 },
+  subtitle: { fontFamily: fonts.medium, fontSize: 15, color: colors.textMuted, marginTop: 4 },
   input: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     minHeight: 64,
   },
-  inputText: {
-    fontFamily: 'Mulish_600SemiBold',
-    fontSize: 15,
-    color: '#0C0C0C',
-    padding: 0,
-    margin: 0,
-  },
-
-  primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#00932C',
-    height: 56,
-    borderRadius: 16,
-    shadowColor: '#00932C',
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-
-  outlineBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    height: 52,
-    borderRadius: 16,
-    borderWidth: 1.4,
-    borderColor: '#E5E7E6',
-  },
-
-  dividerWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 22,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7E6',
-  },
+  inputLabel: { fontFamily: fonts.bold, fontSize: 10, color: colors.textSubtle, letterSpacing: 1.2 },
+  inputText: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text, padding: 0, margin: 0 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 22 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { fontFamily: fonts.bold, fontSize: 10, color: colors.textSubtle, marginHorizontal: 12, letterSpacing: 1.2 },
+  footer: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSubtle, textAlign: 'center', marginTop: 16, letterSpacing: 0.3 },
 });

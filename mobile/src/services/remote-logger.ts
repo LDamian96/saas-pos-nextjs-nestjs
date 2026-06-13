@@ -1,8 +1,6 @@
 // =============================================================================
-// remote-logger.ts
-// Envía logs/errores al backend (POST /logs/mobile) para diagnóstico remoto.
-// Yo veo los errores desde el VPS con:
-//   ssh root@62.146.228.180 "docker logs -f pos_ldmapp_backend | grep MOBILE_LOG"
+// remote-logger.ts — Envía logs/errores al backend para diagnóstico remoto.
+// Ver desde el VPS: ssh root@62.146.228.180 "docker logs -f pos_ldmapp_backend | grep MOBILE_LOG"
 // =============================================================================
 
 import { Platform } from 'react-native';
@@ -15,17 +13,10 @@ const SESSION_ID = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 type Level = 'debug' | 'info' | 'warning' | 'error' | 'fatal';
 
-interface LogContext {
-  userId?: string;
-  empresaId?: string;
-  route?: string;
-}
-
-const ctx: LogContext = {};
-
+const ctx: { userId?: string; empresaId?: string } = {};
 let currentRoute: string | undefined;
 
-const deviceSnapshot = {
+const device = {
   platform: Platform.OS,
   osVersion: Platform.Version?.toString() ?? '',
   model: Device.modelName ?? '',
@@ -53,25 +44,26 @@ function truncate(s: unknown, max: number) {
   return str.length > max ? str.slice(0, max) : str;
 }
 
-async function send(level: Level, message: string, error?: unknown, stack?: string, extra?: Record<string, unknown>) {
-  // Log local en consola (visible en Expo Go / dev)
-  // eslint-disable-next-line no-console
-  if (__DEV__) console[level === 'fatal' || level === 'error' ? 'error' : level === 'warning' ? 'warn' : 'log']('[REMOTE_LOG]', message, error ?? '');
-
+async function send(level: Level, msg: string, err?: unknown, stack?: string, extra?: Record<string, unknown>) {
+  if (__DEV__) {
+    const fn = level === 'fatal' || level === 'error' ? 'error' : level === 'warning' ? 'warn' : 'log';
+    // eslint-disable-next-line no-console
+    console[fn]('[REMOTE_LOG]', msg, err ?? '');
+  }
   try {
     const body: Record<string, unknown> = {
       level,
-      message: truncate(message, 500),
+      message: truncate(msg, 500),
       sessionId: SESSION_ID,
       timestamp: new Date().toISOString(),
-      device: deviceSnapshot,
+      device,
     };
-    if (error) body.error = truncate(error instanceof Error ? error.message : String(error), 2000);
+    if (err) body.error = truncate(err instanceof Error ? err.message : String(err), 2000);
     if (stack) body.stackTrace = truncate(stack, 8000);
     if (currentRoute) body.route = currentRoute;
     if (ctx.userId) body.userId = ctx.userId;
     if (ctx.empresaId) body.empresaId = ctx.empresaId;
-    if (extra && Object.keys(extra).length > 0) body.extra = truncate(JSON.stringify(extra), 2000);
+    if (extra) body.extra = truncate(JSON.stringify(extra), 2000);
 
     await fetch(ENDPOINT, {
       method: 'POST',
@@ -79,27 +71,24 @@ async function send(level: Level, message: string, error?: unknown, stack?: stri
       body: JSON.stringify(body),
     });
   } catch {
-    // Fire and forget — un fallo aquí NO debe romper la app.
+    // Fire and forget — no debe romper la app
   }
 }
 
 export const remoteLogger = {
-  debug: (msg: string, extra?: Record<string, unknown>) => send('debug', msg, undefined, undefined, extra),
-  info: (msg: string, extra?: Record<string, unknown>) => send('info', msg, undefined, undefined, extra),
-  warning: (msg: string, extra?: Record<string, unknown>) => send('warning', msg, undefined, undefined, extra),
-  error: (msg: string, err?: unknown, extra?: Record<string, unknown>) => {
-    const stack = err instanceof Error ? err.stack : undefined;
-    return send('error', msg, err, stack, extra);
+  debug: (m: string, e?: Record<string, unknown>) => send('debug', m, undefined, undefined, e),
+  info: (m: string, e?: Record<string, unknown>) => send('info', m, undefined, undefined, e),
+  warning: (m: string, e?: Record<string, unknown>) => send('warning', m, undefined, undefined, e),
+  error: (m: string, err?: unknown, extra?: Record<string, unknown>) => {
+    const s = err instanceof Error ? err.stack : undefined;
+    return send('error', m, err, s, extra);
   },
-  fatal: (msg: string, err?: unknown, extra?: Record<string, unknown>) => {
-    const stack = err instanceof Error ? err.stack : undefined;
-    return send('fatal', msg, err, stack, extra);
+  fatal: (m: string, err?: unknown, extra?: Record<string, unknown>) => {
+    const s = err instanceof Error ? err.stack : undefined;
+    return send('fatal', m, err, s, extra);
   },
 };
 
-/**
- * Instalar handlers globales — llamar UNA vez al iniciar la app (en _layout.tsx).
- */
 export function installGlobalErrorHandlers() {
   const g = globalThis as unknown as {
     ErrorUtils?: {
@@ -107,20 +96,9 @@ export function installGlobalErrorHandlers() {
       setGlobalHandler?: (h: (e: Error, fatal?: boolean) => void) => void;
     };
   };
-
   const prev = g.ErrorUtils?.getGlobalHandler?.();
   g.ErrorUtils?.setGlobalHandler?.((err, isFatal) => {
     remoteLogger[isFatal ? 'fatal' : 'error']('GlobalJSError', err);
     prev?.(err, isFatal);
   });
-
-  // Promise rejections sin .catch
-  if (typeof process !== 'undefined' && typeof (process as { on?: unknown }).on === 'function') {
-    (process as { on: (e: string, cb: (...args: unknown[]) => void) => void }).on(
-      'unhandledRejection',
-      (reason: unknown) => {
-        remoteLogger.error('UnhandledPromiseRejection', reason);
-      },
-    );
-  }
 }
