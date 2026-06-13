@@ -19,7 +19,7 @@ import {
   Tag,
   type LucideIcon,
 } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import { useAuthStore } from '@/stores/auth.store';
 import { Card } from '@/components/ui/Card';

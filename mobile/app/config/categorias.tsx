@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Plus, Sparkles, Trash2 } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import api from '@/api/client';
 import { extractList, getErrorMessage } from '@/api/helpers';

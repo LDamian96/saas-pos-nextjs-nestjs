@@ -9,7 +9,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Save, Trash2 } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import api from '@/api/client';
 import { getErrorMessage } from '@/api/helpers';

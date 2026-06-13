@@ -5,7 +5,7 @@
 import { ComponentType, ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { ChevronRight, LucideIcon } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 import * as Haptics from 'expo-haptics';
 
 interface Props {

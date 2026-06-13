@@ -1,9 +1,8 @@
 // =============================================================================
-// toast.ts — Wrapper sobre burnt para toasts NATIVOS (SF Symbols iOS,
-// Material 3 Android). Se ven 100% nativos, no como toasts RN.
+// toast.ts — Wrapper sobre react-native-toast-message (ya configurado).
 // =============================================================================
 
-import { alert as burntAlert, toast as burntToast } from 'burnt';
+import Toast from 'react-native-toast-message';
 
 interface Opts {
   title: string;
@@ -11,55 +10,37 @@ interface Opts {
 }
 
 export function toastSuccess({ title, message }: Opts) {
-  burntToast({
-    title,
-    message,
-    preset: 'done',
-    haptic: 'success',
-    duration: 2.2,
+  Toast.show({
+    type: 'success',
+    text1: title,
+    text2: message,
+    visibilityTime: 2200,
   });
 }
 
 export function toastError({ title, message }: Opts) {
-  burntToast({
-    title,
-    message,
-    preset: 'error',
-    haptic: 'error',
-    duration: 3.5,
+  Toast.show({
+    type: 'error',
+    text1: title,
+    text2: message,
+    visibilityTime: 3500,
   });
 }
 
 export function toastInfo({ title, message }: Opts) {
-  burntToast({
-    title,
-    message,
-    preset: 'none',
-    haptic: 'none',
-    duration: 2,
+  Toast.show({
+    type: 'info',
+    text1: title,
+    text2: message,
+    visibilityTime: 2000,
   });
 }
 
 export function toastWarn({ title, message }: Opts) {
-  burntToast({
-    title,
-    message,
-    preset: 'none',
-    haptic: 'warning',
-    duration: 2.6,
-  });
-}
-
-export function dialogConfirm(opts: {
-  title: string;
-  message?: string;
-  okLabel?: string;
-  cancelLabel?: string;
-}) {
-  return burntAlert({
-    title: opts.title,
-    message: opts.message ?? '',
-    preset: 'none',
-    duration: 4,
+  Toast.show({
+    type: 'info',
+    text1: title,
+    text2: message,
+    visibilityTime: 2600,
   });
 }

@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { CheckCircle2, XCircle } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import api from '@/api/client';
 import { getErrorMessage } from '@/api/helpers';

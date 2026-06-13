@@ -8,7 +8,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { FlashList } from '@shopify/flash-list';
+import { FlatList } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -18,7 +18,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { ChevronRight, Package2, Plus, Search } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import api from '@/api/client';
 import { extractList } from '@/api/helpers';
@@ -84,10 +84,10 @@ export default function ProductosScreen() {
         />
       </Animated.View>
 
-      <FlashList
+      <FlatList
         data={productos}
         keyExtractor={(item) => item.id}
-        estimatedItemSize={88}
+        
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         renderItem={({ item, index }) => <Row producto={item} index={index} />}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}

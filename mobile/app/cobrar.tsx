@@ -29,7 +29,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import api from '@/api/client';
 import { extractList, getErrorMessage } from '@/api/helpers';

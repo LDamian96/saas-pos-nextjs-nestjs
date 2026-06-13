@@ -24,7 +24,7 @@ import {
   Settings2,
   type LucideIcon,
 } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 const ICONS: Record<string, LucideIcon> = {
   index: LayoutGrid,

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "3bfa0734-636f-43cb-b0ef-d2d1184c588d",
+    "status": "ERRORED",
+    "platform": "ANDROID",
+    "error": {
+      "errorCode": "UNKNOWN_ERROR",
+      "message": "Unknown error. See logs of the Bundle JavaScript build phase for more information."
+    },
+    "artifacts": {},
+    "fingerprint": {
+      "id": "019ebe7e-6cfc-7acc-a8ca-56045402d8d1",
+      "hash": "43977e53721e43e31b6bfbb70fd067bcfc738f38"
+    },
+    "initiatingActor": {
+      "id": "0795f557-936a-42be-b5f7-799ac5f01075",
+      "displayName": "luis021625"
+    },
+    "logFiles": [
+      "https://storage.googleapis.com/eas-workflows-production/logs/9d600d25-7554-42a8-ad75-1c725a44227a/3bfa0734-636f-43cb-b0ef-d2d1184c588d/2026-06-13T01%3A00%3A19Z-1148d2ea-01f8-43af-8394-da4061f9a5fd.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260613%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260613T010736Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=251beb665dc0d8f8acb2dfa5556ea95871da03d1d4255cb3dd30d38e5c6fbcb70b04b3e894e384c61efd911e930c2b52c0a3f73e9888bffed1106043e5b8c2f89a16c45ff3ccf9ab2fcd85ca2adc3d7b7370ebd9fc1088d005147abbcfd96847671a5e45e0b864663794538914882cc99e6479975a5337150bf8c136e36854e5a1c14f50b4ff82e08732eed5536c0e24b385e966e842988a640f5de04c3f7b8b105678b481197ef467baac8abef11bf3e4c7f0e7e3140c75cf3abb31a85c60e7273dbcce65e0d3d2ac45c8ac84fd4d913249a076aeb3f092f9286544e2a307e3deab9fd49bf3a7608434511cc16b8f2f6a608013655b04269eeaf4be248ee70f"
+    ],
+    "project": {
+      "id": "9d600d25-7554-42a8-ad75-1c725a44227a",
+      "name": "pos-shop",
+      "slug": "pos-shop",
+      "ownerAccount": {
+        "id": "20fc0e74-77df-4936-8526-2e86d5d27f5c",
+        "name": "luis021625"
+      }
+    },
+    "channel": "preview",
+    "distribution": "INTERNAL",
+    "buildProfile": "preview",
+    "sdkVersion": "54.0.0",
+    "appVersion": "1.0.0",
+    "appBuildVersion": "1",
+    "runtimeVersion": "1.0.0",
+    "gitCommitHash": "b701b702c55bbfff9831b14cedb5e6e76fb85b4e",
+    "gitCommitMessage": "POSSHOP-29-2026-06-13 00:56 (PERU) — RN: fix peer dep react-native-svg + 7 packages al sdk54 patch\n\nexpo-doctor: 17/17 checks passed (antes 15/17 con error)\n\nFix 1: react-native-svg agregado (peer dep requerida por lucide-react-native)\n\nFix 2: 7 packages a versión patch correcta del SDK 54:\n\n- expo 54.0.33 ? 54.0.35\n\n- expo-font 14.0.11 ? 14.0.12\n\n- expo-image-picker 17.0.10 ? 17.0.11\n\n- expo-linking 8.0.11 ? 8.0.12\n\n- expo-router 6.0.23 ? 6.0.24\n\n- expo-updates 29.0.16 ? 29.0.18\n\n- expo-web-browser 15.0.10 ? 15.0.11\n\nBuild EAS anterior falló en 'Install dependencies' por estos issues. Re-disparado.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+    "priority": "NORMAL",
+    "createdAt": "2026-06-13T01:00:16.980Z",
+    "updatedAt": "2026-06-13T01:01:13.562Z",
+    "completedAt": "2026-06-13T01:01:13.409Z",
+    "expirationDate": "2026-06-27T01:00:17.008Z",
+    "isForIosSimulator": false,
+    "metrics": {
+      "buildWaitTime": 2107,
+      "buildQueueTime": 4638,
+      "buildDuration": 49684
+    }
+  }
+]

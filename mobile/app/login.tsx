@@ -31,7 +31,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Eye, EyeOff, Lock, LogIn, Mail, ShoppingBag, UserRound } from 'lucide-react-native';
-import { Text, YStack } from 'tamagui';
+import { Text, YStack } from '@/components/ui/PText';
 
 import { useAuthStore } from '@/stores/auth.store';
 import { toastError, toastSuccess } from '@/services/toast';

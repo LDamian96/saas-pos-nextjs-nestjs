@@ -15,7 +15,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
-import { TamaguiProvider } from 'tamagui';
 import {
   useFonts,
   Mulish_400Regular,
@@ -26,7 +25,6 @@ import {
   Mulish_900Black,
 } from '@expo-google-fonts/mulish';
 
-import tamaguiConfig from '../tamagui.config';
 import { useAuthStore } from '@/stores/auth.store';
 import { AnimatedSplash } from '@/components/splash-screen';
 import {
@@ -111,8 +109,7 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F7F8FA' }}>
-      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <Stack
               screenOptions={{
@@ -142,7 +139,6 @@ export default function RootLayout() {
             <StatusBar style="dark" />
           </GestureHandlerRootView>
         </QueryClientProvider>
-      </TamaguiProvider>
       {!splashDone && <AnimatedSplash onAnimationEnd={() => setSplashDone(true)} />}
     </View>
   );

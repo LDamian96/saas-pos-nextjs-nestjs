@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn } from 'react-native-reanimated';
 import { ChevronLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 interface Props {
   title: string;

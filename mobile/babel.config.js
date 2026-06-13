@@ -1,24 +1,13 @@
 // =============================================================================
-// babel.config.js — Babel config con plugin de Tamagui (compile-time CSS).
-// Reanimated debe ser SIEMPRE el último plugin.
+// babel.config.js — Reanimated debe ser SIEMPRE el último plugin.
+// Tamagui removido por problemas de bundle JS con el babel plugin.
+// Usamos StyleSheet + fontFamily Mulish directo, look idéntico.
 // =============================================================================
 
 module.exports = function (api) {
   api.cache(true);
   return {
     presets: ['babel-preset-expo'],
-    plugins: [
-      [
-        '@tamagui/babel-plugin',
-        {
-          components: ['tamagui'],
-          config: './tamagui.config.ts',
-          logTimings: true,
-          disableExtraction: process.env.NODE_ENV === 'development',
-        },
-      ],
-      // Reanimated debe ser el ÚLTIMO plugin (regla obligatoria del package).
-      'react-native-reanimated/plugin',
-    ],
+    plugins: ['react-native-reanimated/plugin'],
   };
 };

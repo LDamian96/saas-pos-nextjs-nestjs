@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { CheckCircle2, Home, MessageCircle, RefreshCcw } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import { usePosStore } from '@/stores/pos.store';
 import { PressableButton } from '@/components/ui/PressableButton';

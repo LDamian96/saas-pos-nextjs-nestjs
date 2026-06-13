@@ -13,7 +13,7 @@ import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { FlashList } from '@shopify/flash-list';
+import { FlatList } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -31,7 +31,7 @@ import {
   Search,
   ShoppingCart,
 } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import { useAuthStore } from '@/stores/auth.store';
 import { useNetworkStore } from '@/stores/network.store';
@@ -257,12 +257,12 @@ export default function POSScreen() {
 
       {/* ─── Grid de productos ──────────────────── */}
       <View style={{ flex: 1 }}>
-        <FlashList
+        <FlatList
           data={productos}
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={s.grid}
-          estimatedItemSize={220}
+          
           renderItem={({ item, index }) => (
             <ProductoCard producto={item} index={index} onPress={() => handleAddToCart(item)} />
           )}

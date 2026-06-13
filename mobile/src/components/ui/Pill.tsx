@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 interface Props {
   label: string;

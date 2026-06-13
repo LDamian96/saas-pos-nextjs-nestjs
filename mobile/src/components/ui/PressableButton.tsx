@@ -11,7 +11,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 type Variant = 'primary' | 'outline' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';

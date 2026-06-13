@@ -7,7 +7,7 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { FileSpreadsheet, Save } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Card } from '@/components/ui/Card';

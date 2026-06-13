@@ -7,7 +7,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { FlashList } from '@shopify/flash-list';
+import { FlatList } from 'react-native';
 import Animated, {
   Easing,
   FadeInDown,
@@ -17,7 +17,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react-native';
-import { Text } from 'tamagui';
+import { Text } from '@/components/ui/PText';
 
 import { usePosStore, type CartItem } from '@/stores/pos.store';
 import { AppHeader } from '@/components/ui/AppHeader';
@@ -58,10 +58,10 @@ export default function CarritoScreen() {
         <EmptyState />
       ) : (
         <>
-          <FlashList
+          <FlatList
             data={cart}
             keyExtractor={(item) => item.varianteId}
-            estimatedItemSize={150}
+            
             contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
             renderItem={({ item, index }) => (
               <CartCard
