@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { toastSuccess, toastError } from '@/api/helpers';
+import { getBiometricStatus, loginWithBiometric } from '@/services/biometric.service';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -12,6 +13,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const login = useAuthStore(s => s.login);
+  const [bioReady, setBioReady] = useState(false);
 
   // Animaciones de entrada
   const logoScale = useRef(new Animated.Value(0.5)).current;
@@ -31,7 +33,21 @@ export default function LoginScreen() {
         Animated.timing(formOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
       ]).start();
     }, 200);
+
+    // Detectar si hay biometria configurada para mostrar el boton
+    getBiometricStatus().then((st) => {
+      setBioReady(st.hasHardware && st.isEnrolled && st.saved);
+    });
   }, []);
+
+  const handleBiometricLogin = async () => {
+    const creds = await loginWithBiometric();
+    if (!creds) {
+      toastError('Huella no reconocida', 'Intenta de nuevo o usa tu contrasena');
+      return;
+    }
+    handleLogin(creds.email, creds.password);
+  };
 
   const handleLogin = async (e?: string, p?: string) => {
     const em = e || email.trim();
@@ -114,13 +130,24 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Demo */}
+          {/* Demo + Huella */}
           <View style={s.demoSection}>
             <View style={s.dividerRow}>
               <View style={s.dividerLine} />
               <Text style={s.dividerText}>o continua con</Text>
               <View style={s.dividerLine} />
             </View>
+
+            {bioReady && (
+              <TouchableOpacity
+                style={[s.demoBtn, { backgroundColor: '#7c3aed', borderColor: '#7c3aed', marginBottom: 10 }]}
+                onPress={handleBiometricLogin}
+                activeOpacity={0.85}
+              >
+                <Text style={[s.demoBtnText, { color: '#ffffff' }]}>👆  Entrar con huella</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={s.demoBtn}
               onPress={() => { setEmail('admin@demo.com'); setPassword('admin123'); handleLogin('admin@demo.com', 'admin123'); }}

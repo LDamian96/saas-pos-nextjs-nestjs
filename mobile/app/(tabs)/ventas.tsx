@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator, Modal, Pressable, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNetworkStore } from '@/stores/network.store';
 import api from '@/api/client';
-import { extractList, toastError } from '@/api/helpers';
+import { extractList, toastError, toastSuccess, getErrorMessage } from '@/api/helpers';
 
 type Tab = 'hoy' | 'mes' | 'inventario';
 
@@ -19,6 +21,12 @@ export default function ReportesScreen() {
   const [tab, setTab] = useState<Tab>('hoy');
   // Offset de dia para "Hoy": 0 = hoy, -1 = ayer, -7 = hace 1 semana
   const [dayOffset, setDayOffset] = useState<number>(0);
+  // Filtro de top productos en tab Mes: cuantos dias atras
+  const [topRangeDias, setTopRangeDias] = useState<number>(30);
+  // Modal ajuste rapido de stock en inventario
+  const [adjOpen, setAdjOpen] = useState<{ varianteId: string; nombre: string; stockActual: number } | null>(null);
+  const [adjValue, setAdjValue] = useState('');
+  const queryClient = useQueryClient();
   const selectedDate = (() => {
     const d = new Date();
     d.setDate(d.getDate() + dayOffset);
@@ -39,10 +47,22 @@ export default function ReportesScreen() {
   });
   const dash = dashData?.data || {};
 
-  // Top productos - solo cuando tab es mes
+  // Top productos del rango seleccionado en tab Mes (7/15/30/60 dias)
   const { data: topData, isLoading: topLoading } = useQuery({
-    queryKey: ['reportes-top-productos', sucursalId],
-    queryFn: () => api.get('/reportes/productos/mas-vendidos', { params: { sucursalId: sucursalId || undefined, limit: 10 } }).then(r => r.data),
+    queryKey: ['reportes-top-productos', sucursalId, topRangeDias],
+    queryFn: () => {
+      const hasta = new Date();
+      const desde = new Date();
+      desde.setDate(desde.getDate() - topRangeDias);
+      return api.get('/reportes/productos/mas-vendidos', {
+        params: {
+          sucursalId: sucursalId || undefined,
+          limit: 15,
+          fechaInicio: desde.toISOString(),
+          fechaFin: hasta.toISOString(),
+        },
+      }).then(r => r.data);
+    },
     enabled: isOnline && tab === 'mes',
     staleTime: STALE_60S,
     gcTime: 5 * 60_000,
@@ -77,6 +97,20 @@ export default function ReportesScreen() {
   // Ventas detalle del dia seleccionado en tab "hoy".
   // El backend espera fechaInicio/fechaFin (NO fechaDesde/fechaHasta).
   // Incluye relacion de pagos con metodo para hacer el desglose por metodo.
+  // Mutation para ajustar stock rapido desde inventario
+  const ajustarStockMutation = useMutation({
+    mutationFn: (body: any) => api.post('/inventario/ajuste', body).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventario-stock-all'] });
+      queryClient.invalidateQueries({ queryKey: ['reportes-inventario'] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      toastSuccess('Stock actualizado');
+      setAdjOpen(null);
+      setAdjValue('');
+    },
+    onError: (err: any) => toastError('Error', getErrorMessage(err)),
+  });
+
   const { data: ventasData, refetch: refetchVentas, isLoading: ventasLoading } = useQuery({
     queryKey: ['ventas-list', sucursalId, tab, dayOffset],
     queryFn: () => {
@@ -242,39 +276,29 @@ export default function ReportesScreen() {
           </View>
         )}
 
-        {/* Top productos del dia */}
-        {isToday && dash?.topProductosHoy?.length > 0 && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>🔥 Mas vendidos hoy</Text>
-            {dash.topProductosHoy.map((p: any, i: number) => (
-              <View key={i} style={s.topRow}>
-                <View style={s.topRank}>
-                  <Text style={s.topRankText}>{i + 1}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.topName} numberOfLines={1}>{p.nombre}</Text>
-                  <Text style={s.topQty}>{p.cantidad} unidades</Text>
-                </View>
-                <Text style={s.topMonto}>S/ {Number(p.monto).toFixed(2)}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {/* Top productos esta en tab "Mes" con filtro de dias */}
 
-        {/* Lista de ventas del dia */}
+        {/* Lista de ventas del dia - tap para ver detalles */}
         {ventas.length > 0 ? (
           <View style={s.section}>
             <Text style={s.sectionTitle}>📋 Ventas {isToday ? 'de hoy' : 'del dia'}</Text>
             {ventas.map((v: any) => (
-              <View key={v.id} style={s.ventaRow}>
+              <TouchableOpacity
+                key={v.id}
+                style={s.ventaRow}
+                activeOpacity={0.7}
+                onPress={() => router.push(`/ventas/${v.id}`)}
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={s.ventaNum}>{v.numeroVenta || v.numero}</Text>
                   <Text style={s.ventaTime}>
                     {new Date(v.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                    {v.tipoComprobante ? ` · ${v.tipoComprobante}` : ''}
                   </Text>
                 </View>
                 <Text style={s.ventaTotal}>S/ {Number(v.total).toFixed(2)}</Text>
-              </View>
+                <Text style={{ color: '#d1d5db', fontSize: 18, marginLeft: 8 }}>›</Text>
+              </TouchableOpacity>
             ))}
           </View>
         ) : (
@@ -323,11 +347,31 @@ export default function ReportesScreen() {
           </View>
         </View>
 
-        {/* Top productos del mes */}
-        {topProductos.length > 0 && (
+        {/* Filtro de rango para top productos */}
+        <Text style={s.sectionTitle}>🏆 PRODUCTOS MAS VENDIDOS</Text>
+        <View style={s.dayShortcuts}>
+          {[
+            { label: '7 dias', value: 7 },
+            { label: '15 dias', value: 15 },
+            { label: '30 dias', value: 30 },
+            { label: '60 dias', value: 60 },
+          ].map((o) => (
+            <TouchableOpacity
+              key={o.label}
+              style={[s.dayChip, topRangeDias === o.value && s.dayChipActive]}
+              onPress={() => setTopRangeDias(o.value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.dayChipText, topRangeDias === o.value && s.dayChipTextActive]}>{o.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {topLoading ? (
+          <ActivityIndicator color="#7c3aed" style={{ marginVertical: 20 }} />
+        ) : topProductos.length > 0 ? (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>🏆 Mas vendidos del mes</Text>
-            {topProductos.slice(0, 10).map((p: any, i: number) => (
+            {topProductos.slice(0, 15).map((p: any, i: number) => (
               <View key={i} style={s.topRow}>
                 <View style={s.topRank}>
                   <Text style={s.topRankText}>{i + 1}</Text>
@@ -339,6 +383,11 @@ export default function ReportesScreen() {
                 <Text style={s.topMonto}>S/ {Number(p.totalVendido || p.monto || 0).toFixed(2)}</Text>
               </View>
             ))}
+          </View>
+        ) : (
+          <View style={s.emptyDay}>
+            <Text style={{ fontSize: 40, marginBottom: 8 }}>📦</Text>
+            <Text style={s.emptyDayText}>Sin ventas en los ultimos {topRangeDias} dias</Text>
           </View>
         )}
       </>
@@ -392,22 +441,29 @@ export default function ReportesScreen() {
           </View>
         </View>
 
-        {/* Lista de TODOS los productos ordenados de menor a mayor stock */}
+        {/* Lista de TODOS los productos ordenados - tap para ajustar stock */}
         {productosOrdenados.length > 0 && (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>📦 Inventario por producto</Text>
+            <Text style={s.sectionTitle}>📦 Inventario por producto · Toca para ajustar</Text>
             {productosOrdenados.map((p: any) => {
               const stock = Number(p.stock ?? 0);
               const minimo = Number(p.stockMinimo ?? 5);
               const st = stateOf(stock, minimo);
               const c = colorOf(st);
+              const nombre = p.producto?.nombre || p.nombre || 'Producto';
               return (
-                <View key={p.id} style={s.invRow}>
+                <TouchableOpacity
+                  key={p.id}
+                  style={s.invRow}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setAdjOpen({ varianteId: p.id, nombre, stockActual: stock });
+                    setAdjValue(stock.toString());
+                  }}
+                >
                   <View style={[s.invDot, { backgroundColor: c.text }]} />
                   <View style={{ flex: 1 }}>
-                    <Text style={s.invName} numberOfLines={1}>
-                      {p.producto?.nombre || p.nombre || 'Producto'}
-                    </Text>
+                    <Text style={s.invName} numberOfLines={1}>{nombre}</Text>
                     <Text style={s.invSku}>{p.sku || p.producto?.sku || ''}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
@@ -416,7 +472,8 @@ export default function ReportesScreen() {
                       <Text style={[s.invChipText, { color: c.text }]}>{c.label}</Text>
                     </View>
                   </View>
-                </View>
+                  <Text style={{ color: '#cbd5e1', fontSize: 16, marginLeft: 6 }}>›</Text>
+                </TouchableOpacity>
               );
             })}
           </View>
@@ -484,6 +541,51 @@ export default function ReportesScreen() {
         {tab === 'mes' && renderMes()}
         {tab === 'inventario' && renderInventario()}
       </ScrollView>
+
+      {/* Modal ajuste rapido de stock */}
+      <Modal visible={!!adjOpen} transparent animationType="fade" onRequestClose={() => setAdjOpen(null)}>
+        <Pressable style={s.adjScrim} onPress={() => setAdjOpen(null)}>
+          <Pressable style={s.adjCard} onPress={() => {}}>
+            <Text style={s.adjTitle}>Ajustar stock</Text>
+            <Text style={s.adjProduct} numberOfLines={2}>{adjOpen?.nombre}</Text>
+            <Text style={s.adjCurrent}>Stock actual: <Text style={{ fontWeight: '800' }}>{adjOpen?.stockActual} u</Text></Text>
+            <Text style={s.adjLabel}>NUEVO STOCK</Text>
+            <TextInput
+              style={s.adjInput}
+              value={adjValue}
+              onChangeText={setAdjValue}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor="#cbd5e1"
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity style={s.adjCancel} onPress={() => setAdjOpen(null)}>
+                <Text style={s.adjCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.adjSave, ajustarStockMutation.isPending && { opacity: 0.6 }]}
+                disabled={ajustarStockMutation.isPending}
+                onPress={() => {
+                  if (!adjOpen || !sucursalId) return;
+                  const nuevo = Number(adjValue);
+                  if (isNaN(nuevo) || nuevo < 0) {
+                    toastError('Valor invalido', 'Ingresa un numero >= 0');
+                    return;
+                  }
+                  ajustarStockMutation.mutate({
+                    sucursalId,
+                    notas: 'Ajuste rapido desde inventario',
+                    detalles: [{ varianteId: adjOpen.varianteId, stockNuevo: nuevo }],
+                  });
+                }}
+              >
+                <Text style={s.adjSaveText}>{ajustarStockMutation.isPending ? 'Guardando...' : 'Guardar'}</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -700,4 +802,21 @@ const s = StyleSheet.create({
   invStock: { fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
   invChip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, marginTop: 3 },
   invChipText: { fontSize: 10, fontWeight: '700' },
+
+  // Modal ajuste rapido
+  adjScrim: { flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: 24 },
+  adjCard: { backgroundColor: '#fff', borderRadius: 22, padding: 22 },
+  adjTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
+  adjProduct: { fontSize: 14, color: '#475569', textAlign: 'center', marginTop: 6, fontWeight: '600' },
+  adjCurrent: { fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 10 },
+  adjLabel: { fontSize: 10, fontWeight: '800', color: '#94a3b8', letterSpacing: 1.4, marginTop: 14, marginBottom: 6 },
+  adjInput: {
+    height: 60, backgroundColor: '#f8fafc', borderRadius: 14,
+    borderWidth: 1.5, borderColor: '#e2e8f0', paddingHorizontal: 14,
+    fontSize: 28, fontWeight: '800', color: '#0f172a', textAlign: 'center', letterSpacing: -0.5,
+  },
+  adjCancel: { flex: 1, height: 50, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+  adjCancelText: { color: '#475569', fontWeight: '700' },
+  adjSave: { flex: 1, height: 50, borderRadius: 14, backgroundColor: '#7c3aed', alignItems: 'center', justifyContent: 'center', elevation: 3 },
+  adjSaveText: { color: '#ffffff', fontWeight: '800' },
 });

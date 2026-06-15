@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/api/client';
 import { usePosStore } from '@/stores/pos.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { extractList, toastSuccess, toastError, getErrorMessage } from '@/api/helpers';
 
 export default function EditarProductoScreen() {
@@ -15,16 +16,31 @@ export default function EditarProductoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { scannedCode, setScannedCode, setScannerMode } = usePosStore();
+  const usuario = useAuthStore(s => s.usuario);
+  const sucursalId = usuario?.sucursal?.id;
   const [nombre, setNombre] = useState('');
   const [precioCompra, setPrecioCompra] = useState('');
   const [precioVenta, setPrecioVenta] = useState('');
   const [stock, setStock] = useState('');
+  const [stockOriginal, setStockOriginal] = useState(0); // para detectar cambios
+  const [varianteId, setVarianteId] = useState<string | null>(null);
   const [stockMinimo, setStockMinimo] = useState('5');
   const [codigoBarras, setCodigoBarras] = useState('');
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [marcaId, setMarcaId] = useState<string | null>(null);
   const [imagen, setImagen] = useState<string | null>(null);
   const [newImagen, setNewImagen] = useState<string | null>(null);
+
+  // Config IGV de la empresa (aplicaImpuesto)
+  const { data: empresaCfgData } = useQuery({
+    queryKey: ['empresa-config'],
+    queryFn: () => api.get('/empresas/me/config').then(r => r.data),
+    staleTime: 5 * 60_000,
+  });
+  const cfg = empresaCfgData?.data || empresaCfgData || {};
+  const aplicaIgv = cfg.aplicaImpuesto !== false; // default true
+  const igvPct = Number(cfg.porcentajeImpuesto || 18);
+  const igvName = cfg.nombreImpuesto || 'IGV';
 
   const { data: prodData, isLoading } = useQuery({
     queryKey: ['producto', id],
@@ -50,7 +66,10 @@ export default function EditarProductoScreen() {
       setNombre(prod.nombre || '');
       setPrecioCompra(prod.precioCompra?.toString() || '');
       setPrecioVenta(prod.precioVenta?.toString() || '');
-      setStock(prod.variantes?.[0]?.stock?.toString() || '0');
+      const stockActual = Number(prod.variantes?.[0]?.stock ?? 0);
+      setStock(stockActual.toString());
+      setStockOriginal(stockActual);
+      setVarianteId(prod.variantes?.[0]?.id || null);
       setStockMinimo((prod.variantes?.[0]?.stockMinimo ?? prod.stockMinimo ?? 5)?.toString() || '5');
       setCodigoBarras(prod.codigoBarras || '');
       setCategoriaId(prod.categoriaId || null);
@@ -74,16 +93,22 @@ export default function EditarProductoScreen() {
     router.push('/scanner');
   };
 
-  // Calcular ganancias: el precio de venta INCLUYE IGV 18%
-  const IGV = 1.18;
+  // Calcular ganancias. Si la empresa aplica IGV (aplicaImpuesto=true), el
+  // precio de venta INCLUYE el impuesto que despues se paga a SUNAT.
+  // - Ganancia REAL = lo que te queda despues de pagar SUNAT
+  // - Total cobrado bruto = lo que entra a tu caja (incluye IGV que NO es tuyo)
+  const IGV_FACTOR = 1 + igvPct / 100;
   const pc = Number(precioCompra) || 0;
   const pv = Number(precioVenta) || 0;
-  const pvSinIgv = pv / IGV;
-  const igvMonto = pv > 0 ? pv - pvSinIgv : 0;
-  const gananciaSinIgv = pc > 0 && pv > 0 ? pvSinIgv - pc : 0;
-  const margenSinIgv = pc > 0 && pv > 0 ? ((gananciaSinIgv / pc) * 100).toFixed(1) : null;
-  const gananciaConIgv = pc > 0 && pv > 0 ? pv - pc : 0;
-  const margenConIgv = pc > 0 && pv > 0 ? ((gananciaConIgv / pc) * 100).toFixed(1) : null;
+  const pvSinIgv = aplicaIgv ? pv / IGV_FACTOR : pv;
+  const igvMonto = aplicaIgv && pv > 0 ? pv - pvSinIgv : 0;
+  // Ganancia REAL: lo que queda despues de pagar SUNAT
+  const gananciaReal = pc > 0 && pv > 0 ? pvSinIgv - pc : 0;
+  const margenReal = pc > 0 && pv > 0 ? ((gananciaReal / pc) * 100).toFixed(1) : null;
+  // Total bruto cobrado (= venta - compra). Cuando aplicaIgv, esto incluye
+  // los soles que debes pagar a SUNAT.
+  const gananciaBruta = pc > 0 && pv > 0 ? pv - pc : 0;
+  const margenBruto = pc > 0 && pv > 0 ? ((gananciaBruta / pc) * 100).toFixed(1) : null;
 
   const updateMutation = useMutation({
     mutationFn: async (body: any) => {
@@ -106,6 +131,13 @@ export default function EditarProductoScreen() {
     onError: (err: any) => toastError('Error', getErrorMessage(err)),
   });
 
+  // Ajustar stock cuando el usuario cambia el valor en el form.
+  // Endpoint POST /inventario/ajuste recibe { sucursalId, detalles: [{varianteId, stockNuevo}] }
+  const ajustarStockMutation = useMutation({
+    mutationFn: (body: any) => api.post('/inventario/ajuste', body).then(r => r.data),
+    onError: (err: any) => toastError('Error ajustando stock', getErrorMessage(err)),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/productos/${id}`).then(r => r.data),
     onSuccess: () => {
@@ -122,9 +154,24 @@ export default function EditarProductoScreen() {
     if (!result.canceled) { setNewImagen(result.assets[0].uri); setImagen(result.assets[0].uri); }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nombre.trim()) { toastError('Campo requerido', 'El nombre es obligatorio'); return; }
     if (!precioVenta) { toastError('Campo requerido', 'El precio de venta es obligatorio'); return; }
+
+    // Si el stock cambio, ajustar inventario PRIMERO (asi si falla, no perdemos datos)
+    const stockNuevo = Number(stock) || 0;
+    if (varianteId && sucursalId && stockNuevo !== stockOriginal) {
+      try {
+        await ajustarStockMutation.mutateAsync({
+          sucursalId,
+          notas: 'Ajuste manual desde app movil',
+          detalles: [{ varianteId, stockNuevo }],
+        });
+      } catch {
+        return; // ya mostro toast el onError
+      }
+    }
+
     updateMutation.mutate({
       nombre: nombre.trim(),
       precioCompra: precioCompra ? Number(precioCompra) : undefined,
@@ -217,50 +264,78 @@ export default function EditarProductoScreen() {
         <View style={s.row}>
           <View style={s.half}>
             <Text style={s.label}>Stock actual</Text>
-            <TextInput style={[s.input, { backgroundColor: '#f3f4f6' }]} value={stock} editable={false} />
+            <TextInput
+              style={s.input}
+              value={stock}
+              onChangeText={setStock}
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              keyboardType="number-pad"
+            />
           </View>
           <View style={s.half}>
             <Text style={s.label}>Stock minimo (alerta)</Text>
             <TextInput style={s.input} value={stockMinimo} onChangeText={setStockMinimo} placeholder="5" placeholderTextColor="#9ca3af" keyboardType="number-pad" />
           </View>
         </View>
-        <Text style={s.hint}>Alerta roja cuando stock {'<='} minimo</Text>
+        <Text style={s.hint}>
+          {Number(stock) !== stockOriginal
+            ? `↻ Stock cambia de ${stockOriginal} a ${stock} (se ajustara al guardar)`
+            : `Alerta roja cuando stock <= minimo`}
+        </Text>
 
         {pc > 0 && pv > 0 && (
           <>
-            <View style={s.profitCard}>
-              <View style={s.profitRow}>
-                <Text style={s.profitLabel}>Precio sin IGV</Text>
-                <Text style={s.profitValue}>S/ {pvSinIgv.toFixed(2)}</Text>
-              </View>
-              <View style={s.profitRow}>
-                <Text style={s.profitLabel}>IGV (18%)</Text>
-                <Text style={[s.profitValue, { color: '#f59e0b' }]}>S/ {igvMonto.toFixed(2)}</Text>
-              </View>
-            </View>
+            {aplicaIgv ? (
+              <>
+                {/* Si la empresa aplica IGV: 2 ganancias con nombres explicativos */}
+                <View style={s.profitCard}>
+                  <View style={s.profitRow}>
+                    <Text style={s.profitLabel}>Precio sin {igvName}</Text>
+                    <Text style={s.profitValue}>S/ {pvSinIgv.toFixed(2)}</Text>
+                  </View>
+                  <View style={s.profitRow}>
+                    <Text style={s.profitLabel}>{igvName} ({igvPct}%) - va a SUNAT</Text>
+                    <Text style={[s.profitValue, { color: '#f59e0b' }]}>S/ {igvMonto.toFixed(2)}</Text>
+                  </View>
+                </View>
 
-            <View style={s.gainRow}>
-              <View style={[s.gainCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
-                <Text style={s.gainTag}>GANANCIA SIN IGV</Text>
-                <Text style={[s.gainValue, { color: gananciaSinIgv > 0 ? '#16a34a' : '#dc2626' }]}>
-                  S/ {gananciaSinIgv.toFixed(2)}
-                </Text>
-                <View style={[s.margenBadge, { backgroundColor: Number(margenSinIgv) > 0 ? '#dcfce7' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
-                  <Text style={[s.margenText, { color: Number(margenSinIgv) > 0 ? '#16a34a' : '#dc2626' }]}>{margenSinIgv}%</Text>
+                <View style={s.gainRow}>
+                  <View style={[s.gainCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
+                    <Text style={s.gainTag}>TU GANANCIA REAL</Text>
+                    <Text style={[s.gainValue, { color: gananciaReal > 0 ? '#16a34a' : '#dc2626' }]}>
+                      S/ {gananciaReal.toFixed(2)}
+                    </Text>
+                    <View style={[s.margenBadge, { backgroundColor: Number(margenReal) > 0 ? '#dcfce7' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
+                      <Text style={[s.margenText, { color: Number(margenReal) > 0 ? '#16a34a' : '#dc2626' }]}>{margenReal}%</Text>
+                    </View>
+                    <Text style={s.gainHint}>Lo que QUEDA tras pagar SUNAT</Text>
+                  </View>
+                  <View style={[s.gainCard, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
+                    <Text style={[s.gainTag, { color: '#d97706' }]}>BRUTO COBRADO</Text>
+                    <Text style={[s.gainValue, { color: '#d97706' }]}>
+                      S/ {gananciaBruta.toFixed(2)}
+                    </Text>
+                    <View style={[s.margenBadge, { backgroundColor: '#fef3c7', alignSelf: 'flex-start', marginTop: 6 }]}>
+                      <Text style={[s.margenText, { color: '#d97706' }]}>{margenBruto}%</Text>
+                    </View>
+                    <Text style={s.gainHint}>Incluye {igvName} que pagas a SUNAT</Text>
+                  </View>
                 </View>
-                <Text style={s.gainHint}>Lo que queda tras IGV</Text>
-              </View>
-              <View style={[s.gainCard, { backgroundColor: '#faf5ff', borderColor: '#ddd6fe' }]}>
-                <Text style={[s.gainTag, { color: '#7c3aed' }]}>GANANCIA CON IGV</Text>
-                <Text style={[s.gainValue, { color: gananciaConIgv > 0 ? '#7c3aed' : '#dc2626' }]}>
-                  S/ {gananciaConIgv.toFixed(2)}
+              </>
+            ) : (
+              // Si la empresa NO aplica IGV: una sola ganancia simple
+              <View style={[s.gainCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', marginTop: 10 }]}>
+                <Text style={s.gainTag}>TU GANANCIA</Text>
+                <Text style={[s.gainValue, { color: gananciaBruta > 0 ? '#16a34a' : '#dc2626', fontSize: 22 }]}>
+                  S/ {gananciaBruta.toFixed(2)}
                 </Text>
-                <View style={[s.margenBadge, { backgroundColor: Number(margenConIgv) > 0 ? '#ede9fe' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
-                  <Text style={[s.margenText, { color: Number(margenConIgv) > 0 ? '#7c3aed' : '#dc2626' }]}>{margenConIgv}%</Text>
+                <View style={[s.margenBadge, { backgroundColor: Number(margenBruto) > 0 ? '#dcfce7' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
+                  <Text style={[s.margenText, { color: Number(margenBruto) > 0 ? '#16a34a' : '#dc2626' }]}>{margenBruto}% de margen</Text>
                 </View>
-                <Text style={s.gainHint}>Bruta antes de IGV</Text>
+                <Text style={s.gainHint}>Precio venta - Precio compra</Text>
               </View>
-            </View>
+            )}
           </>
         )}
 

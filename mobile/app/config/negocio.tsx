@@ -1,9 +1,9 @@
 // =============================================================================
-// config/negocio.tsx — Datos del negocio (nombre, RUC, dirección).
+// config/negocio.tsx — Datos del negocio + configuracion de impuestos (IGV).
 // =============================================================================
 
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,16 +25,24 @@ export default function NegocioScreen() {
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
 
+  // Config impuestos
+  const [aplicaIgv, setAplicaIgv] = useState(true);
+  const [igvPct, setIgvPct] = useState('18');
+  const [igvNombre, setIgvNombre] = useState('IGV');
+
   const { data, isLoading } = useQuery({
     queryKey: ['empresa-me'],
     queryFn: () => api.get('/empresas/me').then((r) => r.data),
   });
 
+  const { data: cfgData } = useQuery({
+    queryKey: ['empresa-config'],
+    queryFn: () => api.get('/empresas/me/config').then((r) => r.data),
+  });
+
   useEffect(() => {
     const emp = data?.data || data;
     if (emp) {
-      // Backend usa nombreComercial / direccionFiscal en el DTO.
-      // Si el GET retorna 'nombre' (vista plana) tambien lo soportamos.
       setNombre(emp.nombreComercial || emp.nombre || '');
       setRuc(emp.ruc || '');
       setDireccion(emp.direccionFiscal || emp.direccion || '');
@@ -42,19 +50,57 @@ export default function NegocioScreen() {
     }
   }, [data]);
 
+  useEffect(() => {
+    const c = cfgData?.data || cfgData;
+    if (c) {
+      setAplicaIgv(c.aplicaImpuesto !== false);
+      setIgvPct((c.porcentajeImpuesto ?? 18).toString());
+      setIgvNombre(c.nombreImpuesto || 'IGV');
+    }
+  }, [cfgData]);
+
   const updateMutation = useMutation({
     mutationFn: (body: any) => api.put('/empresas/me', body).then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['empresa-me'] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      remoteLogger.info('empresa_actualizada');
-      toastSuccess('Guardado', 'Datos del negocio actualizados');
-    },
     onError: (err: any) => {
       remoteLogger.error('empresa_update_failed', err);
       toastError('Error', getErrorMessage(err));
     },
   });
+
+  const updateCfgMutation = useMutation({
+    mutationFn: (body: any) => api.put('/empresas/me/config', body).then((r) => r.data),
+    onError: (err: any) => {
+      remoteLogger.error('empresa_cfg_update_failed', err);
+      toastError('Error', getErrorMessage(err));
+    },
+  });
+
+  const handleSave = async () => {
+    try {
+      await Promise.all([
+        updateMutation.mutateAsync({
+          nombreComercial: nombre.trim() || undefined,
+          ruc: ruc.trim() || undefined,
+          direccionFiscal: direccion.trim() || undefined,
+          telefono: telefono.trim() || undefined,
+        }),
+        updateCfgMutation.mutateAsync({
+          aplicaImpuesto: aplicaIgv,
+          porcentajeImpuesto: Number(igvPct) || 18,
+          nombreImpuesto: igvNombre.trim() || 'IGV',
+        }),
+      ]);
+      queryClient.invalidateQueries({ queryKey: ['empresa-me'] });
+      queryClient.invalidateQueries({ queryKey: ['empresa-config'] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      remoteLogger.info('empresa_actualizada');
+      toastSuccess('Guardado', 'Datos del negocio actualizados');
+    } catch {
+      // toast ya mostrado por el onError
+    }
+  };
+
+  const saving = updateMutation.isPending || updateCfgMutation.isPending;
 
   if (isLoading) {
     return (
@@ -66,7 +112,7 @@ export default function NegocioScreen() {
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      <Header title="Mi negocio" subtitle="Datos fiscales y contacto" />
+      <Header title="Mi negocio" subtitle="Datos fiscales, contacto e impuestos" />
 
       <ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeIn.duration(220)} style={s.iconWrap}>
@@ -87,16 +133,63 @@ export default function NegocioScreen() {
         <Label>TELÉFONO</Label>
         <TextInput style={s.input} value={telefono} onChangeText={setTelefono} placeholder="999 999 999" placeholderTextColor={colors.textPlaceholder} keyboardType="phone-pad" />
 
+        {/* Impuestos */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>IMPUESTOS</Text>
+          <View style={s.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.toggleLabel}>Aplicar {igvNombre}</Text>
+              <Text style={s.toggleDesc}>
+                {aplicaIgv
+                  ? `El precio de venta incluye ${igvPct}% de ${igvNombre}`
+                  : `Sin ${igvNombre} - el precio de venta es directo`}
+              </Text>
+            </View>
+            <Switch
+              value={aplicaIgv}
+              onValueChange={(v) => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setAplicaIgv(v);
+              }}
+              trackColor={{ false: colors.border, true: colors.brandSoft }}
+              thumbColor={aplicaIgv ? colors.brand : '#FFFFFF'}
+            />
+          </View>
+
+          {aplicaIgv && (
+            <View style={s.row}>
+              <View style={s.half}>
+                <Label>NOMBRE</Label>
+                <TextInput
+                  style={s.input}
+                  value={igvNombre}
+                  onChangeText={setIgvNombre}
+                  placeholder="IGV"
+                  placeholderTextColor={colors.textPlaceholder}
+                  maxLength={20}
+                />
+              </View>
+              <View style={s.half}>
+                <Label>PORCENTAJE</Label>
+                <TextInput
+                  style={s.input}
+                  value={igvPct}
+                  onChangeText={setIgvPct}
+                  placeholder="18"
+                  placeholderTextColor={colors.textPlaceholder}
+                  keyboardType="numeric"
+                  maxLength={5}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+
         <View style={{ marginTop: 28 }}>
           <Button
-            label={updateMutation.isPending ? 'Guardando…' : 'Guardar'}
-            onPress={() => updateMutation.mutate({
-              nombreComercial: nombre.trim() || undefined,
-              ruc: ruc.trim() || undefined,
-              direccionFiscal: direccion.trim() || undefined,
-              telefono: telefono.trim() || undefined,
-            })}
-            loading={updateMutation.isPending}
+            label={saving ? 'Guardando…' : 'Guardar'}
+            onPress={handleSave}
+            loading={saving}
             icon={Save}
             size="lg"
           />
@@ -136,4 +229,20 @@ const s = StyleSheet.create({
     borderColor: colors.divider,
     color: colors.text,
   },
+  section: { marginTop: 22 },
+  sectionTitle: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4, marginBottom: 10 },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  toggleLabel: { fontFamily: fonts.extrabold, fontSize: 14, color: colors.text },
+  toggleDesc: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, marginTop: 3, lineHeight: 17 },
+  row: { flexDirection: 'row', gap: 10 },
+  half: { flex: 1 },
 });

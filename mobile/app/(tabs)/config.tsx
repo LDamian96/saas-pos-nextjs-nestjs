@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import {
   Building2,
   ChevronRight,
+  Fingerprint,
   FileText,
   LogOut,
   Printer,
@@ -31,7 +32,8 @@ type MenuItem = {
 };
 
 const MENU: MenuItem[] = [
-  { label: 'Mi negocio', desc: 'Nombre, RUC, dirección', route: '/config/negocio', Icon: Building2 },
+  { label: 'Mi negocio', desc: 'Nombre, RUC, dirección, IGV', route: '/config/negocio', Icon: Building2 },
+  { label: 'Huella digital', desc: 'Acceso rápido con biometría', route: '/config/biometria', Icon: Fingerprint },
   { label: 'Impresora', desc: 'Conectar impresora Bluetooth', route: '/config/impresora', Icon: Printer },
   { label: 'Comprobantes', desc: 'Ticket, boleta, factura', route: '/config/comprobantes', Icon: Receipt },
   { label: 'Nubefact', desc: 'Facturación electrónica', route: '/config/nubefact', Icon: FileText },

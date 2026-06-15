@@ -83,6 +83,7 @@ export default function RootLayout() {
               <Stack.Screen name="scanner" options={{ animation: 'slide_from_bottom' }} />
               <Stack.Screen name="productos/nuevo" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="productos/[id]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="ventas/[id]" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="caja/abrir" options={{ animation: 'slide_from_bottom' }} />
               <Stack.Screen name="caja/cerrar" options={{ animation: 'slide_from_bottom' }} />
               <Stack.Screen name="config/negocio" options={{ animation: 'slide_from_right' }} />
@@ -91,6 +92,7 @@ export default function RootLayout() {
               <Stack.Screen name="config/categorias" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="config/marcas" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="config/impresora" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="config/biometria" options={{ animation: 'slide_from_right' }} />
             </Stack>
             <StatusBar style="dark" />
           </ThemeProvider>

@@ -52,18 +52,26 @@ export default function NuevoProductoScreen() {
   });
   const marcas = extractList(marcaData);
 
-  // Calcular ganancias: el precio de venta INCLUYE IGV 18%
-  const IGV = 1.18;
+  // Config IGV de la empresa (aplicaImpuesto)
+  const { data: empresaCfgData } = useQuery({
+    queryKey: ['empresa-config'],
+    queryFn: () => api.get('/empresas/me/config').then(r => r.data),
+    staleTime: 5 * 60_000,
+  });
+  const cfg = empresaCfgData?.data || empresaCfgData || {};
+  const aplicaIgv = cfg.aplicaImpuesto !== false;
+  const igvPct = Number(cfg.porcentajeImpuesto || 18);
+  const igvName = cfg.nombreImpuesto || 'IGV';
+
+  const IGV_FACTOR = 1 + igvPct / 100;
   const pc = Number(precioCompra) || 0;
   const pv = Number(precioVenta) || 0;
-  const pvSinIgv = pv / IGV;
-  const igvMonto = pv > 0 ? pv - pvSinIgv : 0;
-  // Ganancia SIN IGV: lo que realmente queda despues de pagar IGV a SUNAT
-  const gananciaSinIgv = pc > 0 && pv > 0 ? pvSinIgv - pc : 0;
-  const margenSinIgv = pc > 0 && pv > 0 ? ((gananciaSinIgv / pc) * 100).toFixed(1) : null;
-  // Ganancia BRUTA CON IGV: lo que entra a caja menos lo que pagaste
-  const gananciaConIgv = pc > 0 && pv > 0 ? pv - pc : 0;
-  const margenConIgv = pc > 0 && pv > 0 ? ((gananciaConIgv / pc) * 100).toFixed(1) : null;
+  const pvSinIgv = aplicaIgv ? pv / IGV_FACTOR : pv;
+  const igvMonto = aplicaIgv && pv > 0 ? pv - pvSinIgv : 0;
+  const gananciaReal = pc > 0 && pv > 0 ? pvSinIgv - pc : 0;
+  const margenReal = pc > 0 && pv > 0 ? ((gananciaReal / pc) * 100).toFixed(1) : null;
+  const gananciaBruta = pc > 0 && pv > 0 ? pv - pc : 0;
+  const margenBruto = pc > 0 && pv > 0 ? ((gananciaBruta / pc) * 100).toFixed(1) : null;
 
   const createMutation = useMutation({
     mutationFn: async (body: any) => {
@@ -200,39 +208,54 @@ export default function NuevoProductoScreen() {
 
         {pc > 0 && pv > 0 && (
           <>
-            <View style={s.profitCard}>
-              <View style={s.profitRow}>
-                <Text style={s.profitLabel}>Precio sin IGV</Text>
-                <Text style={s.profitValue}>S/ {pvSinIgv.toFixed(2)}</Text>
-              </View>
-              <View style={s.profitRow}>
-                <Text style={s.profitLabel}>IGV (18%)</Text>
-                <Text style={[s.profitValue, { color: '#f59e0b' }]}>S/ {igvMonto.toFixed(2)}</Text>
-              </View>
-            </View>
+            {aplicaIgv ? (
+              <>
+                <View style={s.profitCard}>
+                  <View style={s.profitRow}>
+                    <Text style={s.profitLabel}>Precio sin {igvName}</Text>
+                    <Text style={s.profitValue}>S/ {pvSinIgv.toFixed(2)}</Text>
+                  </View>
+                  <View style={s.profitRow}>
+                    <Text style={s.profitLabel}>{igvName} ({igvPct}%) - va a SUNAT</Text>
+                    <Text style={[s.profitValue, { color: '#f59e0b' }]}>S/ {igvMonto.toFixed(2)}</Text>
+                  </View>
+                </View>
 
-            <View style={s.gainRow}>
-              <View style={[s.gainCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
-                <Text style={s.gainTag}>GANANCIA SIN IGV</Text>
-                <Text style={[s.gainValue, { color: gananciaSinIgv > 0 ? '#16a34a' : '#dc2626' }]}>
-                  S/ {gananciaSinIgv.toFixed(2)}
-                </Text>
-                <View style={[s.margenBadge, { backgroundColor: Number(margenSinIgv) > 0 ? '#dcfce7' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
-                  <Text style={[s.margenText, { color: Number(margenSinIgv) > 0 ? '#16a34a' : '#dc2626' }]}>{margenSinIgv}%</Text>
+                <View style={s.gainRow}>
+                  <View style={[s.gainCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
+                    <Text style={s.gainTag}>TU GANANCIA REAL</Text>
+                    <Text style={[s.gainValue, { color: gananciaReal > 0 ? '#16a34a' : '#dc2626' }]}>
+                      S/ {gananciaReal.toFixed(2)}
+                    </Text>
+                    <View style={[s.margenBadge, { backgroundColor: Number(margenReal) > 0 ? '#dcfce7' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
+                      <Text style={[s.margenText, { color: Number(margenReal) > 0 ? '#16a34a' : '#dc2626' }]}>{margenReal}%</Text>
+                    </View>
+                    <Text style={s.gainHint}>Lo que QUEDA tras pagar SUNAT</Text>
+                  </View>
+                  <View style={[s.gainCard, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
+                    <Text style={[s.gainTag, { color: '#d97706' }]}>BRUTO COBRADO</Text>
+                    <Text style={[s.gainValue, { color: '#d97706' }]}>
+                      S/ {gananciaBruta.toFixed(2)}
+                    </Text>
+                    <View style={[s.margenBadge, { backgroundColor: '#fef3c7', alignSelf: 'flex-start', marginTop: 6 }]}>
+                      <Text style={[s.margenText, { color: '#d97706' }]}>{margenBruto}%</Text>
+                    </View>
+                    <Text style={s.gainHint}>Incluye {igvName} que pagas a SUNAT</Text>
+                  </View>
                 </View>
-                <Text style={s.gainHint}>Lo que queda tras IGV</Text>
-              </View>
-              <View style={[s.gainCard, { backgroundColor: '#faf5ff', borderColor: '#ddd6fe' }]}>
-                <Text style={[s.gainTag, { color: '#7c3aed' }]}>GANANCIA CON IGV</Text>
-                <Text style={[s.gainValue, { color: gananciaConIgv > 0 ? '#7c3aed' : '#dc2626' }]}>
-                  S/ {gananciaConIgv.toFixed(2)}
+              </>
+            ) : (
+              <View style={[s.gainCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', marginTop: 10 }]}>
+                <Text style={s.gainTag}>TU GANANCIA</Text>
+                <Text style={[s.gainValue, { color: gananciaBruta > 0 ? '#16a34a' : '#dc2626', fontSize: 22 }]}>
+                  S/ {gananciaBruta.toFixed(2)}
                 </Text>
-                <View style={[s.margenBadge, { backgroundColor: Number(margenConIgv) > 0 ? '#ede9fe' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
-                  <Text style={[s.margenText, { color: Number(margenConIgv) > 0 ? '#7c3aed' : '#dc2626' }]}>{margenConIgv}%</Text>
+                <View style={[s.margenBadge, { backgroundColor: Number(margenBruto) > 0 ? '#dcfce7' : '#fee2e2', alignSelf: 'flex-start', marginTop: 6 }]}>
+                  <Text style={[s.margenText, { color: Number(margenBruto) > 0 ? '#16a34a' : '#dc2626' }]}>{margenBruto}% de margen</Text>
                 </View>
-                <Text style={s.gainHint}>Bruta antes de IGV</Text>
+                <Text style={s.gainHint}>Precio venta - Precio compra</Text>
               </View>
-            </View>
+            )}
           </>
         )}
 
