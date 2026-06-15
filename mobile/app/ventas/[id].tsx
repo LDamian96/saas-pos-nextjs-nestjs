@@ -32,11 +32,14 @@ export default function VentaDetalleScreen() {
   });
 
   const venta = data?.data || data || {};
-  const items: any[] = venta?.detalles || venta?.items || [];
+  // El backend devuelve items y pagos con campos PLANOS:
+  // items: [{ productoNombre, varianteSku, cantidad, precioUnitario, subtotal, ... }]
+  // pagos: [{ metodoPagoNombre, metodoPagoId, monto, referencia }]
+  const items: any[] = venta?.items || venta?.detalles || [];
   const pagos: any[] = venta?.pagos || [];
   const total = Number(venta?.total || 0);
   const subtotal = Number(venta?.subtotal || (total / 1.18));
-  const igv = Number(venta?.igv || (total - subtotal));
+  const igv = Number(venta?.impuesto || venta?.impuestoTotal || venta?.igv || (total - subtotal));
   const fechaStr = venta?.createdAt
     ? new Date(venta.createdAt).toLocaleString('es-PE', {
         weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
@@ -49,9 +52,9 @@ export default function VentaDetalleScreen() {
     msg += `Venta: ${venta?.numeroVenta || venta?.numero || ''}\n`;
     msg += `${fechaStr}\n\n`;
     items.forEach((i: any) => {
-      const nombre = i.variante?.producto?.nombre || i.producto?.nombre || i.nombre || 'Producto';
+      const nombre = i.productoNombre || i.variante?.producto?.nombre || i.nombre || 'Producto';
       const cant = Number(i.cantidad || 0);
-      const precio = Number(i.precioUnidad || i.precio || 0);
+      const precio = Number(i.precioUnitario || i.precioUnidad || i.precio || 0);
       msg += `${nombre} x${cant} — S/ ${(precio * cant).toFixed(2)}\n`;
     });
     msg += `\n*TOTAL: S/ ${total.toFixed(2)}*\nGracias por su compra`;
@@ -106,11 +109,11 @@ export default function VentaDetalleScreen() {
         </View>
 
         {/* Info del vendedor */}
-        {venta?.usuario && (
+        {(venta?.usuarioNombre || venta?.usuario?.nombre) && (
           <View style={s.infoCard}>
             <Text style={s.infoLabel}>VENDEDOR</Text>
             <Text style={s.infoValue}>
-              {venta.usuario.nombre} {venta.usuario.apellido || ''}
+              {venta?.usuarioNombre || venta?.usuario?.nombre} {venta?.usuario?.apellido || ''}
             </Text>
           </View>
         )}
@@ -119,10 +122,11 @@ export default function VentaDetalleScreen() {
         <Text style={s.sectionTitle}>📦 PRODUCTOS</Text>
         <View style={s.itemsCard}>
           {items.length > 0 ? items.map((it: any, idx: number) => {
-            const nombre = it.variante?.producto?.nombre || it.producto?.nombre || it.nombre || 'Producto';
-            const sku = it.variante?.sku || it.sku || '';
+            // Campos PLANOS del backend: productoNombre, varianteSku, cantidad, precioUnitario, subtotal
+            const nombre = it.productoNombre || it.variante?.producto?.nombre || it.nombre || 'Producto';
+            const sku = it.varianteSku || it.variante?.sku || it.sku || '';
             const cant = Number(it.cantidad || 0);
-            const precio = Number(it.precioUnidad || it.precio || 0);
+            const precio = Number(it.precioUnitario || it.precioUnidad || it.precio || 0);
             const sub = Number(it.subtotal || precio * cant);
             return (
               <View key={idx} style={[s.itemRow, idx < items.length - 1 && s.itemRowBorder]}>
@@ -162,8 +166,9 @@ export default function VentaDetalleScreen() {
             <Text style={s.sectionTitle}>💰 PAGOS</Text>
             <View style={s.pagosCard}>
               {pagos.map((p: any, idx: number) => {
-                const nombre = p.metodoPago?.nombre || p.nombre || 'Pago';
-                const tipo = (p.metodoPago?.tipo || p.tipo || '').toLowerCase();
+                // Backend devuelve metodoPagoNombre PLANO
+                const nombre = p.metodoPagoNombre || p.metodoPago?.nombre || p.nombre || 'Pago';
+                const tipo = (p.metodoPago?.tipo || p.tipo || nombre || '').toLowerCase();
                 const emoji = EMOJI[tipo] || EMOJI[nombre.toLowerCase()] || '💰';
                 return (
                   <View key={idx} style={[s.pagoRow, idx < pagos.length - 1 && s.itemRowBorder]}>

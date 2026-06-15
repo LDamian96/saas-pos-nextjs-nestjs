@@ -145,7 +145,14 @@ export default function BiometriaScreen() {
 
             {enabled && !status.saved && (
               <>
-                <Text style={s.label}>CORREO</Text>
+                <View style={s.infoCard}>
+                  <Text style={s.infoTitle}>Como funciona</Text>
+                  <Text style={s.infoLine}>• Tu huella se valida con Android — nunca se guarda en la app.</Text>
+                  <Text style={s.infoLine}>• Tu correo y contrasena del POS se cifran en este dispositivo.</Text>
+                  <Text style={s.infoLine}>• Al entrar, tocas tu huella y entras sin escribir nada.</Text>
+                </View>
+
+                <Text style={s.label}>CORREO DEL POS</Text>
                 <TextInput
                   style={s.input}
                   value={email}
@@ -155,15 +162,19 @@ export default function BiometriaScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
-                <Text style={s.label}>CONTRASENA</Text>
+                <Text style={s.hint}>Precargado de tu sesion actual</Text>
+
+                <Text style={s.label}>CONTRASENA DEL POS</Text>
                 <TextInput
                   style={s.input}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Tu contrasena actual"
+                  placeholder="La misma con la que entraste"
                   placeholderTextColor={colors.textPlaceholder}
                   secureTextEntry
                 />
+                <Text style={s.hint}>NO es el PIN de tu telefono. Es la contrasena del POS.</Text>
+
                 <View style={{ marginTop: 22 }}>
                   <Button
                     label={saving ? 'Verificando huella...' : 'Activar y verificar huella'}
@@ -243,6 +254,17 @@ const s = StyleSheet.create({
   toggleLabel: { fontFamily: fonts.extrabold, fontSize: 14, color: colors.text },
   toggleDesc: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, marginTop: 3, lineHeight: 17 },
 
+  infoCard: {
+    backgroundColor: colors.brandTint,
+    borderRadius: radius.md,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.brandSoft,
+  },
+  infoTitle: { fontFamily: fonts.extrabold, fontSize: 13, color: colors.brandDark, marginBottom: 6 },
+  infoLine: { fontFamily: fonts.semibold, fontSize: 12, color: colors.brandDark, lineHeight: 18, marginTop: 2 },
+  hint: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textMuted, marginTop: 6, lineHeight: 16 },
   label: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4, marginBottom: 8, marginTop: 16 },
   input: {
     height: 50,

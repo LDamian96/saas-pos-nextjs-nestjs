@@ -164,6 +164,14 @@ export default function ReportesScreen() {
     });
     const metodosArray = Array.from(porMetodo.entries()).map(([nombre, d]) => ({ nombre, ...d }));
 
+    // Totales SIEMPRE visibles aunq no haya ventas
+    let totalEfectivo = 0;
+    let totalYape = 0;
+    porMetodo.forEach((v, k) => {
+      if (/efect/i.test(k)) totalEfectivo += v.monto;
+      else if (/yape/i.test(k)) totalYape += v.monto;
+    });
+
     return (
       <>
         {/* Selector de dia */}
@@ -209,7 +217,7 @@ export default function ReportesScreen() {
           ))}
         </View>
 
-        {/* KPI total del dia */}
+        {/* Card SIEMPRE visible: Total + Efectivo + Yape */}
         <View style={s.kpiBigCard}>
           <Text style={s.kpiBigLabel}>VENTAS DEL DIA</Text>
           <Text style={s.kpiBigValue}>S/ {totalVentas.toFixed(2)}</Text>
@@ -223,28 +231,36 @@ export default function ReportesScreen() {
               </View>
             )}
           </View>
+
+          <View style={s.kpiSplitRow}>
+            <View style={s.kpiSplitItem}>
+              <Text style={s.kpiSplitEmoji}>💵</Text>
+              <Text style={s.kpiSplitLabel}>Efectivo</Text>
+              <Text style={[s.kpiSplitValue, { color: '#16a34a' }]}>S/ {totalEfectivo.toFixed(2)}</Text>
+            </View>
+            <View style={s.kpiSplitDivider} />
+            <View style={s.kpiSplitItem}>
+              <Text style={s.kpiSplitEmoji}>📱</Text>
+              <Text style={s.kpiSplitLabel}>Yape</Text>
+              <Text style={[s.kpiSplitValue, { color: '#7c3aed' }]}>S/ {totalYape.toFixed(2)}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Desglose por metodo de pago */}
-        {metodosArray.length > 0 && (
+        {/* Otros metodos de pago (tarjeta, etc) si los hubiera */}
+        {metodosArray.filter(m => !/efect|yape/i.test(m.nombre)).length > 0 && (
           <View style={s.metodosCard}>
-            <Text style={s.metodosTitle}>POR METODO DE PAGO</Text>
-            {metodosArray.map((m, i) => {
-              const isEf = /efect/i.test(m.nombre);
-              const isYa = /yape/i.test(m.nombre);
-              const emoji = isEf ? '💵' : isYa ? '📱' : '💳';
-              const color = isEf ? '#16a34a' : isYa ? '#7c3aed' : '#0891b2';
-              return (
-                <View key={i} style={s.metodoRow}>
-                  <Text style={{ fontSize: 20 }}>{emoji}</Text>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={s.metodoNombre}>{m.nombre}</Text>
-                    <Text style={s.metodoCount}>{m.count} pago{m.count !== 1 ? 's' : ''}</Text>
-                  </View>
-                  <Text style={[s.metodoMonto, { color }]}>S/ {m.monto.toFixed(2)}</Text>
+            <Text style={s.metodosTitle}>OTROS MEDIOS</Text>
+            {metodosArray.filter(m => !/efect|yape/i.test(m.nombre)).map((m, i) => (
+              <View key={i} style={s.metodoRow}>
+                <Text style={{ fontSize: 20 }}>💳</Text>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={s.metodoNombre}>{m.nombre}</Text>
+                  <Text style={s.metodoCount}>{m.count} pago{m.count !== 1 ? 's' : ''}</Text>
                 </View>
-              );
-            })}
+                <Text style={[s.metodoMonto, { color: '#0891b2' }]}>S/ {m.monto.toFixed(2)}</Text>
+              </View>
+            ))}
           </View>
         )}
 
@@ -503,7 +519,7 @@ export default function ReportesScreen() {
       <View style={s.tabsRow}>
         {([
           { key: 'hoy' as const, label: 'Dia' },
-          { key: 'mes' as const, label: 'Mes' },
+          { key: 'mes' as const, label: 'Top' },
           { key: 'inventario' as const, label: 'Inventario' },
         ]).map(t => (
           <TouchableOpacity
@@ -624,6 +640,22 @@ const s = StyleSheet.create({
   kpiBigFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   compBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   compText: { fontSize: 12, fontWeight: '700' },
+
+  kpiSplitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  kpiSplitItem: { flex: 1, alignItems: 'center' },
+  kpiSplitDivider: { width: 1, height: 36, backgroundColor: '#e2e8f0' },
+  kpiSplitEmoji: { fontSize: 20, marginBottom: 2 },
+  kpiSplitLabel: { fontSize: 11, fontWeight: '700', color: '#6b7280', letterSpacing: 0.4 },
+  kpiSplitValue: { fontSize: 17, fontWeight: '800', marginTop: 4 },
 
   kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   kpiSmall: {

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Animated, ActivityIndicator, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { toastSuccess, toastError } from '@/api/helpers';
 import { getBiometricStatus, loginWithBiometric } from '@/services/biometric.service';
+import { getEmpresaCache } from '@/services/empresa-cache.service';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -14,6 +15,8 @@ export default function LoginScreen() {
   const [showPwd, setShowPwd] = useState(false);
   const login = useAuthStore(s => s.login);
   const [bioReady, setBioReady] = useState(false);
+  const [empresaNombre, setEmpresaNombre] = useState<string>('POS Shop');
+  const [empresaLogo, setEmpresaLogo] = useState<string | null>(null);
 
   // Animaciones de entrada
   const logoScale = useRef(new Animated.Value(0.5)).current;
@@ -37,6 +40,12 @@ export default function LoginScreen() {
     // Detectar si hay biometria configurada para mostrar el boton
     getBiometricStatus().then((st) => {
       setBioReady(st.hasHardware && st.isEnrolled && st.saved);
+    });
+
+    // Cargar nombre y logo cacheados del negocio
+    getEmpresaCache().then((c) => {
+      if (c.nombre) setEmpresaNombre(c.nombre);
+      if (c.logo) setEmpresaLogo(c.logo);
     });
   }, []);
 
@@ -72,10 +81,14 @@ export default function LoginScreen() {
         <Animated.View style={[s.logoSection, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
           <View style={s.logoOuter}>
             <View style={s.logo}>
-              <Text style={s.logoText}>P</Text>
+              {empresaLogo ? (
+                <Image source={{ uri: empresaLogo }} style={s.logoImg} resizeMode="contain" />
+              ) : (
+                <Text style={s.logoText}>{empresaNombre.charAt(0).toUpperCase()}</Text>
+              )}
             </View>
           </View>
-          <Text style={s.title}>POS Shop</Text>
+          <Text style={s.title} numberOfLines={1}>{empresaNombre}</Text>
           <Text style={s.subtitle}>Sistema de Punto de Venta</Text>
         </Animated.View>
 
@@ -194,6 +207,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
   },
   logoText: { color: '#fff', fontSize: 40, fontWeight: '800' },
+  logoImg: { width: 64, height: 64, borderRadius: 16 },
   title: { color: '#0f172a', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 },
   subtitle: { color: '#94a3b8', fontSize: 15, marginTop: 6, fontWeight: '500' },
 

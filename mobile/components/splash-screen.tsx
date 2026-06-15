@@ -3,9 +3,10 @@
 // Duracion total ~2500ms para que se vea pro.
 // =============================================================================
 
-import { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Easing, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, Easing, Image, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getEmpresaCache } from '../services/empresa-cache.service';
 
 interface Props {
   onAnimationEnd?: () => void;
@@ -18,6 +19,15 @@ export function AnimatedSplash({ onAnimationEnd }: Props) {
   const scale = useRef(new Animated.Value(0.85)).current;
   const cartX = useRef(new Animated.Value(-40)).current;
   const fadeOut = useRef(new Animated.Value(1)).current;
+  const [nombre, setNombre] = useState<string>('POS Shop');
+  const [logo, setLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    getEmpresaCache().then((c) => {
+      if (c.nombre) setNombre(c.nombre);
+      if (c.logo) setLogo(c.logo);
+    });
+  }, []);
 
   useEffect(() => {
     // Logo aparece con spring + fade
@@ -70,10 +80,14 @@ export function AnimatedSplash({ onAnimationEnd }: Props) {
 
       <View style={s.center}>
         <Animated.View style={[s.logoCard, { opacity: fade, transform: [{ scale }] }]}>
-          <Text style={s.logoEmoji}>🛒</Text>
+          {logo ? (
+            <Image source={{ uri: logo }} style={s.logoImg} resizeMode="contain" />
+          ) : (
+            <Text style={s.logoEmoji}>🛒</Text>
+          )}
         </Animated.View>
 
-        <Animated.Text style={[s.title, { opacity: fade }]}>POS Shop</Animated.Text>
+        <Animated.Text style={[s.title, { opacity: fade }]} numberOfLines={1}>{nombre}</Animated.Text>
         <Animated.Text style={[s.subtitle, { opacity: fade }]}>Punto de venta</Animated.Text>
 
         {/* Track con carrito animado */}
@@ -111,6 +125,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
   },
   logoEmoji: { fontSize: 56 },
+  logoImg: { width: 88, height: 88, borderRadius: 22 },
   title: {
     color: '#FFFFFF',
     fontSize: 32,
