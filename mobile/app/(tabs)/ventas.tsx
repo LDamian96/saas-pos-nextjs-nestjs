@@ -43,7 +43,7 @@ export default function ReportesScreen() {
     staleTime: STALE_60S,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
   const dash = dashData?.data || {};
 
@@ -67,7 +67,7 @@ export default function ReportesScreen() {
     staleTime: STALE_60S,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
   const topProductos = extractList(topData);
 
@@ -79,7 +79,7 @@ export default function ReportesScreen() {
     staleTime: 2 * STALE_60S,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
   const inventario = invData?.data || {};
 
@@ -128,7 +128,7 @@ export default function ReportesScreen() {
     staleTime: STALE_60S,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
   const ventas = extractList(ventasData);
 
@@ -172,20 +172,30 @@ export default function ReportesScreen() {
       else if (/yape/i.test(k)) totalYape += v.monto;
     });
 
+    // Label del dia: HOY / AYER / ANTEAYER / "MIERCOLES - 12 jun"
+    let dayLabel: string;
+    if (dayOffset === 0) dayLabel = 'HOY';
+    else if (dayOffset === -1) dayLabel = 'AYER';
+    else if (dayOffset === -2) dayLabel = 'ANTEAYER';
+    else {
+      const wd = selectedDate.toLocaleDateString('es-PE', { weekday: 'long' });
+      const dnum = selectedDate.getDate();
+      const mon = selectedDate.toLocaleDateString('es-PE', { month: 'short' }).replace('.', '');
+      dayLabel = `${wd} - ${dnum} ${mon}`.toUpperCase();
+    }
+
     return (
       <>
-        {/* Selector de dia */}
+        {/* Selector de dia con flechas */}
         <View style={s.dayNav}>
           <TouchableOpacity style={s.dayNavBtn} onPress={() => setDayOffset(dayOffset - 1)} activeOpacity={0.7}>
             <Text style={s.dayNavArrow}>‹</Text>
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={s.dayNavLabel}>
-              {isToday ? 'HOY' : dayOffset === -1 ? 'AYER' : selectedDate.toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase()}
-            </Text>
             <Text style={s.dayNavDate}>
               {selectedDate.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
             </Text>
+            <Text style={s.dayNavLabel}>{dayLabel}</Text>
           </View>
           <TouchableOpacity
             style={[s.dayNavBtn, isToday && s.dayNavBtnDisabled]}
@@ -195,26 +205,6 @@ export default function ReportesScreen() {
           >
             <Text style={[s.dayNavArrow, isToday && { color: '#cbd5e1' }]}>›</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Atajos rapidos */}
-        <View style={s.dayShortcuts}>
-          {[
-            { label: 'Hoy', value: 0 },
-            { label: 'Ayer', value: -1 },
-            { label: '7 dias', value: -7 },
-            { label: '15 dias', value: -15 },
-            { label: '30 dias', value: -30 },
-          ].map((o) => (
-            <TouchableOpacity
-              key={o.label}
-              style={[s.dayChip, dayOffset === o.value && s.dayChipActive]}
-              onPress={() => setDayOffset(o.value)}
-              activeOpacity={0.7}
-            >
-              <Text style={[s.dayChipText, dayOffset === o.value && s.dayChipTextActive]}>{o.label}</Text>
-            </TouchableOpacity>
-          ))}
         </View>
 
         {/* Card SIEMPRE visible: Total + Efectivo + Yape */}

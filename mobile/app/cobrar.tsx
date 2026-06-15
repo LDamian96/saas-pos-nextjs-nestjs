@@ -93,6 +93,11 @@ export default function CobrarScreen() {
       queryClient.invalidateQueries({ queryKey: ['productos'] });
       queryClient.invalidateQueries({ queryKey: ['caja-actual'] });
       queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      queryClient.invalidateQueries({ queryKey: ['ventas-list'] });
+      queryClient.invalidateQueries({ queryKey: ['reportes-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['reportes-top-productos'] });
+      queryClient.invalidateQueries({ queryKey: ['reportes-inventario'] });
+      queryClient.invalidateQueries({ queryKey: ['inventario-stock-all'] });
       setLastVenta(venta);
       clearCart();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
