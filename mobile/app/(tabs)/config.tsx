@@ -131,7 +131,9 @@ export default function ConfigScreen() {
           </Pressable>
         </Animated.View>
 
-        <Text style={s.version}>POS Shop · v1.0.0</Text>
+        {usuario?.empresa?.nombre ? (
+          <Text style={s.version}>{usuario.empresa.nombre}</Text>
+        ) : null}
       </ScrollView>
     </View>
   );

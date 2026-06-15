@@ -17,6 +17,15 @@ export default function ReportesScreen() {
   const { isOnline } = useNetworkStore();
   const sucursalId = usuario?.sucursal?.id;
   const [tab, setTab] = useState<Tab>('hoy');
+  // Offset de dia para "Hoy": 0 = hoy, -1 = ayer, -7 = hace 1 semana
+  const [dayOffset, setDayOffset] = useState<number>(0);
+  const selectedDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  })();
+  const isToday = dayOffset === 0;
 
   // Dashboard KPIs - cache 1 min, no se recarga al cambiar tab
   const { data: dashData, refetch: refetchDash, isLoading: dashLoading, error: dashError } = useQuery({
@@ -54,15 +63,26 @@ export default function ReportesScreen() {
   });
   const inventario = invData?.data || {};
 
-  // Ventas detalle - solo en tab "hoy"
+  // Productos con stock bajo/sin stock - solo cuando tab es inventario
+  const { data: stockBajoData } = useQuery({
+    queryKey: ['inventario-stock-bajo', sucursalId],
+    queryFn: () => api.get('/inventario/stock-bajo', { params: { sucursalId: sucursalId || undefined } }).then(r => r.data),
+    enabled: isOnline && tab === 'inventario',
+    staleTime: 2 * STALE_60S,
+    refetchOnWindowFocus: false,
+  });
+
+  // Ventas detalle del dia seleccionado en tab "hoy"
   const { data: ventasData, refetch: refetchVentas, isLoading: ventasLoading } = useQuery({
-    queryKey: ['ventas-list', sucursalId, tab],
+    queryKey: ['ventas-list', sucursalId, tab, dayOffset],
     queryFn: () => {
-      const params: any = { limit: 30, sucursalId: sucursalId || undefined };
+      const params: any = { limit: 100, sucursalId: sucursalId || undefined };
       if (tab === 'hoy') {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        params.fechaDesde = today.toISOString();
+        const desde = new Date(selectedDate);
+        const hasta = new Date(selectedDate);
+        hasta.setDate(hasta.getDate() + 1);
+        params.fechaDesde = desde.toISOString();
+        params.fechaHasta = hasta.toISOString();
       }
       return api.get('/ventas', { params }).then(r => r.data);
     },
@@ -84,21 +104,80 @@ export default function ReportesScreen() {
   };
 
   const renderHoy = () => {
-    const ventasHoy = Number(dash?.hoy?.ventas || 0);
-    const cantHoy = dash?.hoy?.cantidad || 0;
-    const compAyer = dash?.hoy?.comparacionAyer || 0;
+    // Si es hoy, usa los KPIs del dashboard (ventasHoy). Si es otro dia, calcula desde la lista
+    const totalVentas = isToday
+      ? Number(dash?.hoy?.ventas || 0)
+      : ventas.reduce((acc: number, v: any) => acc + Number(v.total || 0), 0);
+    const cantVentas = isToday ? (dash?.hoy?.cantidad || 0) : ventas.length;
+    const compAyer = isToday ? (dash?.hoy?.comparacionAyer || 0) : 0;
     const cajaAbierta = dash?.cajaActual?.abierta;
     const efectivoCaja = Number(dash?.cajaActual?.efectivoActual || 0);
 
+    // Desglose por metodo de pago del dia
+    const porMetodo = new Map<string, { monto: number; count: number }>();
+    ventas.forEach((v: any) => {
+      (v.pagos || []).forEach((p: any) => {
+        const k = (p.metodoPago?.nombre || p.nombre || 'Otro').toString();
+        const cur = porMetodo.get(k) || { monto: 0, count: 0 };
+        cur.monto += Number(p.monto || 0);
+        cur.count += 1;
+        porMetodo.set(k, cur);
+      });
+    });
+    const metodosArray = Array.from(porMetodo.entries()).map(([nombre, d]) => ({ nombre, ...d }));
+
     return (
       <>
-        {/* KPIs principales */}
+        {/* Selector de dia */}
+        <View style={s.dayNav}>
+          <TouchableOpacity style={s.dayNavBtn} onPress={() => setDayOffset(dayOffset - 1)} activeOpacity={0.7}>
+            <Text style={s.dayNavArrow}>‹</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={s.dayNavLabel}>
+              {isToday ? 'HOY' : dayOffset === -1 ? 'AYER' : selectedDate.toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase()}
+            </Text>
+            <Text style={s.dayNavDate}>
+              {selectedDate.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[s.dayNavBtn, isToday && s.dayNavBtnDisabled]}
+            onPress={() => !isToday && setDayOffset(dayOffset + 1)}
+            disabled={isToday}
+            activeOpacity={0.7}
+          >
+            <Text style={[s.dayNavArrow, isToday && { color: '#cbd5e1' }]}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Atajos rapidos */}
+        <View style={s.dayShortcuts}>
+          {[
+            { label: 'Hoy', value: 0 },
+            { label: 'Ayer', value: -1 },
+            { label: '7 dias', value: -7 },
+            { label: '15 dias', value: -15 },
+            { label: '30 dias', value: -30 },
+          ].map((o) => (
+            <TouchableOpacity
+              key={o.label}
+              style={[s.dayChip, dayOffset === o.value && s.dayChipActive]}
+              onPress={() => setDayOffset(o.value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.dayChipText, dayOffset === o.value && s.dayChipTextActive]}>{o.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* KPI total del dia */}
         <View style={s.kpiBigCard}>
-          <Text style={s.kpiBigLabel}>VENTAS DE HOY</Text>
-          <Text style={s.kpiBigValue}>S/ {ventasHoy.toFixed(2)}</Text>
+          <Text style={s.kpiBigLabel}>VENTAS DEL DIA</Text>
+          <Text style={s.kpiBigValue}>S/ {totalVentas.toFixed(2)}</Text>
           <View style={s.kpiBigFooter}>
-            <Text style={s.kpiBigSubtext}>{cantHoy} venta{cantHoy !== 1 ? 's' : ''}</Text>
-            {compAyer !== 0 && (
+            <Text style={s.kpiBigSubtext}>{cantVentas} venta{cantVentas !== 1 ? 's' : ''}</Text>
+            {isToday && compAyer !== 0 && (
               <View style={[s.compBadge, { backgroundColor: compAyer > 0 ? '#dcfce7' : '#fee2e2' }]}>
                 <Text style={[s.compText, { color: compAyer > 0 ? '#16a34a' : '#dc2626' }]}>
                   {compAyer > 0 ? '↑' : '↓'} {Math.abs(compAyer).toFixed(1)}% vs ayer
@@ -107,6 +186,29 @@ export default function ReportesScreen() {
             )}
           </View>
         </View>
+
+        {/* Desglose por metodo de pago */}
+        {metodosArray.length > 0 && (
+          <View style={s.metodosCard}>
+            <Text style={s.metodosTitle}>POR METODO DE PAGO</Text>
+            {metodosArray.map((m, i) => {
+              const isEf = /efect/i.test(m.nombre);
+              const isYa = /yape/i.test(m.nombre);
+              const emoji = isEf ? '💵' : isYa ? '📱' : '💳';
+              const color = isEf ? '#16a34a' : isYa ? '#7c3aed' : '#0891b2';
+              return (
+                <View key={i} style={s.metodoRow}>
+                  <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={s.metodoNombre}>{m.nombre}</Text>
+                    <Text style={s.metodoCount}>{m.count} pago{m.count !== 1 ? 's' : ''}</Text>
+                  </View>
+                  <Text style={[s.metodoMonto, { color }]}>S/ {m.monto.toFixed(2)}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* Caja actual */}
         <View style={s.cajaCard}>
@@ -136,8 +238,8 @@ export default function ReportesScreen() {
           </View>
         )}
 
-        {/* Top productos hoy */}
-        {dash?.topProductosHoy?.length > 0 && (
+        {/* Top productos del dia */}
+        {isToday && dash?.topProductosHoy?.length > 0 && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>🔥 Mas vendidos hoy</Text>
             {dash.topProductosHoy.map((p: any, i: number) => (
@@ -155,10 +257,10 @@ export default function ReportesScreen() {
           </View>
         )}
 
-        {/* Lista de ventas hoy */}
-        {ventas.length > 0 && (
+        {/* Lista de ventas del dia */}
+        {ventas.length > 0 ? (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>📋 Ventas de hoy</Text>
+            <Text style={s.sectionTitle}>📋 Ventas {isToday ? 'de hoy' : 'del dia'}</Text>
             {ventas.map((v: any) => (
               <View key={v.id} style={s.ventaRow}>
                 <View style={{ flex: 1 }}>
@@ -171,6 +273,13 @@ export default function ReportesScreen() {
               </View>
             ))}
           </View>
+        ) : (
+          !ventasLoading && (
+            <View style={s.emptyDay}>
+              <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
+              <Text style={s.emptyDayText}>Sin ventas {isToday ? 'hoy' : 'este dia'}</Text>
+            </View>
+          )
         )}
       </>
     );
@@ -233,47 +342,73 @@ export default function ReportesScreen() {
   };
 
   const renderInventario = () => {
-    const totalProductos = inventario?.totalProductos || 0;
-    const valorTotal = Number(inventario?.valorTotalCosto || 0);
-    const valorVenta = Number(inventario?.valorTotalVenta || 0);
-    const gananciaPotencial = valorVenta - valorTotal;
+    const resumen = inventario?.resumen || {};
+    const totalProductos = Number(resumen?.totalProductos || 0);
+    const totalUnidades = Number(resumen?.totalUnidades || 0);
+    const sinStock = Number(dash?.alertas?.sinStock || 0);
+    const stockBajo = Number(dash?.alertas?.stockBajo || 0);
+    const stockOk = Math.max(0, totalProductos - sinStock - stockBajo);
+    const productosCriticos: any[] = stockBajoData?.data || stockBajoData?.items || extractList(stockBajoData);
 
     return (
       <>
+        {/* Card principal: total unidades */}
         <View style={s.kpiBigCard}>
-          <Text style={s.kpiBigLabel}>VALOR DEL INVENTARIO</Text>
-          <Text style={s.kpiBigValue}>S/ {valorTotal.toFixed(2)}</Text>
-          <Text style={s.kpiBigSubtext}>Costo total</Text>
+          <Text style={s.kpiBigLabel}>UNIDADES EN STOCK</Text>
+          <Text style={s.kpiBigValue}>{totalUnidades.toLocaleString('es-PE')}</Text>
+          <Text style={s.kpiBigSubtext}>de {totalProductos} productos diferentes</Text>
         </View>
 
-        <View style={s.kpiRow}>
-          <View style={s.kpiSmall}>
-            <Text style={s.kpiSmallLabel}>Productos</Text>
-            <Text style={s.kpiSmallValue}>{totalProductos}</Text>
+        {/* 3 cards de estado: OK, stock bajo, sin stock */}
+        <View style={s.stockRow}>
+          <View style={[s.stockCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
+            <Text style={{ fontSize: 22 }}>✅</Text>
+            <Text style={[s.stockValue, { color: '#16a34a' }]}>{stockOk}</Text>
+            <Text style={s.stockLabel}>OK</Text>
           </View>
-          <View style={s.kpiSmall}>
-            <Text style={s.kpiSmallLabel}>Valor en venta</Text>
-            <Text style={[s.kpiSmallValue, { fontSize: 16 }]}>S/ {valorVenta.toFixed(2)}</Text>
+          <View style={[s.stockCard, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
+            <Text style={{ fontSize: 22 }}>⚠️</Text>
+            <Text style={[s.stockValue, { color: '#d97706' }]}>{stockBajo}</Text>
+            <Text style={s.stockLabel}>Stock bajo</Text>
+          </View>
+          <View style={[s.stockCard, { backgroundColor: '#fef2f2', borderColor: '#fecaca' }]}>
+            <Text style={{ fontSize: 22 }}>🚨</Text>
+            <Text style={[s.stockValue, { color: '#dc2626' }]}>{sinStock}</Text>
+            <Text style={s.stockLabel}>Sin stock</Text>
           </View>
         </View>
 
-        <View style={[s.kpiBigCard, { backgroundColor: '#dcfce7', marginTop: 12 }]}>
-          <Text style={[s.kpiBigLabel, { color: '#15803d' }]}>GANANCIA POTENCIAL</Text>
-          <Text style={[s.kpiBigValue, { color: '#16a34a' }]}>S/ {gananciaPotencial.toFixed(2)}</Text>
-          <Text style={[s.kpiBigSubtext, { color: '#16a34a' }]}>
-            Si vendes todo el stock
-          </Text>
-        </View>
-
-        <View style={s.alertCard}>
-          <Text style={{ fontSize: 22 }}>⚠️</Text>
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={s.alertTitle}>Alertas de stock</Text>
-            <Text style={s.alertDesc}>
-              {dash?.alertas?.sinStock || 0} sin stock · {dash?.alertas?.stockBajo || 0} con stock bajo
-            </Text>
+        {/* Lista de productos criticos */}
+        {productosCriticos.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>⚠️ Necesitan reposicion</Text>
+            {productosCriticos.slice(0, 20).map((p: any) => {
+              const stock = Number(p.stock ?? p.variantes?.[0]?.stock ?? 0);
+              const minimo = Number(p.stockMinimo ?? p.variantes?.[0]?.stockMinimo ?? 5);
+              const critico = stock === 0;
+              return (
+                <View key={p.id} style={s.criticRow}>
+                  <View style={[s.criticDot, { backgroundColor: critico ? '#dc2626' : '#d97706' }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.criticName} numberOfLines={1}>{p.nombre || p.producto?.nombre}</Text>
+                    <Text style={s.criticSku}>{p.sku || p.producto?.sku}</Text>
+                  </View>
+                  <View style={s.criticStock}>
+                    <Text style={[s.criticStockN, { color: critico ? '#dc2626' : '#d97706' }]}>{stock}</Text>
+                    <Text style={s.criticStockMin}>min {minimo}</Text>
+                  </View>
+                </View>
+              );
+            })}
           </View>
-        </View>
+        )}
+
+        {totalProductos === 0 && (
+          <View style={s.emptyInv}>
+            <Text style={{ fontSize: 44, marginBottom: 8 }}>📦</Text>
+            <Text style={s.emptyInvText}>Aun no hay productos cargados</Text>
+          </View>
+        )}
       </>
     );
   };
@@ -291,7 +426,7 @@ export default function ReportesScreen() {
       {/* Tabs */}
       <View style={s.tabsRow}>
         {([
-          { key: 'hoy' as const, label: 'Hoy' },
+          { key: 'hoy' as const, label: 'Dia' },
           { key: 'mes' as const, label: 'Mes' },
           { key: 'inventario' as const, label: 'Inventario' },
         ]).map(t => (
@@ -443,4 +578,89 @@ const s = StyleSheet.create({
   ventaNum: { fontSize: 13, fontWeight: '600', color: '#111827' },
   ventaTime: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
   ventaTotal: { fontSize: 16, fontWeight: 'bold', color: '#16a34a' },
+
+  // Day navigator (atras / fecha / adelante)
+  dayNav: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#ffffff', borderRadius: 16, padding: 8,
+    marginBottom: 10, borderWidth: 1, borderColor: '#f1f5f9',
+    elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+  },
+  dayNavBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: '#faf5ff', alignItems: 'center', justifyContent: 'center',
+  },
+  dayNavBtnDisabled: { backgroundColor: '#f8fafc' },
+  dayNavArrow: { fontSize: 26, color: '#7c3aed', fontWeight: '700', marginTop: -3 },
+  dayNavLabel: { fontSize: 11, fontWeight: '800', color: '#7c3aed', letterSpacing: 1.5 },
+  dayNavDate: { fontSize: 14, fontWeight: '700', color: '#0f172a', marginTop: 2 },
+
+  // Shortcuts
+  dayShortcuts: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
+  dayChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0',
+  },
+  dayChipActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+  dayChipText: { fontSize: 12, fontWeight: '600', color: '#64748b' },
+  dayChipTextActive: { color: '#ffffff', fontWeight: '700' },
+
+  // Metodos de pago desglose
+  metodosCard: {
+    backgroundColor: '#ffffff', borderRadius: 16, padding: 16,
+    marginBottom: 12, elevation: 1,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+  },
+  metodosTitle: { fontSize: 10, fontWeight: '700', color: '#9ca3af', letterSpacing: 1.2, marginBottom: 10 },
+  metodoRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
+  },
+  metodoNombre: { fontSize: 14, fontWeight: '600', color: '#111827', textTransform: 'capitalize' },
+  metodoCount: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
+  metodoMonto: { fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
+
+  // Empty day
+  emptyDay: { alignItems: 'center', paddingVertical: 40 },
+  emptyDayText: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
+
+  // Inventario: 3 cards de stock
+  stockRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  stockCard: {
+    flex: 1, padding: 14, borderRadius: 16, borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  stockValue: { fontSize: 26, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
+  stockLabel: { fontSize: 11, color: '#475569', fontWeight: '600', marginTop: 2, letterSpacing: 0.2 },
+
+  // Productos criticos
+  criticRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#ffffff', borderRadius: 12, padding: 12,
+    marginBottom: 6, elevation: 1, gap: 10,
+  },
+  criticDot: { width: 8, height: 8, borderRadius: 4 },
+  criticName: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  criticSku: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
+  criticStock: { alignItems: 'flex-end', minWidth: 50 },
+  criticStockN: { fontSize: 20, fontWeight: '800', letterSpacing: -0.2 },
+  criticStockMin: { fontSize: 10, color: '#94a3b8', fontWeight: '500' },
+
+  // Empty inventario
+  emptyInv: { alignItems: 'center', paddingVertical: 40 },
+  emptyInvText: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
+
+  // Alert row (no usado, reemplazado por stockRow pero mantenido por compat)
+  alertRow: { flexDirection: 'row', gap: 10 },
+  alertCardSmall: {
+    flex: 1, padding: 14, borderRadius: 14, borderWidth: 1.5, alignItems: 'center',
+  },
+  alertValue: { fontSize: 22, fontWeight: '800', marginTop: 4 },
+  alertLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
+
+  // Categoria desglose (no usado, mantenido por compat)
+  catRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 6, elevation: 1 },
+  catName: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  catUnits: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
+  catValue: { fontSize: 14, fontWeight: 'bold', color: '#7c3aed' },
 });

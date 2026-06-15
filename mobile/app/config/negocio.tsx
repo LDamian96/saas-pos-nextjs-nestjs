@@ -33,9 +33,11 @@ export default function NegocioScreen() {
   useEffect(() => {
     const emp = data?.data || data;
     if (emp) {
-      setNombre(emp.nombre || '');
+      // Backend usa nombreComercial / direccionFiscal en el DTO.
+      // Si el GET retorna 'nombre' (vista plana) tambien lo soportamos.
+      setNombre(emp.nombreComercial || emp.nombre || '');
       setRuc(emp.ruc || '');
-      setDireccion(emp.direccion || '');
+      setDireccion(emp.direccionFiscal || emp.direccion || '');
       setTelefono(emp.telefono || '');
     }
   }, [data]);
@@ -88,7 +90,12 @@ export default function NegocioScreen() {
         <View style={{ marginTop: 28 }}>
           <Button
             label={updateMutation.isPending ? 'Guardando…' : 'Guardar'}
-            onPress={() => updateMutation.mutate({ nombre, ruc, direccion, telefono })}
+            onPress={() => updateMutation.mutate({
+              nombreComercial: nombre.trim() || undefined,
+              ruc: ruc.trim() || undefined,
+              direccionFiscal: direccion.trim() || undefined,
+              telefono: telefono.trim() || undefined,
+            })}
             loading={updateMutation.isPending}
             icon={Save}
             size="lg"
