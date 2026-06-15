@@ -1,28 +1,13 @@
-// =============================================================================
-// _layout.tsx — Root layout.
-// Mulish fonts + telemetría remota + tracking de rutas + transiciones suaves.
-// =============================================================================
-
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
-import {
-  useFonts,
-  Mulish_400Regular,
-  Mulish_500Medium,
-  Mulish_600SemiBold,
-  Mulish_700Bold,
-  Mulish_800ExtraBold,
-  Mulish_900Black,
-} from '@expo-google-fonts/mulish';
-
 import { useAuthStore } from '@/stores/auth.store';
 import { AnimatedSplash } from '@/components/splash-screen';
 import {
@@ -31,18 +16,22 @@ import {
   setLoggerRoute,
   setLoggerSession,
 } from '@/services/remote-logger';
-import { colors, fonts } from '@/theme';
 
+// Mantener el splash nativo oculto hasta que nuestro splash custom termine
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
+});
 
 const LightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: colors.bg,
-    card: colors.surface,
-    text: colors.text,
-    primary: colors.brand,
+    background: '#f8fafc',
+    card: '#ffffff',
+    text: '#111827',
+    primary: '#7c3aed',
   },
 };
 
@@ -51,23 +40,23 @@ const toastConfig = {
     <BaseToast
       {...props}
       style={{
-        borderLeftColor: colors.success,
+        borderLeftColor: '#16a34a',
         borderLeftWidth: 5,
-        backgroundColor: colors.surface,
+        backgroundColor: '#fff',
         borderRadius: 14,
-        elevation: 12,
+        elevation: 20,
         shadowColor: '#000',
-        shadowOpacity: 0.12,
+        shadowOpacity: 0.15,
         shadowRadius: 12,
         shadowOffset: { width: 0, height: 4 },
         marginHorizontal: 12,
-        minHeight: 56,
         height: undefined,
+        minHeight: 56,
         paddingVertical: 10,
       }}
       contentContainerStyle={{ paddingHorizontal: 14 }}
-      text1Style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.text }}
-      text2Style={{ fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted, marginTop: 2 }}
+      text1Style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}
+      text2Style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}
       text1NumberOfLines={2}
       text2NumberOfLines={2}
     />
@@ -76,19 +65,23 @@ const toastConfig = {
     <ErrorToast
       {...props}
       style={{
-        borderLeftColor: colors.danger,
+        borderLeftColor: '#dc2626',
         borderLeftWidth: 5,
-        backgroundColor: colors.surface,
+        backgroundColor: '#fff',
         borderRadius: 14,
-        elevation: 12,
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
         marginHorizontal: 12,
-        minHeight: 56,
         height: undefined,
+        minHeight: 56,
         paddingVertical: 10,
       }}
       contentContainerStyle={{ paddingHorizontal: 14 }}
-      text1Style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.danger }}
-      text2Style={{ fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted, marginTop: 2 }}
+      text1Style={{ fontSize: 15, fontWeight: '700', color: '#dc2626' }}
+      text2Style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}
       text1NumberOfLines={2}
       text2NumberOfLines={2}
     />
@@ -97,43 +90,34 @@ const toastConfig = {
     <BaseToast
       {...props}
       style={{
-        borderLeftColor: colors.brand,
+        borderLeftColor: '#7c3aed',
         borderLeftWidth: 5,
-        backgroundColor: colors.surface,
+        backgroundColor: '#fff',
         borderRadius: 14,
-        elevation: 12,
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
         marginHorizontal: 12,
-        minHeight: 56,
         height: undefined,
+        minHeight: 56,
         paddingVertical: 10,
       }}
       contentContainerStyle={{ paddingHorizontal: 14 }}
-      text1Style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.brand }}
-      text2Style={{ fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted, marginTop: 2 }}
+      text1Style={{ fontSize: 15, fontWeight: '700', color: '#7c3aed' }}
+      text2Style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}
       text1NumberOfLines={2}
       text2NumberOfLines={2}
     />
   ),
 };
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30000, retry: 1, refetchOnWindowFocus: false } },
-});
-
 export default function RootLayout() {
-  const checkAuth = useAuthStore((s) => s.checkAuth);
-  const usuario = useAuthStore((s) => s.usuario);
+  const checkAuth = useAuthStore(s => s.checkAuth);
+  const usuario = useAuthStore(s => s.usuario);
   const [splashDone, setSplashDone] = useState(false);
   const segments = useSegments();
-
-  const [fontsLoaded] = useFonts({
-    Mulish_400Regular,
-    Mulish_500Medium,
-    Mulish_600SemiBold,
-    Mulish_700Bold,
-    Mulish_800ExtraBold,
-    Mulish_900Black,
-  });
 
   useEffect(() => {
     installGlobalErrorHandlers();
@@ -141,18 +125,14 @@ export default function RootLayout() {
     checkAuth();
     SplashScreen.hideAsync().catch(() => {});
 
+    // Network + sync (carga diferida para no crashear)
     try {
       const { useNetworkStore } = require('@/stores/network.store');
       const sync = require('@/services/sync.service');
       const unsub = useNetworkStore.getState().init();
       sync.refreshPendingCount().catch(() => {});
       sync.startBackgroundSync();
-      return () => {
-        try {
-          unsub?.();
-          sync.stopBackgroundSync();
-        } catch {}
-      };
+      return () => { try { unsub?.(); sync.stopBackgroundSync(); } catch {} };
     } catch (e) {
       remoteLogger.warning('init_offline_services_failed', { err: String(e) });
     }
@@ -166,25 +146,14 @@ export default function RootLayout() {
     if (usuario?.id) setLoggerSession({ userId: usuario.id, empresaId: usuario.empresa?.id });
   }, [usuario?.id]);
 
-  if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#7C3AED' }} />;
-  }
-
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <ThemeProvider value={LightTheme}>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: 'fade_from_bottom',
-                animationDuration: 240,
-                contentStyle: { backgroundColor: colors.bg },
-              }}
-            >
+            <Stack screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 220 }}>
               <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-              <Stack.Screen name="login" options={{ animation: 'fade', animationDuration: 280 }} />
+              <Stack.Screen name="login" options={{ animation: 'fade', animationDuration: 300 }} />
               <Stack.Screen name="carrito" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="cobrar" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="cobrar-exito" options={{ animation: 'fade' }} />

@@ -1,103 +1,53 @@
-// =============================================================================
-// (tabs)/_layout.tsx — Bottom tabs con lucide icons + animación scale.
-// =============================================================================
-
 import { Tabs } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import React from 'react';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { BarChart3, Boxes, Settings, ShoppingCart } from 'lucide-react-native';
-import { colors, fonts } from '@/theme';
-import { useEffect } from 'react';
+import { HapticTab } from '@/components/haptic-tab';
 
-type IconCmp = typeof ShoppingCart;
-
-function AnimatedTabIcon({ Icon, label, focused }: { Icon: IconCmp; label: string; focused: boolean }) {
-  const scale = useSharedValue(focused ? 1 : 0.92);
-  const opacity = useSharedValue(focused ? 1 : 0.55);
-  useEffect(() => {
-    scale.value = withSpring(focused ? 1.08 : 0.94, { damping: 14, stiffness: 220 });
-    opacity.value = withTiming(focused ? 1 : 0.55, { duration: 160 });
-  }, [focused]);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
   return (
-    <Animated.View style={[ti.wrap, animStyle]}>
-      <Icon color={focused ? colors.brand : colors.textSubtle} size={focused ? 24 : 22} strokeWidth={2.2} />
-      <Text
-        numberOfLines={1}
-        style={[ti.label, { color: focused ? colors.brand : colors.textSubtle, fontFamily: focused ? fonts.extrabold : fonts.semibold }]}
-      >
-        {label}
-      </Text>
-    </Animated.View>
+    <View style={ti.wrap}>
+      <Text style={{ fontSize: focused ? 22 : 18 }}>{emoji}</Text>
+      <Text style={[ti.label, focused && ti.labelActive]}>{label}</Text>
+    </View>
   );
 }
 
 const ti = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center', paddingTop: 8, minWidth: 70 },
-  label: { fontSize: 10.5, marginTop: 3, letterSpacing: 0.1 },
+  wrap: { alignItems: 'center', justifyContent: 'center', paddingTop: 6 },
+  label: { fontSize: 10, marginTop: 2, color: '#9ca3af' },
+  labelActive: { color: '#7c3aed', fontWeight: '700' },
 });
-
-function TabButton(props: any) {
-  return (
-    <Pressable
-      {...props}
-      onPress={(e) => {
-        Haptics.selectionAsync();
-        props.onPress?.(e);
-      }}
-      android_ripple={undefined}
-      style={({ pressed }) => [{ flex: 1, opacity: pressed ? 0.85 : 1, alignItems: 'center', justifyContent: 'center' }]}
-    />
-  );
-}
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const bottomPad = Math.max(insets.bottom, 6);
+  // Solo agregar padding extra si hay inset real (gesture nav), sino un mínimo
+  const bottomPad = Math.max(insets.bottom, 4);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarButton: TabButton,
-        tabBarShowLabel: false,
+        tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.divider,
+          backgroundColor: '#ffffff',
+          borderTopColor: '#f3f4f6',
           borderTopWidth: 1,
-          height: 62 + bottomPad,
+          height: 56 + bottomPad,
           paddingBottom: bottomPad,
-          paddingTop: 0,
-          elevation: 12,
-          shadowColor: '#000',
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: -3 },
+          elevation: 10,
         },
-        sceneStyle: { backgroundColor: colors.bg },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon Icon={ShoppingCart} label="POS" focused={focused} /> }}
-      />
-      <Tabs.Screen
-        name="productos"
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon Icon={Boxes} label="Productos" focused={focused} /> }}
-      />
-      <Tabs.Screen
-        name="ventas"
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon Icon={BarChart3} label="Reportes" focused={focused} /> }}
-      />
-      <Tabs.Screen
-        name="config"
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon Icon={Settings} label="Ajustes" focused={focused} /> }}
-      />
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: '#7c3aed',
+      }}>
+      <Tabs.Screen name="index"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🛒" label="POS" focused={focused} /> }} />
+      <Tabs.Screen name="productos"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="📦" label="Productos" focused={focused} /> }} />
+      <Tabs.Screen name="ventas"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="📊" label="Reportes" focused={focused} /> }} />
+      <Tabs.Screen name="config"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="⚙️" label="Config" focused={focused} /> }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );

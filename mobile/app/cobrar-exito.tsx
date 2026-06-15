@@ -1,47 +1,17 @@
-// =============================================================================
-// cobrar-exito.tsx — Confirmación + ticket + acciones (imprimir / WhatsApp).
-// =============================================================================
-
-import { ComponentType, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Linking, ActivityIndicator, Modal, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { Easing, FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import {
-  Banknote,
-  CheckCircle2,
-  CreditCard,
-  Landmark,
-  MessageCircle,
-  Plus,
-  Printer,
-  Smartphone,
-  Wallet,
-  WifiOff,
-} from 'lucide-react-native';
-
 import { usePosStore } from '@/stores/pos.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { getSelectedPrinter, printTicket } from '@/services/printer.service';
-import { toastError, toastSuccess } from '@/api/helpers';
+import { toastSuccess, toastError } from '@/api/helpers';
 import { remoteLogger } from '@/services/remote-logger';
-import { Button } from '@/components/ui/Button';
-import { colors, fonts, radius, shadows } from '@/theme';
 
-const METODO_ICON: Record<string, ComponentType<{ color?: string; size?: number; strokeWidth?: number }>> = {
-  efectivo: Banknote,
-  tarjeta: CreditCard,
-  yape: Smartphone,
-  plin: Smartphone,
-  transferencia: Landmark,
+const EMOJI: Record<string, string> = {
+  efectivo: '💵', tarjeta: '💳', yape: '📱', plin: '📱', transferencia: '🏦',
 };
-
-function iconFor(tipo?: string, nombre?: string) {
-  const k1 = tipo?.toLowerCase() ?? '';
-  const k2 = nombre?.toLowerCase() ?? '';
-  return METODO_ICON[k1] ?? METODO_ICON[k2] ?? Wallet;
-}
 
 export default function CobrarExitoScreen() {
   const insets = useSafeAreaInsets();
@@ -59,29 +29,22 @@ export default function CobrarExitoScreen() {
   const pagos = lastVenta?._pagos || [];
   const fecha = new Date();
 
-  const checkScale = useSharedValue(0.4);
   useEffect(() => {
-    checkScale.value = withSpring(1, { damping: 12, stiffness: 200 });
     getSelectedPrinter().then((p) => setHasPrinter(!!p));
     AsyncStorage.getItem('pos-negocio-config').then((val) => {
-      if (val) {
-        try {
-          setWhatsappEnabled(JSON.parse(val).whatsapp !== false);
-        } catch {}
-      }
+      if (val) { try { setWhatsappEnabled(JSON.parse(val).whatsapp !== false); } catch {} }
     });
   }, []);
-
-  const checkStyle = useAnimatedStyle(() => ({ transform: [{ scale: checkScale.value }] }));
 
   const buildMessage = () => {
     let msg = `*${usuario?.empresa?.nombre || 'POS Shop'}*\n`;
     msg += `Venta: ${lastVenta?.numeroVenta || ''}\n`;
-    msg += `${fecha.toLocaleDateString('es-PE')} ${fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}\n\n`;
+    msg += `Fecha: ${fecha.toLocaleDateString('es-PE')} ${fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}\n\n`;
     items.forEach((i: any) => {
       msg += `${i.nombre} x${i.cantidad} — S/ ${(Number(i.precio || i.precioUnitario || 0) * i.cantidad).toFixed(2)}\n`;
     });
-    msg += `\n*TOTAL: S/ ${ventaTotal.toFixed(2)}*\n\nGracias por su compra`;
+    msg += `\n*TOTAL: S/ ${ventaTotal.toFixed(2)}*\n`;
+    msg += `\nGracias por su compra!`;
     return msg;
   };
 
@@ -92,10 +55,9 @@ export default function CobrarExitoScreen() {
   const sendWhatsApp = async () => {
     const clean = waPhone.replace(/\D/g, '');
     if (clean.length < 9) {
-      toastError('Teléfono inválido', 'Ingresa el número del cliente (9 dígitos)');
+      toastError('Telefono invalido', 'Ingresa el numero del cliente (9 digitos)');
       return;
     }
-    // Si tiene 9 dígitos asume Perú (51). Si ya viene con código país (>=10) lo usa tal cual.
     const phone = clean.length === 9 ? `51${clean}` : clean;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildMessage())}`;
     setWaOpen(false);
@@ -115,8 +77,7 @@ export default function CobrarExitoScreen() {
         empresa: { nombre: usuario?.empresa?.nombre || 'POS Shop' },
         venta: { numero: lastVenta?.numeroVenta, fecha: fecha.toLocaleString('es-PE'), tipoComprobante: lastVenta?.tipoComprobante },
         items: items.map((i: any) => ({
-          nombre: i.nombre,
-          cantidad: i.cantidad,
+          nombre: i.nombre, cantidad: i.cantidad,
           precio: Number(i.precio || i.precioUnitario || 0),
           subtotal: Number(i.precio || i.precioUnitario || 0) * i.cantidad,
         })),
@@ -124,41 +85,27 @@ export default function CobrarExitoScreen() {
         metodoPago: pagos.map((p: any) => p.nombre).join(' + '),
       });
       toastSuccess('Ticket impreso');
-    } catch (err: any) {
-      remoteLogger.error('print_failed', err);
-      toastError('Error', err?.message || 'Verifica la impresora');
-    } finally {
-      setPrinting(false);
-    }
+    } catch (err: any) { toastError('Error', err?.message || 'Verifica impresora'); }
+    finally { setPrinting(false); }
   };
 
-  const handleNewSale = () => {
-    reset();
-    router.replace('/(tabs)');
-  };
+  const handleNewSale = () => { reset(); router.replace('/(tabs)'); };
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeIn.duration(260)} style={s.statusSection}>
-          <Animated.View style={[s.statusIconWrap, checkStyle]}>
-            {isOffline ? (
-              <WifiOff color={colors.warningText} size={42} strokeWidth={2.2} />
-            ) : (
-              <CheckCircle2 color={colors.brand} size={48} strokeWidth={2.2} />
-            )}
-          </Animated.View>
-          <Animated.Text entering={FadeInDown.delay(120).duration(280)} style={s.statusTitle}>
-            {isOffline ? 'Guardada offline' : '¡Venta completada!'}
-          </Animated.Text>
-          {isOffline ? (
-            <Text style={s.statusOffline}>Se sincronizará al volver internet</Text>
-          ) : (
-            <Text style={s.statusSubtitle}>Total cobrado · S/ {ventaTotal.toFixed(2)}</Text>
-          )}
-        </Animated.View>
+        {/* Status section */}
+        <View style={s.statusSection}>
+          <View style={s.statusIconWrap}>
+            <Text style={s.statusEmoji}>{isOffline ? '📡' : '✅'}</Text>
+          </View>
+          <Text style={s.statusTitle}>{isOffline ? 'Guardada offline' : 'Venta Completada'}</Text>
+          {isOffline && <Text style={s.statusOffline}>Se sincronizara al volver internet</Text>}
+        </View>
 
-        <Animated.View entering={FadeInDown.delay(160).duration(300).easing(Easing.out(Easing.cubic))} style={s.ticket}>
+        {/* Ticket card */}
+        <View style={s.ticket}>
+          {/* Ticket header */}
           <View style={s.ticketHeader}>
             <Text style={s.ticketEmpresa}>{usuario?.empresa?.nombre || 'POS Shop'}</Text>
             {lastVenta?.numeroVenta && (
@@ -167,12 +114,13 @@ export default function CobrarExitoScreen() {
               </View>
             )}
             <Text style={s.ticketFecha}>
-              {fecha.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })} · {fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+              {fecha.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })} — {fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
 
           <View style={s.ticketDivider} />
 
+          {/* Items */}
           {items.map((item: any, idx: number) => {
             const precio = Number(item.precio || item.precioUnitario || 0);
             const sub = precio * item.cantidad;
@@ -180,7 +128,7 @@ export default function CobrarExitoScreen() {
               <View key={idx} style={s.ticketItem}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.ticketItemName} numberOfLines={1}>{item.nombre}</Text>
-                  <Text style={s.ticketItemQty}>{item.cantidad} × S/ {precio.toFixed(2)}</Text>
+                  <Text style={s.ticketItemQty}>{item.cantidad} x S/ {precio.toFixed(2)}</Text>
                 </View>
                 <Text style={s.ticketItemSub}>S/ {sub.toFixed(2)}</Text>
               </View>
@@ -189,20 +137,22 @@ export default function CobrarExitoScreen() {
 
           <View style={s.ticketDivider} />
 
+          {/* Total */}
           <View style={s.ticketTotalRow}>
             <Text style={s.ticketTotalLabel}>TOTAL</Text>
             <Text style={s.ticketTotalValue}>S/ {ventaTotal.toFixed(2)}</Text>
           </View>
 
+          {/* Payments */}
           {pagos.length > 0 && (
             <>
-              <View style={[s.ticketDivider, { marginVertical: 12 }]} />
-              <View style={{ gap: 8 }}>
+              <View style={s.ticketDividerDashed} />
+              <View style={s.ticketPagos}>
                 {pagos.map((p: any, idx: number) => {
-                  const Icon = iconFor(p.tipo, p.nombre);
+                  const emoji = EMOJI[p.tipo?.toLowerCase()] || EMOJI[p.nombre?.toLowerCase()] || '💰';
                   return (
                     <View key={idx} style={s.ticketPagoRow}>
-                      <Icon color={colors.textMuted} size={14} strokeWidth={2.2} />
+                      <Text style={{ fontSize: 14 }}>{emoji}</Text>
                       <Text style={s.ticketPagoNombre}>{p.nombre}</Text>
                       <Text style={s.ticketPagoMonto}>S/ {Number(p.monto).toFixed(2)}</Text>
                     </View>
@@ -212,65 +162,56 @@ export default function CobrarExitoScreen() {
             </>
           )}
 
-          <View style={s.graciasWrap}>
-            <Text style={s.gracias}>Gracias por su compra</Text>
+          {/* Thank you */}
+          <View style={s.ticketGraciasWrap}>
+            <Text style={s.ticketGracias}>Gracias por su compra</Text>
           </View>
-        </Animated.View>
+        </View>
 
-        <Animated.View entering={FadeInDown.delay(240).duration(280)} style={{ gap: 10 }}>
+        {/* Action buttons */}
+        <View style={s.actions}>
           {hasPrinter && (
-            <Button
-              label={printing ? 'Imprimiendo…' : 'Imprimir ticket'}
-              icon={Printer}
-              variant="outline"
-              loading={printing}
-              onPress={handlePrint}
-            />
+            <TouchableOpacity style={s.printBtn} onPress={handlePrint} disabled={printing} activeOpacity={0.8}>
+              {printing ? <ActivityIndicator color="#ffffff" /> : <Text style={s.printText}>🖨  Imprimir ticket</Text>}
+            </TouchableOpacity>
           )}
-          {whatsappEnabled && <Button label="Enviar por WhatsApp" icon={MessageCircle} variant="outline" onPress={handleWhatsApp} />}
-          <Button label="Nueva venta" icon={Plus} onPress={handleNewSale} size="lg" />
-        </Animated.View>
-
-        {printing && (
-          <View style={s.printingNote}>
-            <ActivityIndicator size="small" color={colors.brand} />
-            <Text style={s.printingText}>Conectando con la impresora…</Text>
-          </View>
-        )}
+          {whatsappEnabled && (
+            <TouchableOpacity style={s.wspBtn} onPress={handleWhatsApp} activeOpacity={0.8}>
+              <Text style={s.wspText}>📱  Enviar por WhatsApp</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={s.newBtn} onPress={handleNewSale} activeOpacity={0.8}>
+            <Text style={s.newText}>Nueva Venta</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
-
-      <View style={{ height: insets.bottom }} />
 
       <Modal visible={waOpen} transparent animationType="fade" onRequestClose={() => setWaOpen(false)}>
         <Pressable style={s.modalScrim} onPress={() => setWaOpen(false)}>
           <Pressable style={s.modalCard} onPress={() => {}}>
-            <View style={s.modalIcon}>
-              <MessageCircle color="#25D366" size={28} strokeWidth={2.2} />
-            </View>
-            <Text style={s.modalTitle}>Enviar por WhatsApp</Text>
-            <Text style={s.modalDesc}>Ingresa el número del cliente. Abrirá el chat directo.</Text>
+            <View style={s.modalIcon}><Text style={{ fontSize: 32 }}>📱</Text></View>
+            <Text style={s.modalTitle}>Enviar al cliente</Text>
+            <Text style={s.modalDesc}>Numero del cliente. Se abrira su chat directo.</Text>
             <View style={s.phoneRow}>
-              <View style={s.phonePrefix}>
-                <Text style={s.phonePrefixText}>+51</Text>
-              </View>
+              <View style={s.phonePrefix}><Text style={s.phonePrefixText}>+51</Text></View>
               <TextInput
                 style={s.phoneInput}
                 value={waPhone}
                 onChangeText={setWaPhone}
                 placeholder="987 654 321"
-                placeholderTextColor={colors.textPlaceholder}
+                placeholderTextColor="#cbd5e1"
                 keyboardType="phone-pad"
                 maxLength={15}
                 autoFocus
               />
             </View>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <View style={{ flex: 1 }}>
-                <Button label="Cancelar" variant="outline" onPress={() => setWaOpen(false)} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button label="Enviar" icon={MessageCircle} onPress={sendWhatsApp} />
-              </View>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
+              <TouchableOpacity style={s.modalCancel} onPress={() => setWaOpen(false)} activeOpacity={0.7}>
+                <Text style={s.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.modalSend} onPress={sendWhatsApp} activeOpacity={0.85}>
+                <Text style={s.modalSendText}>📤  Enviar</Text>
+              </TouchableOpacity>
             </View>
           </Pressable>
         </Pressable>
@@ -280,134 +221,164 @@ export default function CobrarExitoScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
   scroll: { padding: 20, paddingBottom: 40 },
 
-  statusSection: { alignItems: 'center', marginBottom: 22, marginTop: 12 },
+  // Status
+  statusSection: { alignItems: 'center', marginBottom: 24, marginTop: 16 },
   statusIconWrap: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: colors.brandTint,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#f0fdf4',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: colors.brandSoft,
+    borderWidth: 2,
+    borderColor: '#bbf7d0',
   },
-  statusTitle: { fontFamily: fonts.black, fontSize: 24, color: colors.text, letterSpacing: -0.4 },
-  statusSubtitle: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.brand, marginTop: 6 },
-  statusOffline: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.warningText, marginTop: 6 },
+  statusEmoji: { fontSize: 44 },
+  statusTitle: { fontSize: 24, fontWeight: '800', color: '#0f172a', letterSpacing: 0.2 },
+  statusOffline: { fontSize: 13, color: '#d97706', fontWeight: '600', marginTop: 6 },
 
+  // Ticket
   ticket: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: 22,
-    marginBottom: 22,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 28,
     borderWidth: 1,
-    borderColor: colors.divider,
-    ...shadows.soft,
+    borderColor: '#f1f5f9',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
   },
-  ticketHeader: { alignItems: 'center' },
-  ticketEmpresa: { fontFamily: fonts.black, fontSize: 17, color: colors.text, letterSpacing: -0.2 },
+  ticketHeader: { alignItems: 'center', marginBottom: 4 },
+  ticketEmpresa: { fontSize: 18, fontWeight: '800', color: '#0f172a', letterSpacing: 0.3 },
   ticketNumeroBadge: {
     marginTop: 8,
-    backgroundColor: colors.brandTint,
-    paddingHorizontal: 12,
+    backgroundColor: '#faf5ff',
+    paddingHorizontal: 14,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.brandSoft,
+    borderColor: '#ede9fe',
   },
-  ticketNumero: { fontFamily: fonts.extrabold, fontSize: 12, color: colors.brandDark, letterSpacing: 0.2 },
-  ticketFecha: { fontFamily: fonts.semibold, fontSize: 11.5, color: colors.textSubtle, marginTop: 8 },
+  ticketNumero: { fontSize: 13, color: '#7c3aed', fontWeight: '700' },
+  ticketFecha: { fontSize: 12, color: '#94a3b8', marginTop: 8, fontWeight: '500' },
 
-  ticketDivider: { height: 1, backgroundColor: colors.divider, marginVertical: 16 },
+  ticketDivider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 16 },
+  ticketDividerDashed: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 14 },
 
   ticketItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  ticketItemName: { fontFamily: fonts.extrabold, fontSize: 13.5, color: colors.text },
-  ticketItemQty: { fontFamily: fonts.semibold, fontSize: 11.5, color: colors.textSubtle, marginTop: 2 },
-  ticketItemSub: { fontFamily: fonts.black, fontSize: 14, color: colors.text },
+  ticketItemName: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
+  ticketItemQty: { fontSize: 12, color: '#94a3b8', marginTop: 3, fontWeight: '500' },
+  ticketItemSub: { fontSize: 15, fontWeight: '700', color: '#334155' },
 
   ticketTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ticketTotalLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.textMuted, letterSpacing: 1.5 },
-  ticketTotalValue: { fontFamily: fonts.black, fontSize: 28, color: colors.brand, letterSpacing: -0.6 },
+  ticketTotalLabel: { fontSize: 14, fontWeight: '700', color: '#64748b', letterSpacing: 1.5 },
+  ticketTotalValue: { fontSize: 28, fontWeight: '800', color: '#16a34a' },
 
+  ticketPagos: { gap: 8 },
   ticketPagoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ticketPagoNombre: { flex: 1, fontFamily: fonts.semibold, fontSize: 12.5, color: colors.textMuted },
-  ticketPagoMonto: { fontFamily: fonts.extrabold, fontSize: 13.5, color: colors.text },
+  ticketPagoNombre: { flex: 1, fontSize: 13, color: '#64748b', fontWeight: '500' },
+  ticketPagoMonto: { fontSize: 14, color: '#334155', fontWeight: '600' },
 
-  graciasWrap: { marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.divider, alignItems: 'center' },
-  gracias: { fontFamily: fonts.semibold, fontSize: 12.5, color: colors.textMuted, letterSpacing: 0.5 },
-
-  printingNote: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 14 },
-  printingText: { fontFamily: fonts.semibold, fontSize: 12.5, color: colors.textMuted },
-
-  modalScrim: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
+  ticketGraciasWrap: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
     alignItems: 'center',
-    padding: 24,
   },
+  ticketGracias: { fontSize: 14, color: '#94a3b8', fontWeight: '600', letterSpacing: 0.5 },
+
+  // Actions
+  actions: { gap: 12 },
+  printBtn: {
+    height: 56,
+    backgroundColor: '#0891b2',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#0891b2',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  printText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  wspBtn: {
+    height: 56,
+    backgroundColor: '#22c55e',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#22c55e',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  wspText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  newBtn: {
+    height: 56,
+    backgroundColor: '#7c3aed',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#7c3aed',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  newText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+
+  // WhatsApp modal
+  modalScrim: { flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: 24 },
   modalCard: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: 22,
-    alignItems: 'stretch',
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 24,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
   },
   modalIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#E7FBEF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#B7EFCE',
-    alignSelf: 'center',
-    marginBottom: 14,
+    width: 64, height: 64, borderRadius: 22, backgroundColor: '#dcfce7',
+    alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 14,
+    borderWidth: 1, borderColor: '#bbf7d0',
   },
-  modalTitle: {
-    fontFamily: fonts.black,
-    fontSize: 18,
-    color: colors.text,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-  modalDesc: {
-    fontFamily: fonts.semibold,
-    fontSize: 13,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 18,
-    lineHeight: 19,
-  },
+  modalTitle: { fontSize: 19, fontWeight: '800', color: '#0f172a', textAlign: 'center', letterSpacing: 0.2 },
+  modalDesc: { fontSize: 13.5, color: '#64748b', textAlign: 'center', marginTop: 6, marginBottom: 18, lineHeight: 19 },
   phoneRow: {
     flexDirection: 'row',
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    borderWidth: 1.4,
-    borderColor: colors.divider,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
     overflow: 'hidden',
   },
   phonePrefix: {
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderRightWidth: 1.4,
-    borderRightColor: colors.divider,
+    paddingHorizontal: 14, justifyContent: 'center',
+    backgroundColor: '#ffffff', borderRightWidth: 1.5, borderRightColor: '#e2e8f0',
   },
-  phonePrefixText: { fontFamily: fonts.black, fontSize: 16, color: colors.brand },
-  phoneInput: {
-    flex: 1,
-    height: 54,
-    paddingHorizontal: 14,
-    fontFamily: fonts.bold,
-    fontSize: 16,
-    color: colors.text,
-    letterSpacing: 1,
+  phonePrefixText: { fontSize: 16, fontWeight: '800', color: '#7c3aed' },
+  phoneInput: { flex: 1, height: 54, paddingHorizontal: 14, fontSize: 17, color: '#0f172a', fontWeight: '700', letterSpacing: 1 },
+  modalCancel: {
+    flex: 1, height: 50, borderRadius: 14, backgroundColor: '#f1f5f9',
+    alignItems: 'center', justifyContent: 'center',
   },
+  modalCancelText: { color: '#475569', fontWeight: '700', fontSize: 15 },
+  modalSend: {
+    flex: 1, height: 50, borderRadius: 14, backgroundColor: '#22c55e',
+    alignItems: 'center', justifyContent: 'center',
+    elevation: 3, shadowColor: '#22c55e', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
+  },
+  modalSendText: { color: '#ffffff', fontWeight: '800', fontSize: 15, letterSpacing: 0.3 },
 });

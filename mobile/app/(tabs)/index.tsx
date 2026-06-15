@@ -1,33 +1,15 @@
-// =============================================================================
-// (tabs)/index.tsx — POS principal optimizado.
-// Sin stagger en items, FlatList virtualizada, imagenes cacheadas, sin parpadeo
-// al cambiar categoria (placeholderData).
-// =============================================================================
-
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import Animated, {
-  FadeIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import { CircleAlert, Package, ScanLine, Search, ShoppingCart, WifiOff } from 'lucide-react-native';
-
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNetworkStore } from '@/stores/network.store';
 import { usePosStore } from '@/stores/pos.store';
 import api from '@/api/client';
-import { extractList, toastError, toastInfo } from '@/api/helpers';
-import { remoteLogger } from '@/services/remote-logger';
-import { Pill } from '@/components/ui/Pill';
-import { colors, fonts, radius, shadows } from '@/theme';
+import { extractList, toastError, toastInfo, toastSuccess } from '@/api/helpers';
+import { downloadCatalog } from '@/services/sync.service';
 
 interface Producto {
   id: string;
@@ -39,15 +21,11 @@ interface Producto {
   variantes?: { id: string; stock: number; precioVenta: number }[];
 }
 
-const CARD_BLUR_HASH = 'L6Pj0^jE.AyE_3t7t7R**0o#DgR4';
-
 export default function POSScreen() {
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, isLoading, usuario } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
   const { isOnline, pendingSales } = useNetworkStore();
-  const addToCart = usePosStore((s) => s.addToCart);
-  const count = usePosStore((s) => s.cart.length);
-  const cartTotal = usePosStore((s) => s.cart.reduce((sum, i) => sum + i.precio * i.cantidad, 0));
+  const { addToCart, itemCount, total, cart } = usePosStore();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -55,16 +33,14 @@ export default function POSScreen() {
   const [offlineCategorias, setOfflineCategorias] = useState<any[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 220);
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data: prodData, error: prodError, isFetching } = useQuery({
+  const { data: prodData, error: prodError } = useQuery({
     queryKey: ['productos', debouncedSearch, selectedCat],
     queryFn: async () => {
-      const r = await api.get('/productos', {
-        params: { search: debouncedSearch || undefined, categoriaId: selectedCat || undefined, activo: true, visiblePos: true, limit: 60 },
-      });
+      const r = await api.get('/productos', { params: { search: debouncedSearch || undefined, categoriaId: selectedCat || undefined, activo: true, visiblePos: true, limit: 100 } });
       const list = extractList(r.data);
       if (list.length > 0 && !debouncedSearch && !selectedCat) {
         import('@/db/offline').then(({ cacheProductos }) => cacheProductos(list)).catch(() => {});
@@ -73,8 +49,6 @@ export default function POSScreen() {
     },
     enabled: isAuthenticated && isOnline,
     retry: false,
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
   });
 
   const { data: catData } = useQuery({
@@ -87,14 +61,12 @@ export default function POSScreen() {
     },
     enabled: isAuthenticated && isOnline,
     retry: false,
-    staleTime: 5 * 60_000,
   });
 
   const { data: cajaData } = useQuery({
     queryKey: ['caja-actual'],
-    queryFn: () => api.get('/caja/actual').then((r) => r.data).catch(() => null),
+    queryFn: () => api.get('/caja/actual').then(r => r.data).catch(() => null),
     enabled: isAuthenticated && isOnline,
-    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -110,345 +82,324 @@ export default function POSScreen() {
   const categorias = isOnline ? extractList(catData) : offlineCategorias;
 
   useEffect(() => {
-    if (prodError && isOnline) {
-      const msg = (prodError as any)?.response?.data?.message ?? 'Verifica tu conexión';
-      remoteLogger.error('productos_load_failed', prodError as any);
-      toastError('Error cargando productos', msg);
-    }
+    if (prodError && isOnline) toastError('Error cargando productos', (prodError as any)?.response?.data?.message || 'Verifica tu conexion');
   }, [prodError, isOnline]);
-
-  const handleAddToCart = useCallback(
-    (prod: Producto) => {
-      const v = prod.variantes?.[0];
-      if (!v) {
-        toastError('Sin stock', 'Este producto no tiene variantes');
-        return;
-      }
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      addToCart({
-        varianteId: v.id,
-        productoId: prod.id,
-        nombre: prod.nombre,
-        imagen: prod.imagenPrincipal,
-        precio: Number(v.precioVenta) || Number(prod.precioVenta),
-        stock: v.stock,
-      });
-      toastInfo('Agregado', prod.nombre);
-    },
-    [addToCart]
-  );
-
-  const renderProduct = useCallback(
-    ({ item }: { item: Producto }) => (
-      <View style={{ flex: 1, marginBottom: 12 }}>
-        <ProductCard product={item} onPress={handleAddToCart} />
-      </View>
-    ),
-    [handleAddToCart]
-  );
-
-  const keyExtractor = useCallback((item: Producto) => item.id, []);
 
   if (!isLoading && !isAuthenticated) return <Redirect href="/login" />;
 
+  const handleAddToCart = (prod: Producto) => {
+    const v = prod.variantes?.[0];
+    if (!v) { toastError('Sin stock', 'Este producto no tiene variantes'); return; }
+    addToCart({
+      varianteId: v.id, productoId: prod.id, nombre: prod.nombre,
+      imagen: prod.imagenPrincipal,
+      precio: Number(v.precioVenta) || Number(prod.precioVenta), stock: v.stock,
+    });
+    toastInfo('Agregado', `${prod.nombre} al carrito`);
+  };
+
+  const count = itemCount();
+  const cartTotal = total();
+
+  const renderProduct = ({ item }: { item: Producto }) => (
+    <TouchableOpacity style={s.prodCard} onPress={() => handleAddToCart(item)} activeOpacity={0.7}>
+      {item.imagenPrincipal ? (
+        <Image source={{ uri: item.imagenPrincipal }} style={s.prodImg} />
+      ) : (
+        <View style={[s.prodImg, s.prodPlaceholder]}>
+          <Text style={s.prodInitial}>{item.nombre.charAt(0)}</Text>
+        </View>
+      )}
+      <View style={s.prodInfo}>
+        <Text style={s.prodName} numberOfLines={2}>{item.nombre}</Text>
+        <Text style={s.prodSku}>{item.sku}</Text>
+        <Text style={s.prodPrice}>S/ {Number(item.precioVenta).toFixed(2)}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
+      {/* Header */}
       <View style={s.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerEyebrow}>HOLA{usuario?.nombre ? `, ${usuario.nombre.split(' ')[0].toUpperCase()}` : ''}</Text>
-          <Text style={s.headerTitle}>Punto de venta</Text>
+        <View>
+          <Text style={s.headerTitle}>Punto de Venta</Text>
         </View>
-        <Pressable
-          onPress={() => router.push(cajaData?.id ? '/caja/cerrar' : '/caja/abrir')}
-          style={[s.cajaBadge, { backgroundColor: cajaData?.id ? colors.brandTint : colors.dangerSoft, borderColor: cajaData?.id ? colors.brandSoft : colors.dangerBorder }]}
+        <TouchableOpacity
+          style={[s.cajaBadge, cajaData?.id ? s.cajaBadgeOpen : s.cajaBadgeClosed]}
+          onPress={() => cajaData?.id ? router.push('/caja/cerrar') : router.push('/caja/abrir')}
+          activeOpacity={0.7}
         >
-          <View style={[s.cajaDot, { backgroundColor: cajaData?.id ? colors.brand : colors.danger }]} />
-          <Text style={[s.cajaText, { color: cajaData?.id ? colors.brandDark : colors.danger }]}>
+          <View style={[s.cajaDot, { backgroundColor: cajaData?.id ? '#16a34a' : '#dc2626' }]} />
+          <Text style={[s.cajaBadgeText, { color: cajaData?.id ? '#16a34a' : '#dc2626' }]}>
             {cajaData?.id ? 'Caja abierta' : 'Sin caja'}
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
+      {/* Search + Scanner */}
       <View style={s.searchRow}>
         <View style={s.searchInputWrap}>
-          <Search color={colors.textSubtle} size={18} strokeWidth={2.2} />
+          <Text style={s.searchIcon}>🔍</Text>
           <TextInput
             style={s.searchInput}
             value={search}
             onChangeText={setSearch}
-            placeholder="Buscar producto…"
-            placeholderTextColor={colors.textPlaceholder}
+            placeholder="Buscar producto..."
+            placeholderTextColor="#94a3b8"
           />
         </View>
-        <Pressable
-          style={s.scanBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/scanner');
-          }}
-        >
-          <ScanLine color={colors.brand} size={22} strokeWidth={2.2} />
-        </Pressable>
+        <TouchableOpacity style={s.scanBtn} onPress={() => router.push('/scanner')} activeOpacity={0.7}>
+          <Text style={{ fontSize: 22 }}>📷</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
-        <Pill label="Todos" active={!selectedCat} onPress={() => setSelectedCat(null)} />
+      {/* Categories */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.catScroll} contentContainerStyle={s.catScrollContent}>
+        <TouchableOpacity
+          style={[s.catPill, !selectedCat && s.catPillActive]}
+          onPress={() => setSelectedCat(null)}
+          activeOpacity={0.7}
+        >
+          <Text style={[s.catText, !selectedCat && s.catTextActive]}>Todos</Text>
+        </TouchableOpacity>
         {categorias.map((cat: any) => (
-          <Pill
+          <TouchableOpacity
             key={cat.id}
-            label={cat.nombre}
-            active={selectedCat === cat.id}
+            style={[s.catPill, selectedCat === cat.id && s.catPillActive]}
             onPress={() => setSelectedCat(selectedCat === cat.id ? null : cat.id)}
-          />
+            activeOpacity={0.7}
+          >
+            <Text style={[s.catText, selectedCat === cat.id && s.catTextActive]}>{cat.nombre}</Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {!isOnline && <Banner icon={WifiOff} tone="danger" text="Modo offline · las ventas se sincronizarán al volver internet" />}
-      {isOnline && pendingSales > 0 && (
-        <Banner tone="info" text={`Sincronizando ${pendingSales} venta${pendingSales > 1 ? 's' : ''} pendiente${pendingSales > 1 ? 's' : ''}…`} />
-      )}
-      {!cajaData?.id && isOnline && (
-        <Pressable onPress={() => router.push('/caja/abrir')}>
-          <Banner icon={CircleAlert} tone="warning" text="Abre la caja para empezar a vender" />
-        </Pressable>
+      {/* Offline banner */}
+      {!isOnline && (
+        <View style={s.offlineBanner}>
+          <Text style={s.offlineBannerText}>📡 Modo offline — Las ventas se sincronizaran al volver internet</Text>
+        </View>
       )}
 
+      {/* Pending sync */}
+      {isOnline && pendingSales > 0 && (
+        <View style={s.pendingBanner}>
+          <Text style={s.pendingBannerText}>🔄 Sincronizando {pendingSales} venta{pendingSales > 1 ? 's' : ''} pendiente{pendingSales > 1 ? 's' : ''}...</Text>
+        </View>
+      )}
+
+      {/* No caja warning */}
+      {!cajaData?.id && isOnline && (
+        <TouchableOpacity style={s.noCajaWarn} onPress={() => router.push('/caja/abrir')} activeOpacity={0.8}>
+          <Text style={s.noCajaText}>⚠  Abre la caja para empezar a vender</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Products Grid */}
       <FlatList
         data={productos}
         renderItem={renderProduct}
-        keyExtractor={keyExtractor}
+        keyExtractor={i => i.id}
         numColumns={2}
-        columnWrapperStyle={s.prodRow}
         contentContainerStyle={s.prodGrid}
+        columnWrapperStyle={s.prodRow}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={7}
-        updateCellsBatchingPeriod={50}
         ListEmptyComponent={
-          !isFetching ? (
-            <View style={s.emptyWrap}>
-              <View style={s.emptyIconWrap}>
-                <Package color={colors.textSubtle} size={32} strokeWidth={2} />
-              </View>
-              <Text style={s.emptyText}>{search ? 'Sin resultados' : 'Aún no hay productos'}</Text>
+          <View style={s.emptyWrap}>
+            <View style={s.emptyIconWrap}>
+              <Text style={{ fontSize: 36 }}>📦</Text>
             </View>
-          ) : null
+            <Text style={s.emptyText}>{search ? 'Sin resultados' : 'No hay productos'}</Text>
+          </View>
         }
       />
 
+      {/* Cart FAB bar */}
       {count > 0 && (
-        <CartFab count={count} total={cartTotal} bottom={18 + Math.max(insets.bottom, 0)} onPress={() => router.push('/carrito')} />
+        <TouchableOpacity
+          style={[s.cartFab, { bottom: 18 + Math.max(insets.bottom, 0) }]}
+          onPress={() => router.push('/carrito')}
+          activeOpacity={0.9}
+        >
+          <Text style={s.cartFabEmoji}>🛒</Text>
+          <View style={s.cartFabCountWrap}>
+            <Text style={s.cartFabCount}>{count}</Text>
+          </View>
+          <Text style={s.cartFabLabel}>{count} {count === 1 ? 'item' : 'items'}</Text>
+          <View style={{ flex: 1 }} />
+          <Text style={s.cartFabTotal}>S/ {cartTotal.toFixed(2)}</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
 }
 
-const ProductCard = memo(function ProductCard({ product, onPress }: { product: Producto; onPress: (p: Producto) => void }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const price = useMemo(() => Number(product.precioVenta).toFixed(2), [product.precioVenta]);
-
-  const handlePress = useCallback(() => onPress(product), [onPress, product]);
-  const handlePressIn = useCallback(() => {
-    scale.value = withTiming(0.97, { duration: 90 });
-  }, []);
-  const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, { damping: 22, stiffness: 260, mass: 0.6 });
-  }, []);
-
-  return (
-    <Pressable onPress={handlePress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
-      <Animated.View style={[pc.card, animStyle]}>
-        {product.imagenPrincipal ? (
-          <Image
-            source={{ uri: product.imagenPrincipal }}
-            style={pc.img}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={120}
-            placeholder={CARD_BLUR_HASH}
-          />
-        ) : (
-          <View style={[pc.img, pc.placeholder]}>
-            <Text style={pc.placeholderInitial}>{product.nombre.charAt(0).toUpperCase()}</Text>
-          </View>
-        )}
-        <View style={pc.body}>
-          <Text style={pc.name} numberOfLines={2}>
-            {product.nombre}
-          </Text>
-          <Text style={pc.sku}>{product.sku}</Text>
-          <View style={pc.row}>
-            <Text style={pc.price}>S/ {price}</Text>
-            <View style={pc.addBtn}>
-              <Text style={pc.addBtnText}>+</Text>
-            </View>
-          </View>
-        </View>
-      </Animated.View>
-    </Pressable>
-  );
-});
-
-function Banner({
-  icon: Icon,
-  tone,
-  text,
-}: {
-  icon?: typeof CircleAlert;
-  tone: 'warning' | 'danger' | 'info';
-  text: string;
-}) {
-  const tones = {
-    warning: { bg: colors.warningSoft, border: colors.warningBorder, color: colors.warningText },
-    danger: { bg: colors.dangerSoft, border: colors.dangerBorder, color: colors.danger },
-    info: { bg: '#EFF6FF', border: '#BFDBFE', color: '#1E40AF' },
-  } as const;
-  const t = tones[tone];
-  return (
-    <Animated.View entering={FadeIn.duration(180)} style={[bn.wrap, { backgroundColor: t.bg, borderColor: t.border }]}>
-      {Icon && <Icon color={t.color} size={16} strokeWidth={2.2} />}
-      <Text style={[bn.text, { color: t.color }]}>{text}</Text>
-    </Animated.View>
-  );
-}
-
-function CartFab({ count, total, bottom, onPress }: { count: number; total: number; bottom: number; onPress: () => void }) {
-  const scale = useSharedValue(0.85);
-  useEffect(() => {
-    scale.value = withSpring(1, { damping: 22, stiffness: 260, mass: 0.6 });
-  }, []);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  return (
-    <Animated.View style={[fab.wrap, { bottom }, animStyle]}>
-      <Pressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          onPress();
-        }}
-        style={fab.btn}
-      >
-        <ShoppingCart color="#FFFFFF" size={22} strokeWidth={2.4} />
-        <View style={fab.badge}>
-          <Text style={fab.badgeText}>{count}</Text>
-        </View>
-        <Text style={fab.label}>{count} {count === 1 ? 'producto' : 'productos'}</Text>
-        <View style={{ flex: 1 }} />
-        <Text style={fab.total}>S/ {total.toFixed(2)}</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, gap: 12 },
-  headerEyebrow: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSubtle, letterSpacing: 1.4 },
-  headerTitle: { fontFamily: fonts.black, fontSize: 24, color: colors.text, letterSpacing: -0.4, marginTop: 2 },
-  cajaBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, borderWidth: 1, gap: 6 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 12,
+    backgroundColor: '#ffffff',
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', letterSpacing: 0.2 },
+  cajaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  cajaBadgeOpen: { backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0' },
+  cajaBadgeClosed: { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca' },
   cajaDot: { width: 7, height: 7, borderRadius: 4 },
-  cajaText: { fontFamily: fonts.bold, fontSize: 11.5, letterSpacing: 0.2 },
-  searchRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 14, gap: 10 },
+  cajaBadgeText: { fontSize: 12, fontWeight: '600' },
+
+  // Search
+  searchRow: { flexDirection: 'row', paddingHorizontal: 20, marginTop: 8, marginBottom: 12, gap: 10 },
   searchInputWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 50,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    height: 48,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: colors.divider,
-    gap: 10,
-    ...shadows.soft,
+    borderColor: '#e2e8f0',
   },
-  searchInput: { flex: 1, fontFamily: fonts.semibold, fontSize: 14.5, color: colors.text, padding: 0, margin: 0 },
+  searchIcon: { fontSize: 16, marginRight: 10 },
+  searchInput: { flex: 1, fontSize: 15, color: '#0f172a', fontWeight: '500' },
   scanBtn: {
-    width: 50,
-    height: 50,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.divider,
-    ...shadows.soft,
-  },
-  catRow: { paddingHorizontal: 20, gap: 8, marginBottom: 14 },
-  prodGrid: { paddingHorizontal: 20, paddingBottom: 110 },
-  prodRow: { gap: 12 },
-  emptyWrap: { alignItems: 'center', marginTop: 70 },
-  emptyIconWrap: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  emptyText: { fontFamily: fonts.semibold, fontSize: 14, color: colors.textMuted },
-});
-
-const pc = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.divider, ...shadows.soft },
-  img: { width: '100%', height: 120, backgroundColor: colors.surfaceAlt },
-  placeholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brandTint },
-  placeholderInitial: { fontFamily: fonts.black, fontSize: 32, color: colors.brand },
-  body: { padding: 12 },
-  name: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.text, lineHeight: 18 },
-  sku: { fontFamily: fonts.semibold, fontSize: 10.5, color: colors.textSubtle, marginTop: 3, letterSpacing: 0.3 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
-  price: { fontFamily: fonts.black, fontSize: 16, color: colors.brand, letterSpacing: -0.2 },
-  addBtn: {
-    width: 32,
-    height: 32,
+    width: 48,
+    height: 48,
+    backgroundColor: '#ffffff',
     borderRadius: 16,
-    backgroundColor: colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.brand,
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  addBtnText: { color: '#FFFFFF', fontFamily: fonts.black, fontSize: 18, lineHeight: 22, marginTop: -1 },
-});
 
-const bn = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginBottom: 12, borderRadius: radius.md, padding: 12, borderWidth: 1 },
-  text: { fontFamily: fonts.semibold, fontSize: 12.5, flex: 1 },
-});
+  // Categories
+  catScroll: { height: 48, minHeight: 48, maxHeight: 48, marginBottom: 10 },
+  catScrollContent: { paddingHorizontal: 20, gap: 8, alignItems: 'center' },
+  catPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    height: 38,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  catPillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+  catText: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+  catTextActive: { color: '#ffffff', fontWeight: '700' },
 
-const fab = StyleSheet.create({
-  wrap: { position: 'absolute', left: 20, right: 20 },
-  btn: {
-    height: 60,
-    backgroundColor: colors.brand,
-    borderRadius: radius.xl,
+  // Banners
+  noCajaWarn: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: '#fffbeb',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  noCajaText: { color: '#92400e', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  offlineBanner: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: '#fef2f2',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  offlineBannerText: { color: '#b91c1c', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  pendingBanner: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: '#eff6ff',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  pendingBannerText: { color: '#1e40af', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+
+  // Products grid
+  prodGrid: { paddingHorizontal: 20, paddingBottom: 100 },
+  prodRow: { gap: 12 },
+  prodCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  prodImg: { width: '100%', height: 110, backgroundColor: '#f1f5f9' },
+  prodPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#ede9fe' },
+  prodInitial: { fontSize: 30, fontWeight: '700', color: '#7c3aed' },
+  prodInfo: { padding: 12 },
+  prodName: { fontSize: 14, fontWeight: '700', color: '#0f172a', marginBottom: 3, lineHeight: 19 },
+  prodSku: { fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: '500' },
+  prodPrice: { fontSize: 17, fontWeight: '800', color: '#16a34a' },
+
+  // Cart FAB
+  cartFab: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    height: 58,
+    backgroundColor: '#7c3aed',
+    borderRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    shadowColor: colors.brand,
-    shadowOpacity: 0.34,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    paddingHorizontal: 20,
     elevation: 8,
+    shadowColor: '#7c3aed',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
   },
-  badge: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
+  cartFabEmoji: { fontSize: 20, marginRight: 8 },
+  cartFabCountWrap: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 10,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    marginLeft: 10,
-    marginRight: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginRight: 8,
   },
-  badgeText: { color: '#FFFFFF', fontFamily: fonts.black, fontSize: 12.5 },
-  label: { color: 'rgba(255,255,255,0.92)', fontFamily: fonts.bold, fontSize: 13.5 },
-  total: { color: '#FFFFFF', fontFamily: fonts.black, fontSize: 18, letterSpacing: -0.2 },
+  cartFabCount: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
+  cartFabLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600' },
+  cartFabTotal: { color: '#ffffff', fontSize: 18, fontWeight: '800' },
+
+  // Empty
+  emptyWrap: { alignItems: 'center', marginTop: 60 },
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyText: { fontSize: 15, color: '#94a3b8', fontWeight: '500' },
 });

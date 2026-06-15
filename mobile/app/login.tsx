@@ -1,242 +1,234 @@
-// =============================================================================
-// login.tsx — Login ultramoderno sobrio premium.
-// =============================================================================
-
-import { ComponentType, useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Animated, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { Eye, EyeOff, Lock, LogIn, Mail, ShoppingBag, UserRound } from 'lucide-react-native';
-
+import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/auth.store';
-import { toastError, toastSuccess } from '@/api/helpers';
-import { remoteLogger } from '@/services/remote-logger';
-import { Button } from '@/components/ui/Button';
-import { colors, fonts, radius } from '@/theme';
-
-const DEMO_EMAIL = 'admin@demo.com';
-const DEMO_PASS = 'admin123';
+import { toastSuccess, toastError } from '@/api/helpers';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const login = useAuthStore((s) => s.login);
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const login = useAuthStore(s => s.login);
+
+  // Animaciones de entrada
+  const logoScale = useRef(new Animated.Value(0.5)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const formSlide = useRef(new Animated.Value(30)).current;
+  const formOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 50 }),
+      Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+    ]).start();
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(formSlide, { toValue: 0, useNativeDriver: true, friction: 8, tension: 40 }),
+        Animated.timing(formOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ]).start();
+    }, 200);
+  }, []);
 
   const handleLogin = async (e?: string, p?: string) => {
-    const em = (e ?? email).trim();
-    const pw = p ?? password;
-    if (!em || !pw) {
-      toastError('Datos incompletos', 'Ingresa correo y contraseña');
-      return;
-    }
+    const em = e || email.trim();
+    const pw = p || password;
+    if (!em || !pw) { toastError('Error', 'Ingresa email y contrasena'); return; }
     setLoading(true);
-    remoteLogger.info('login_attempt', { email: em });
     try {
       await login(em, pw);
-      remoteLogger.info('login_success');
-      toastSuccess('Bienvenido', 'Sesión iniciada');
+      toastSuccess('Bienvenido', 'Sesion iniciada');
       router.replace('/(tabs)');
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'Credenciales incorrectas';
-      remoteLogger.warning('login_failed', { reason: msg });
-      toastError('No pudimos entrar', msg);
+      toastError('Error', err?.response?.data?.message || 'Credenciales incorrectas');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }}>
-        <Animated.View entering={FadeIn.duration(260).easing(Easing.out(Easing.cubic))}>
-          <LogoBadge />
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.container}>
+      <View style={[s.inner, { paddingTop: insets.top }]}>
+        {/* Logo animado */}
+        <Animated.View style={[s.logoSection, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
+          <View style={s.logoOuter}>
+            <View style={s.logo}>
+              <Text style={s.logoText}>P</Text>
+            </View>
+          </View>
+          <Text style={s.title}>POS Shop</Text>
+          <Text style={s.subtitle}>Sistema de Punto de Venta</Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(80).duration(280).easing(Easing.out(Easing.cubic))}>
-          <Text style={s.title}>Bienvenido</Text>
-          <Text style={s.subtitle}>Inicia sesión para empezar a vender</Text>
+        {/* Form animado */}
+        <Animated.View style={[s.formSection, { opacity: formOpacity, transform: [{ translateY: formSlide }] }]}>
+          <View style={s.formCard}>
+            <View style={s.fieldWrap}>
+              <Text style={s.label}>Correo electronico</Text>
+              <View style={s.inputWrap}>
+                <Text style={s.inputIcon}>✉</Text>
+                <TextInput
+                  style={s.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="tu@email.com"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            <View style={s.fieldWrap}>
+              <Text style={s.label}>Contrasena</Text>
+              <View style={s.inputWrap}>
+                <Text style={s.inputIcon}>🔒</Text>
+                <TextInput
+                  style={s.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry={!showPwd}
+                />
+                <TouchableOpacity onPress={() => setShowPwd(!showPwd)} style={s.eyeBtn}>
+                  <Text style={s.eyeText}>{showPwd ? '🙈' : '👁'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[s.loginBtn, loading && s.loginBtnLoading]}
+              onPress={() => handleLogin()}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={s.loginBtnText}>Iniciar Sesion</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Demo */}
+          <View style={s.demoSection}>
+            <View style={s.dividerRow}>
+              <View style={s.dividerLine} />
+              <Text style={s.dividerText}>o continua con</Text>
+              <View style={s.dividerLine} />
+            </View>
+            <TouchableOpacity
+              style={s.demoBtn}
+              onPress={() => { setEmail('admin@demo.com'); setPassword('admin123'); handleLogin('admin@demo.com', 'admin123'); }}
+              activeOpacity={0.7}
+            >
+              <Text style={s.demoBtnText}>👤  Cuenta Demo</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(160).duration(300).easing(Easing.out(Easing.cubic))} style={{ marginTop: 32 }}>
-          <FloatingInput
-            icon={Mail}
-            label="Correo"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="tu@email.com"
-            keyboardType="email-address"
-          />
-          <View style={{ height: 14 }} />
-          <FloatingInput
-            icon={Lock}
-            label="Contraseña"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            secureTextEntry={!showPwd}
-            rightIcon={showPwd ? EyeOff : Eye}
-            onRightPress={() => setShowPwd((v) => !v)}
-          />
-        </Animated.View>
-
-        <Animated.View entering={FadeInUp.delay(240).duration(300).easing(Easing.out(Easing.cubic))} style={{ marginTop: 28 }}>
-          <Button label={loading ? 'Entrando…' : 'Entrar'} icon={LogIn} loading={loading} onPress={() => handleLogin()} size="lg" />
-        </Animated.View>
-
-        <Animated.View entering={FadeIn.delay(340).duration(280)} style={s.divider}>
-          <View style={s.dividerLine} />
-          <Text style={s.dividerText}>O USA CUENTA DEMO</Text>
-          <View style={s.dividerLine} />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(380).duration(300).easing(Easing.out(Easing.cubic))}>
-          <Button
-            label="Probar con cuenta demo"
-            icon={UserRound}
-            variant="outline"
-            onPress={() => {
-              setEmail(DEMO_EMAIL);
-              setPassword(DEMO_PASS);
-              handleLogin(DEMO_EMAIL, DEMO_PASS);
-            }}
-          />
-        </Animated.View>
-
-        <View style={{ flex: 1 }} />
-
-        <Animated.View entering={FadeIn.delay(500).duration(260)}>
-          <Text style={s.footer}>POS Shop · v1.0</Text>
-        </Animated.View>
+        <Text style={s.footer}>Powered by POS Shop v1.0</Text>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-function LogoBadge() {
-  const scale = useSharedValue(0.6);
-  const opacity = useSharedValue(0);
-
-  useEffect(() => {
-    opacity.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
-    scale.value = withSpring(1, { damping: 14, stiffness: 220 });
-  }, []);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View style={[s.logo, animStyle]}>
-      <ShoppingBag color="#FFFFFF" size={30} strokeWidth={2.4} />
-    </Animated.View>
-  );
-}
-
-interface InputProps {
-  icon: ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  placeholder?: string;
-  secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'numeric';
-  rightIcon?: ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
-  onRightPress?: () => void;
-}
-
-function FloatingInput({
-  icon: Icon,
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry,
-  keyboardType = 'default',
-  rightIcon: RightIcon,
-  onRightPress,
-}: InputProps) {
-  const [focused, setFocused] = useState(false);
-  const border = useSharedValue(0);
-  border.value = withTiming(focused ? 1 : 0, { duration: 180, easing: Easing.out(Easing.cubic) });
-
-  const animBorder = useAnimatedStyle(() => ({
-    borderColor: border.value > 0.5 ? colors.brand : colors.border,
-    borderWidth: 1.4,
-  }));
-
-  return (
-    <Animated.View style={[s.input, animBorder]}>
-      <Icon color={focused ? colors.brand : colors.textSubtle} size={20} strokeWidth={2} />
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={s.inputLabel}>{label.toUpperCase()}</Text>
-        <TextInput
-          style={s.inputText}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textPlaceholder}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          autoCapitalize="none"
-          autoCorrect={false}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
-      </View>
-      {RightIcon && (
-        <Pressable onPress={onRightPress} hitSlop={10}>
-          <RightIcon color={colors.textSubtle} size={18} strokeWidth={2} />
-        </Pressable>
-      )}
-    </Animated.View>
-  );
-}
-
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: colors.brand,
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+
+  logoSection: { alignItems: 'center', marginBottom: 32 },
+  logoOuter: {
+    width: 100,
+    height: 100,
+    borderRadius: 28,
+    backgroundColor: '#f5f3ff',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.brand,
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ede9fe',
   },
-  title: { fontFamily: fonts.black, fontSize: 30, color: colors.text, marginTop: 28, letterSpacing: -0.6 },
-  subtitle: { fontFamily: fonts.medium, fontSize: 15, color: colors.textMuted, marginTop: 4 },
-  input: {
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 22,
+    backgroundColor: '#7c3aed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#7c3aed',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  logoText: { color: '#fff', fontSize: 40, fontWeight: '800' },
+  title: { color: '#0f172a', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 },
+  subtitle: { color: '#94a3b8', fontSize: 15, marginTop: 6, fontWeight: '500' },
+
+  formSection: {},
+  formCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  fieldWrap: { marginBottom: 18 },
+  label: { color: '#64748b', fontSize: 13, marginBottom: 8, fontWeight: '600', letterSpacing: 0.3 },
+  inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radius.lg,
-    minHeight: 64,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 14,
   },
-  inputLabel: { fontFamily: fonts.bold, fontSize: 10, color: colors.textSubtle, letterSpacing: 1.2 },
-  inputText: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text, padding: 0, margin: 0 },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 22 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { fontFamily: fonts.bold, fontSize: 10, color: colors.textSubtle, marginHorizontal: 12, letterSpacing: 1.2 },
-  footer: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSubtle, textAlign: 'center', marginTop: 16, letterSpacing: 0.3 },
+  inputIcon: { fontSize: 16, marginRight: 10 },
+  input: { flex: 1, height: 52, fontSize: 16, color: '#0f172a', fontWeight: '500' },
+  eyeBtn: { padding: 8 },
+  eyeText: { fontSize: 18 },
+
+  loginBtn: {
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#7c3aed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    elevation: 6,
+    shadowColor: '#7c3aed',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  loginBtnLoading: { opacity: 0.7 },
+  loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
+
+  demoSection: { marginTop: 28 },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
+  dividerText: { color: '#94a3b8', fontSize: 13, fontWeight: '500', marginHorizontal: 14 },
+  demoBtn: {
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: '#faf5ff',
+    borderWidth: 1.5,
+    borderColor: '#ede9fe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demoBtnText: { color: '#7c3aed', fontWeight: '700', fontSize: 15 },
+
+  footer: { color: '#cbd5e1', textAlign: 'center', fontSize: 12, marginTop: 32, fontWeight: '500' },
 });
