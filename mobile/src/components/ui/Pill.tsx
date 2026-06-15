@@ -1,10 +1,9 @@
 // =============================================================================
-// Pill.tsx — Chip con press feedback ligero. Optimizado para listas largas.
+// Pill.tsx — Chip nativo (sin Reanimated). Memoizado para listas grandes.
 // =============================================================================
 
 import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius } from '@/theme';
 
@@ -15,32 +14,21 @@ interface Props {
 }
 
 export const Pill = memo(function Pill({ label, active, onPress }: Props) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
   const handlePress = useCallback(() => {
     Haptics.selectionAsync();
     onPress();
   }, [onPress]);
 
-  const onPressIn = useCallback(() => {
-    scale.value = withTiming(0.96, { duration: 80 });
-  }, []);
-  const onPressOut = useCallback(() => {
-    scale.value = withTiming(1, { duration: 120 });
-  }, []);
-
   return (
-    <Pressable onPress={handlePress} onPressIn={onPressIn} onPressOut={onPressOut}>
-      <Animated.View
-        style={[
-          s.pill,
-          active ? s.active : s.idle,
-          animStyle,
-        ]}
-      >
-        <Text style={[s.text, active ? s.textActive : s.textIdle]}>{label}</Text>
-      </Animated.View>
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => [
+        s.pill,
+        active ? s.active : s.idle,
+        pressed && { opacity: 0.7 },
+      ]}
+    >
+      <Text style={[s.text, active ? s.textActive : s.textIdle]}>{label}</Text>
     </Pressable>
   );
 });
