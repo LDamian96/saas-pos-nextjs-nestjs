@@ -30,7 +30,8 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.BLUETOOTH_SCAN",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -78,15 +79,12 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "9d600d25-7554-42a8-ad75-1c725a44227a"
+        "projectId": "281b715d-8016-4f2f-a6ec-76115f90751f"
       }
     },
-    "owner": "luis021625",
+    "owner": "luis-pruebas",
     "runtimeVersion": {
       "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/9d600d25-7554-42a8-ad75-1c725a44227a"
     }
   }
 }
