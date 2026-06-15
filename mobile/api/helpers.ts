@@ -1,4 +1,4 @@
-import Toast from 'react-native-toast-message';
+import { toast } from '@/components/toaster';
 
 /**
  * Extrae el array de datos de una respuesta API.
@@ -25,24 +25,24 @@ export function extractOne<T = any>(response: any): T | null {
 }
 
 /**
- * Muestra toast de éxito
+ * Muestra toast de éxito (estilo Sonner, custom RN)
  */
 export function toastSuccess(title: string, message?: string) {
-  Toast.show({ type: 'success', text1: title, text2: message, visibilityTime: 2500 });
+  toast.success(title, message);
 }
 
 /**
  * Muestra toast de error
  */
 export function toastError(title: string, message?: string) {
-  Toast.show({ type: 'error', text1: title, text2: message, visibilityTime: 3500 });
+  toast.error(title, message);
 }
 
 /**
  * Muestra toast informativo
  */
 export function toastInfo(title: string, message?: string) {
-  Toast.show({ type: 'info', text1: title, text2: message, visibilityTime: 2500 });
+  toast.info(title, message);
 }
 
 /**

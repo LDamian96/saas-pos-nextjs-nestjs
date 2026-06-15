@@ -5,11 +5,11 @@ import { Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { useAuthStore } from '@/stores/auth.store';
 import { AnimatedSplash } from '@/components/splash-screen';
+import { Toaster } from '@/components/toaster';
 import {
   installGlobalErrorHandlers,
   remoteLogger,
@@ -33,84 +33,6 @@ const LightTheme = {
     text: '#111827',
     primary: '#7c3aed',
   },
-};
-
-const toastConfig = {
-  success: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{
-        borderLeftColor: '#16a34a',
-        borderLeftWidth: 5,
-        backgroundColor: '#fff',
-        borderRadius: 14,
-        elevation: 20,
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        marginHorizontal: 12,
-        height: undefined,
-        minHeight: 56,
-        paddingVertical: 10,
-      }}
-      contentContainerStyle={{ paddingHorizontal: 14 }}
-      text1Style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}
-      text2Style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}
-      text1NumberOfLines={2}
-      text2NumberOfLines={2}
-    />
-  ),
-  error: (props: any) => (
-    <ErrorToast
-      {...props}
-      style={{
-        borderLeftColor: '#dc2626',
-        borderLeftWidth: 5,
-        backgroundColor: '#fff',
-        borderRadius: 14,
-        elevation: 20,
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        marginHorizontal: 12,
-        height: undefined,
-        minHeight: 56,
-        paddingVertical: 10,
-      }}
-      contentContainerStyle={{ paddingHorizontal: 14 }}
-      text1Style={{ fontSize: 15, fontWeight: '700', color: '#dc2626' }}
-      text2Style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}
-      text1NumberOfLines={2}
-      text2NumberOfLines={2}
-    />
-  ),
-  info: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{
-        borderLeftColor: '#7c3aed',
-        borderLeftWidth: 5,
-        backgroundColor: '#fff',
-        borderRadius: 14,
-        elevation: 20,
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        marginHorizontal: 12,
-        height: undefined,
-        minHeight: 56,
-        paddingVertical: 10,
-      }}
-      contentContainerStyle={{ paddingHorizontal: 14 }}
-      text1Style={{ fontSize: 15, fontWeight: '700', color: '#7c3aed' }}
-      text2Style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}
-      text1NumberOfLines={2}
-      text2NumberOfLines={2}
-    />
-  ),
 };
 
 export default function RootLayout() {
@@ -150,6 +72,7 @@ export default function RootLayout() {
     <View style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
+          <Toaster>
           <ThemeProvider value={LightTheme}>
             <Stack screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 220 }}>
               <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
@@ -171,9 +94,9 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style="dark" />
           </ThemeProvider>
+          </Toaster>
         </GestureHandlerRootView>
       </QueryClientProvider>
-      <Toast config={toastConfig} topOffset={54} />
       {!splashDone && <AnimatedSplash onAnimationEnd={() => setSplashDone(true)} />}
     </View>
   );
