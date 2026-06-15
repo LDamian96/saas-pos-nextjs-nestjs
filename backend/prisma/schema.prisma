@@ -48,6 +48,14 @@ model Empresa {
   nombreImpuesto        String?   @default("IGV") @map("nombre_impuesto") @db.VarChar(20)
   precioIncluyeImpuesto Boolean   @default(true) @map("precio_incluye_impuesto")
 
+  // Nubefact (facturacion electronica) - credenciales por empresa.
+  // Si todas estan null/false el sistema usa las env vars del proveedor (modo prueba global).
+  nubefactEnabled       Boolean   @default(false) @map("nubefact_enabled")
+  nubefactDemo          Boolean   @default(true) @map("nubefact_demo")
+  nubefactApiUrl        String?   @map("nubefact_api_url") @db.VarChar(500)
+  nubefactToken         String?   @map("nubefact_token") @db.VarChar(500)
+  nubefactRuc           String?   @map("nubefact_ruc") @db.VarChar(20)
+
   // Plan SaaS
   plan                  String?   @default("basico") @db.VarChar(20)
   fechaInicioPlan       DateTime? @default(now()) @map("fecha_inicio_plan")

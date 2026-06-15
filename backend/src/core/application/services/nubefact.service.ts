@@ -12,6 +12,15 @@
 
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../../infrastructure/persistence/prisma/prisma.service';
+
+export interface NubefactCredentials {
+  apiUrl: string;
+  token: string;
+  ruc: string;
+  isDemo: boolean;
+  source: 'empresa' | 'proveedor-demo' | 'proveedor-prod';
+}
 
 // Tipos de documento Nubefact
 export enum NubefactTipoDocumento {
@@ -131,7 +140,10 @@ export class NubefactService {
   private static readonly DEMO_TOKEN = 'd7a9024a5f08c628fa3a4ed3a328ec092f9e0048beda4e48e6e87c5f05e58752';
   private static readonly DEMO_RUC = '20600055519';
 
-  constructor(private config: ConfigService) {
+  constructor(
+    private config: ConfigService,
+    private prisma: PrismaService,
+  ) {
     this.isDemo = this.config.get('NUBEFACT_DEMO', 'true') === 'true';
 
     // Check if a full Nubefact URL is provided (includes UUID)
@@ -157,18 +169,72 @@ export class NubefactService {
   }
 
   /**
-   * Emitir documento (factura, boleta, nota)
+   * Resuelve las credenciales Nubefact a usar para una empresa.
+   *
+   * Prioridad:
+   *   1. Si empresa.nubefactEnabled = true Y tiene token configurado:
+   *      usa las credenciales de la empresa (cliente puso las suyas).
+   *   2. Si no, usa las del proveedor SaaS (env vars del .env).
+   *
+   * Esto permite que cada empresa tenga sus propias credenciales,
+   * y mientras no las configura, usa las del proveedor (modo prueba/cortesia).
    */
-  async emitirDocumento(documento: NubefactDocumento): Promise<NubefactResponse> {
+  async resolveCredentialsForEmpresa(empresaId: string): Promise<NubefactCredentials> {
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: {
+        nubefactEnabled: true,
+        nubefactDemo: true,
+        nubefactApiUrl: true,
+        nubefactToken: true,
+        nubefactRuc: true,
+      },
+    });
+
+    if (empresa?.nubefactEnabled && empresa.nubefactToken) {
+      const isDemo = !!empresa.nubefactDemo;
+      const defaultUrl = isDemo
+        ? NubefactService.DEMO_URL
+        : 'https://api.nubefact.com/api/v1';
+      return {
+        apiUrl: empresa.nubefactApiUrl || defaultUrl,
+        token: empresa.nubefactToken,
+        ruc: empresa.nubefactRuc || '',
+        isDemo,
+        source: 'empresa',
+      };
+    }
+
+    // Fallback al proveedor (env vars del .env)
+    return {
+      apiUrl: this.apiUrl,
+      token: this.token,
+      ruc: this.ruc,
+      isDemo: this.isDemo,
+      source: this.isDemo ? 'proveedor-demo' : 'proveedor-prod',
+    };
+  }
+
+  /**
+   * Emitir documento (factura, boleta, nota).
+   * Si se pasan `creds` usa esas (por empresa); si no, usa las globales del proveedor.
+   */
+  async emitirDocumento(
+    documento: NubefactDocumento,
+    creds?: NubefactCredentials,
+  ): Promise<NubefactResponse> {
     try {
       this.logger.log(`Emitiendo documento: ${documento.serie}-${documento.numero}`);
 
-      const url = this.ruc ? `${this.apiUrl}/${this.ruc}` : this.apiUrl;
+      const apiUrl = creds?.apiUrl ?? this.apiUrl;
+      const token = creds?.token ?? this.token;
+      const ruc = creds?.ruc ?? this.ruc;
+      const url = ruc ? `${apiUrl}/${ruc}` : apiUrl;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(documento),
       });

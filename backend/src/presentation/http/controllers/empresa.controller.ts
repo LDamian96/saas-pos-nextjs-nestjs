@@ -22,6 +22,7 @@ import {
   UpdateEmpresaDto,
   UpdateEmpresaConfigDto,
   UpdateEmpresaBrandingDto,
+  UpdateEmpresaNubefactDto,
 } from '../../../core/application/dto/empresa';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser, UserPayload } from '../decorators/current-user.decorator';
@@ -109,5 +110,36 @@ export class EmpresaController {
       throw new ForbiddenException('No tienes una empresa asignada');
     }
     return this.empresaService.updateBranding(user.empresaId, dto);
+  }
+
+  /**
+   * GET /empresas/me/nubefact - Obtener configuracion Nubefact
+   */
+  @Get('me/nubefact')
+  @Permissions('config.empresa')
+  @ApiOperation({ summary: 'Obtener configuracion Nubefact de mi empresa' })
+  @ApiResponse({ status: 200, description: 'Configuracion Nubefact (token enmascarado)' })
+  async getNubefactConfig(@CurrentUser() user: UserPayload) {
+    if (!user.empresaId) {
+      throw new ForbiddenException('No tienes una empresa asignada');
+    }
+    return this.empresaService.getNubefactConfig(user.empresaId);
+  }
+
+  /**
+   * PUT /empresas/me/nubefact - Actualizar credenciales Nubefact
+   */
+  @Put('me/nubefact')
+  @Permissions('config.empresa')
+  @ApiOperation({ summary: 'Actualizar credenciales Nubefact de mi empresa' })
+  @ApiResponse({ status: 200, description: 'Configuracion Nubefact actualizada' })
+  async updateNubefactConfig(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: UpdateEmpresaNubefactDto,
+  ) {
+    if (!user.empresaId) {
+      throw new ForbiddenException('No tienes una empresa asignada');
+    }
+    return this.empresaService.updateNubefactConfig(user.empresaId, dto);
   }
 }

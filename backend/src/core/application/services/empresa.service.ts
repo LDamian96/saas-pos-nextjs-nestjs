@@ -16,6 +16,7 @@ import {
   UpdateEmpresaDto,
   UpdateEmpresaConfigDto,
   UpdateEmpresaBrandingDto,
+  UpdateEmpresaNubefactDto,
 } from '../dto/empresa';
 
 const CACHE_TTL = 3600; // 1 hora
@@ -250,6 +251,94 @@ export class EmpresaService {
       success: true,
       data: updated,
       message: 'Colores actualizados correctamente',
+    };
+  }
+
+  /**
+   * GET /empresas/me/nubefact - Obtener config Nubefact de la empresa.
+   * Solo retorna los campos que el usuario puede ver. El token nunca se
+   * devuelve completo, solo si esta seteado (true/false).
+   */
+  async getNubefactConfig(empresaId: string) {
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: {
+        nubefactEnabled: true,
+        nubefactDemo: true,
+        nubefactApiUrl: true,
+        nubefactToken: true,
+        nubefactRuc: true,
+      },
+    });
+
+    if (!empresa) {
+      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
+    }
+
+    return {
+      success: true,
+      data: {
+        nubefactEnabled: empresa.nubefactEnabled,
+        nubefactDemo: empresa.nubefactDemo,
+        nubefactApiUrl: empresa.nubefactApiUrl || '',
+        nubefactRuc: empresa.nubefactRuc || '',
+        // Token enmascarado: solo indicamos si esta seteado y los ultimos 4 chars.
+        nubefactTokenSet: !!empresa.nubefactToken,
+        nubefactTokenPreview: empresa.nubefactToken
+          ? `••••${empresa.nubefactToken.slice(-4)}`
+          : '',
+      },
+    };
+  }
+
+  /**
+   * PUT /empresas/me/nubefact - Actualizar credenciales Nubefact.
+   * El token solo se actualiza si se envia un valor no vacio. Para borrar
+   * el token enviar la string vacia explicitamente.
+   */
+  async updateNubefactConfig(empresaId: string, dto: UpdateEmpresaNubefactDto) {
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+    });
+
+    if (!empresa) {
+      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
+    }
+
+    const data: any = {};
+    if (dto.nubefactEnabled !== undefined) data.nubefactEnabled = dto.nubefactEnabled;
+    if (dto.nubefactDemo !== undefined) data.nubefactDemo = dto.nubefactDemo;
+    if (dto.nubefactApiUrl !== undefined) data.nubefactApiUrl = dto.nubefactApiUrl || null;
+    if (dto.nubefactToken !== undefined) data.nubefactToken = dto.nubefactToken || null;
+    if (dto.nubefactRuc !== undefined) data.nubefactRuc = dto.nubefactRuc || null;
+
+    const updated = await this.prisma.empresa.update({
+      where: { id: empresaId },
+      data,
+      select: {
+        nubefactEnabled: true,
+        nubefactDemo: true,
+        nubefactApiUrl: true,
+        nubefactRuc: true,
+        nubefactToken: true,
+      },
+    });
+
+    await this.invalidateCache(empresaId);
+
+    return {
+      success: true,
+      data: {
+        nubefactEnabled: updated.nubefactEnabled,
+        nubefactDemo: updated.nubefactDemo,
+        nubefactApiUrl: updated.nubefactApiUrl || '',
+        nubefactRuc: updated.nubefactRuc || '',
+        nubefactTokenSet: !!updated.nubefactToken,
+        nubefactTokenPreview: updated.nubefactToken
+          ? `••••${updated.nubefactToken.slice(-4)}`
+          : '',
+      },
+      message: 'Configuracion Nubefact actualizada',
     };
   }
 

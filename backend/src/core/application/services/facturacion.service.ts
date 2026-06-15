@@ -192,8 +192,12 @@ export class FacturacionService {
         observaciones: `Venta ID: ${dto.ventaId}`,
       });
 
-      // Enviar a Nubefact
-      const result = await this.nubefactService.emitirDocumento(documento);
+      // Resolver credenciales: si la empresa configuro las suyas las usa,
+      // si no usa las del proveedor SaaS (env vars del .env del VPS).
+      const creds = await this.nubefactService.resolveCredentialsForEmpresa(empresaId);
+
+      // Enviar a Nubefact con las credenciales resueltas
+      const result = await this.nubefactService.emitirDocumento(documento, creds);
 
       if (!result.success) {
         throw new BadRequestException(result.error || 'Error en Nubefact');
