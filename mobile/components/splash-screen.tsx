@@ -36,12 +36,13 @@ export function AnimatedSplash({ onAnimationEnd }: Props) {
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 200, mass: 0.6 }),
     ]).start();
 
-    // Carrito recorriendo: -40 -> +trackWidth (loop indefinido)
+    // Carrito recorriendo: -40 -> +trackWidth despacito.
+    // Splash dura 2500ms; con 2200ms el carrito alcanza casi al final una sola vez.
     Animated.loop(
       Animated.sequence([
         Animated.timing(cartX, {
           toValue: 1,
-          duration: 1100,
+          duration: 2200,
           useNativeDriver: true,
           easing: Easing.inOut(Easing.cubic),
         }),
