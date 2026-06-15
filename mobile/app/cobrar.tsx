@@ -52,10 +52,12 @@ export default function CobrarScreen() {
     queryFn: () => api.get('/metodos-pago', { params: { activo: true } }).then(r => r.data),
   });
   // Solo efectivo y yape (los 2 usados en Peru). El resto queda en BD para web.
+  // Yape esta como tipo='digital' en BD, asi que comparamos contra el nombre tambien.
   const ALLOWED_METODOS = ['efectivo', 'yape'];
   const metodos = extractList(metodosData).filter((m: any) => {
-    const key = (m.tipo || m.nombre || '').toLowerCase().trim();
-    return ALLOWED_METODOS.some((a) => key.includes(a));
+    const nombre = (m.nombre || '').toLowerCase().trim();
+    const tipo = (m.tipo || '').toLowerCase().trim();
+    return ALLOWED_METODOS.some((a) => nombre.includes(a) || tipo.includes(a));
   });
 
   const sumaPagos = pagos.reduce((s, p) => s + p.monto, 0);

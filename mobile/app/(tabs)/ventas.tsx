@@ -63,16 +63,20 @@ export default function ReportesScreen() {
   });
   const inventario = invData?.data || {};
 
-  // Productos con stock bajo/sin stock - solo cuando tab es inventario
-  const { data: stockBajoData } = useQuery({
-    queryKey: ['inventario-stock-bajo', sucursalId],
-    queryFn: () => api.get('/inventario/stock-bajo', { params: { sucursalId: sucursalId || undefined } }).then(r => r.data),
+  // Todos los productos con su stock - solo cuando tab es inventario.
+  // El endpoint /inventario/stock retorna array de variantes con stock total
+  // y stockMinimo. Ordenamos en cliente de menor a mayor stock.
+  const { data: stockAllData } = useQuery({
+    queryKey: ['inventario-stock-all', sucursalId],
+    queryFn: () => api.get('/inventario/stock', { params: { sucursalId: sucursalId || undefined, limit: 500 } }).then(r => r.data),
     enabled: isOnline && tab === 'inventario',
     staleTime: 2 * STALE_60S,
     refetchOnWindowFocus: false,
   });
 
-  // Ventas detalle del dia seleccionado en tab "hoy"
+  // Ventas detalle del dia seleccionado en tab "hoy".
+  // El backend espera fechaInicio/fechaFin (NO fechaDesde/fechaHasta).
+  // Incluye relacion de pagos con metodo para hacer el desglose por metodo.
   const { data: ventasData, refetch: refetchVentas, isLoading: ventasLoading } = useQuery({
     queryKey: ['ventas-list', sucursalId, tab, dayOffset],
     queryFn: () => {
@@ -81,8 +85,8 @@ export default function ReportesScreen() {
         const desde = new Date(selectedDate);
         const hasta = new Date(selectedDate);
         hasta.setDate(hasta.getDate() + 1);
-        params.fechaDesde = desde.toISOString();
-        params.fechaHasta = hasta.toISOString();
+        params.fechaInicio = desde.toISOString();
+        params.fechaFin = hasta.toISOString();
       }
       return api.get('/ventas', { params }).then(r => r.data);
     },
@@ -345,10 +349,23 @@ export default function ReportesScreen() {
     const resumen = inventario?.resumen || {};
     const totalProductos = Number(resumen?.totalProductos || 0);
     const totalUnidades = Number(resumen?.totalUnidades || 0);
-    const sinStock = Number(dash?.alertas?.sinStock || 0);
-    const stockBajo = Number(dash?.alertas?.stockBajo || 0);
-    const stockOk = Math.max(0, totalProductos - sinStock - stockBajo);
-    const productosCriticos: any[] = stockBajoData?.data || stockBajoData?.items || extractList(stockBajoData);
+
+    // Lista TODOS los productos con su stock. Endpoint /inventario/stock retorna
+    // { id, sku, producto: {nombre, ...}, stock, stockMinimo, ... }
+    const allItems: any[] = extractList(stockAllData);
+    const productosOrdenados = [...allItems].sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
+
+    const stateOf = (stock: number, min: number) => {
+      const minimo = min > 0 ? min : 5;
+      if (stock <= 0) return 'out' as const;
+      if (stock <= minimo) return 'low' as const;
+      return 'ok' as const;
+    };
+    const colorOf = (st: 'ok' | 'low' | 'out') => {
+      if (st === 'out') return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Sin stock' };
+      if (st === 'low') return { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Stock bajo' };
+      return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: 'Stock alto' };
+    };
 
     return (
       <>
@@ -359,43 +376,45 @@ export default function ReportesScreen() {
           <Text style={s.kpiBigSubtext}>de {totalProductos} productos diferentes</Text>
         </View>
 
-        {/* 3 cards de estado: OK, stock bajo, sin stock */}
-        <View style={s.stockRow}>
-          <View style={[s.stockCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
-            <Text style={{ fontSize: 22 }}>✅</Text>
-            <Text style={[s.stockValue, { color: '#16a34a' }]}>{stockOk}</Text>
-            <Text style={s.stockLabel}>OK</Text>
+        {/* Leyenda con colores (solo informativa, sin numeros) */}
+        <View style={s.legendRow}>
+          <View style={s.legendChip}>
+            <View style={[s.legendDot, { backgroundColor: '#16a34a' }]} />
+            <Text style={s.legendText}>Stock alto</Text>
           </View>
-          <View style={[s.stockCard, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
-            <Text style={{ fontSize: 22 }}>⚠️</Text>
-            <Text style={[s.stockValue, { color: '#d97706' }]}>{stockBajo}</Text>
-            <Text style={s.stockLabel}>Stock bajo</Text>
+          <View style={s.legendChip}>
+            <View style={[s.legendDot, { backgroundColor: '#d97706' }]} />
+            <Text style={s.legendText}>Stock bajo</Text>
           </View>
-          <View style={[s.stockCard, { backgroundColor: '#fef2f2', borderColor: '#fecaca' }]}>
-            <Text style={{ fontSize: 22 }}>🚨</Text>
-            <Text style={[s.stockValue, { color: '#dc2626' }]}>{sinStock}</Text>
-            <Text style={s.stockLabel}>Sin stock</Text>
+          <View style={s.legendChip}>
+            <View style={[s.legendDot, { backgroundColor: '#dc2626' }]} />
+            <Text style={s.legendText}>Sin stock</Text>
           </View>
         </View>
 
-        {/* Lista de productos criticos */}
-        {productosCriticos.length > 0 && (
+        {/* Lista de TODOS los productos ordenados de menor a mayor stock */}
+        {productosOrdenados.length > 0 && (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>⚠️ Necesitan reposicion</Text>
-            {productosCriticos.slice(0, 20).map((p: any) => {
-              const stock = Number(p.stock ?? p.variantes?.[0]?.stock ?? 0);
-              const minimo = Number(p.stockMinimo ?? p.variantes?.[0]?.stockMinimo ?? 5);
-              const critico = stock === 0;
+            <Text style={s.sectionTitle}>📦 Inventario por producto</Text>
+            {productosOrdenados.map((p: any) => {
+              const stock = Number(p.stock ?? 0);
+              const minimo = Number(p.stockMinimo ?? 5);
+              const st = stateOf(stock, minimo);
+              const c = colorOf(st);
               return (
-                <View key={p.id} style={s.criticRow}>
-                  <View style={[s.criticDot, { backgroundColor: critico ? '#dc2626' : '#d97706' }]} />
+                <View key={p.id} style={s.invRow}>
+                  <View style={[s.invDot, { backgroundColor: c.text }]} />
                   <View style={{ flex: 1 }}>
-                    <Text style={s.criticName} numberOfLines={1}>{p.nombre || p.producto?.nombre}</Text>
-                    <Text style={s.criticSku}>{p.sku || p.producto?.sku}</Text>
+                    <Text style={s.invName} numberOfLines={1}>
+                      {p.producto?.nombre || p.nombre || 'Producto'}
+                    </Text>
+                    <Text style={s.invSku}>{p.sku || p.producto?.sku || ''}</Text>
                   </View>
-                  <View style={s.criticStock}>
-                    <Text style={[s.criticStockN, { color: critico ? '#dc2626' : '#d97706' }]}>{stock}</Text>
-                    <Text style={s.criticStockMin}>min {minimo}</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[s.invStock, { color: c.text }]}>{stock} u</Text>
+                    <View style={[s.invChip, { backgroundColor: c.bg, borderColor: c.border }]}>
+                      <Text style={[s.invChipText, { color: c.text }]}>{c.label}</Text>
+                    </View>
                   </View>
                 </View>
               );
@@ -663,4 +682,22 @@ const s = StyleSheet.create({
   catName: { fontSize: 14, fontWeight: '600', color: '#111827' },
   catUnits: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
   catValue: { fontSize: 14, fontWeight: 'bold', color: '#7c3aed' },
+
+  // Inventario nuevo: leyendas + lista ordenada
+  legendRow: { flexDirection: 'row', justifyContent: 'space-around', gap: 8, marginBottom: 14, backgroundColor: '#fff', borderRadius: 14, padding: 12, elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  legendChip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 12, color: '#475569', fontWeight: '600' },
+  invRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', borderRadius: 12, padding: 12,
+    marginBottom: 6, elevation: 1,
+    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
+  },
+  invDot: { width: 8, height: 8, borderRadius: 4 },
+  invName: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  invSku: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
+  invStock: { fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
+  invChip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, marginTop: 3 },
+  invChipText: { fontSize: 10, fontWeight: '700' },
 });

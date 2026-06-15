@@ -7,10 +7,9 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/api/client';
 import { extractList, toastError } from '@/api/helpers';
 
-type Filter = 'all' | 'low' | 'out';
+type Filter = 'all' | 'low' | 'out' | 'ok';
 
-// stockMinimo viene del producto. Si no se configuro queda 0 → para esos
-// usamos un umbral default razonable: 5 unidades.
+// Si el producto no tiene stockMinimo configurado, usamos 5 como default razonable
 const DEFAULT_MIN = 5;
 
 function getStockState(stock: number, min: number) {
@@ -52,20 +51,6 @@ export default function ProductosScreen() {
     });
   }, [productos, filter]);
 
-  // Conteos por categoria de stock
-  const counts = useMemo(() => {
-    let ok = 0, low = 0, out = 0;
-    productos.forEach((p: any) => {
-      const stock = Number(p.variantes?.[0]?.stock ?? 0);
-      const min = Number(p.variantes?.[0]?.stockMinimo ?? p.stockMinimo ?? 0);
-      const st = getStockState(stock, min);
-      if (st === 'ok') ok++;
-      else if (st === 'low') low++;
-      else out++;
-    });
-    return { ok, low, out };
-  }, [productos]);
-
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
       <View style={s.header}>
@@ -79,40 +64,48 @@ export default function ProductosScreen() {
       </View>
 
       <View style={s.searchWrap}>
-        <TextInput style={s.searchInput} value={search} onChangeText={setSearch}
-          placeholder="Buscar producto..." placeholderTextColor="#9ca3af" />
+        <TextInput
+          style={s.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Buscar producto..."
+          placeholderTextColor="#9ca3af"
+        />
       </View>
 
-      {/* Filtros por stock */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
-        <FilterPill
-          label="Todos"
-          count={productos.length}
-          active={filter === 'all'}
+      {/* Filtros de stock (mismo estilo que las categorias del POS) */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.catScroll} contentContainerStyle={s.catScrollContent}>
+        <TouchableOpacity
+          style={[s.catPill, filter === 'all' && s.catPillActive]}
           onPress={() => setFilter('all')}
-        />
-        <FilterPill
-          label="Stock bajo"
-          count={counts.low}
-          dotColor="#d97706"
-          active={filter === 'low'}
+          activeOpacity={0.7}
+        >
+          <Text style={[s.catText, filter === 'all' && s.catTextActive]}>Todos</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.catPill, filter === 'ok' && s.catPillActiveOk]}
+          onPress={() => setFilter('ok')}
+          activeOpacity={0.7}
+        >
+          <View style={[s.catDot, { backgroundColor: '#16a34a' }]} />
+          <Text style={[s.catText, filter === 'ok' && s.catTextActiveColor]}>Stock alto</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.catPill, filter === 'low' && s.catPillActiveLow]}
           onPress={() => setFilter('low')}
-        />
-        <FilterPill
-          label="Sin stock"
-          count={counts.out}
-          dotColor="#dc2626"
-          active={filter === 'out'}
+          activeOpacity={0.7}
+        >
+          <View style={[s.catDot, { backgroundColor: '#d97706' }]} />
+          <Text style={[s.catText, filter === 'low' && s.catTextActiveColor]}>Stock bajo</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.catPill, filter === 'out' && s.catPillActiveOut]}
           onPress={() => setFilter('out')}
-        />
-        <FilterPill
-          label="OK"
-          count={counts.ok}
-          dotColor="#16a34a"
-          active={false}
-          disabled
-          onPress={() => {}}
-        />
+          activeOpacity={0.7}
+        >
+          <View style={[s.catDot, { backgroundColor: '#dc2626' }]} />
+          <Text style={[s.catText, filter === 'out' && s.catTextActiveColor]}>Sin stock</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <FlatList
@@ -125,13 +118,15 @@ export default function ProductosScreen() {
           !isLoading ? (
             <View style={s.empty}>
               <Text style={{ fontSize: 40, marginBottom: 8 }}>
-                {filter === 'out' ? '🚨' : filter === 'low' ? '⚠️' : '📦'}
+                {filter === 'out' ? '🚨' : filter === 'low' ? '⚠️' : filter === 'ok' ? '✅' : '📦'}
               </Text>
               <Text style={s.emptyText}>
                 {filter === 'out'
                   ? 'No hay productos sin stock'
                   : filter === 'low'
                   ? 'No hay productos con stock bajo'
+                  : filter === 'ok'
+                  ? 'No hay productos con stock alto'
                   : search
                   ? 'Sin resultados'
                   : 'Aun no hay productos'}
@@ -175,37 +170,6 @@ export default function ProductosScreen() {
   );
 }
 
-function FilterPill({
-  label,
-  count,
-  active,
-  disabled,
-  dotColor,
-  onPress,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  disabled?: boolean;
-  dotColor?: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={[s.filterPill, active && s.filterPillActive, disabled && { opacity: 0.6 }]}
-      onPress={onPress}
-      activeOpacity={disabled ? 1 : 0.7}
-      disabled={disabled}
-    >
-      {dotColor && <View style={[s.filterDot, { backgroundColor: dotColor }]} />}
-      <Text style={[s.filterText, active && s.filterTextActive]}>{label}</Text>
-      <View style={[s.filterCount, active && s.filterCountActive]}>
-        <Text style={[s.filterCountText, active && s.filterCountTextActive]}>{count}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
@@ -215,37 +179,32 @@ const s = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
   addBtn: { backgroundColor: '#7c3aed', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
   addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  searchWrap: { paddingHorizontal: 16, marginBottom: 10 },
+  searchWrap: { paddingHorizontal: 16, marginBottom: 12 },
   searchInput: { height: 48, backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16, fontSize: 15, borderWidth: 1, borderColor: '#e5e7eb', color: '#111827' },
 
-  // Filtros
-  filterRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 12 },
-  filterPill: {
+  // Filtros usando MISMO estilo que las categorias del POS (catScroll/catPill/catText)
+  catScroll: { height: 48, minHeight: 48, maxHeight: 48, marginBottom: 10 },
+  catScrollContent: { paddingHorizontal: 20, gap: 8, alignItems: 'center' },
+  catPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
     backgroundColor: '#ffffff',
+    height: 38,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e2e8f0',
   },
-  filterPillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
-  filterDot: { width: 8, height: 8, borderRadius: 4 },
-  filterText: { fontSize: 13, fontWeight: '600', color: '#475569' },
-  filterTextActive: { color: '#ffffff', fontWeight: '700' },
-  filterCount: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 10,
-    paddingHorizontal: 7,
-    paddingVertical: 1,
-    minWidth: 22,
-    alignItems: 'center',
-  },
-  filterCountActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  filterCountText: { fontSize: 11, fontWeight: '800', color: '#475569' },
-  filterCountTextActive: { color: '#ffffff' },
+  catPillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+  catPillActiveOk: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
+  catPillActiveLow: { backgroundColor: '#d97706', borderColor: '#d97706' },
+  catPillActiveOut: { backgroundColor: '#dc2626', borderColor: '#dc2626' },
+  catDot: { width: 8, height: 8, borderRadius: 4 },
+  catText: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+  catTextActive: { color: '#ffffff', fontWeight: '700' },
+  catTextActiveColor: { color: '#ffffff', fontWeight: '700' },
 
   card: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 14, marginBottom: 10, overflow: 'hidden', elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, paddingRight: 12 },
   cardImg: { width: 70, height: 70 },
