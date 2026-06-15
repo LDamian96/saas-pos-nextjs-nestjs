@@ -167,7 +167,7 @@ export default function RootLayout() {
   }, [usuario?.id]);
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+    return <View style={{ flex: 1, backgroundColor: '#7C3AED' }} />;
   }
 
   return (

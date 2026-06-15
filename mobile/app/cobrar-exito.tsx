@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { ComponentType, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -52,6 +52,8 @@ export default function CobrarExitoScreen() {
   const [printing, setPrinting] = useState(false);
   const [hasPrinter, setHasPrinter] = useState(false);
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const [waOpen, setWaOpen] = useState(false);
+  const [waPhone, setWaPhone] = useState('');
 
   const items = lastVenta?._cart || lastVenta?.items || [];
   const pagos = lastVenta?._pagos || [];
@@ -72,7 +74,7 @@ export default function CobrarExitoScreen() {
 
   const checkStyle = useAnimatedStyle(() => ({ transform: [{ scale: checkScale.value }] }));
 
-  const handleWhatsApp = () => {
+  const buildMessage = () => {
     let msg = `*${usuario?.empresa?.nombre || 'POS Shop'}*\n`;
     msg += `Venta: ${lastVenta?.numeroVenta || ''}\n`;
     msg += `${fecha.toLocaleDateString('es-PE')} ${fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}\n\n`;
@@ -80,7 +82,30 @@ export default function CobrarExitoScreen() {
       msg += `${i.nombre} x${i.cantidad} — S/ ${(Number(i.precio || i.precioUnitario || 0) * i.cantidad).toFixed(2)}\n`;
     });
     msg += `\n*TOTAL: S/ ${ventaTotal.toFixed(2)}*\n\nGracias por su compra`;
-    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+    return msg;
+  };
+
+  const handleWhatsApp = () => {
+    setWaOpen(true);
+  };
+
+  const sendWhatsApp = async () => {
+    const clean = waPhone.replace(/\D/g, '');
+    if (clean.length < 9) {
+      toastError('Teléfono inválido', 'Ingresa el número del cliente (9 dígitos)');
+      return;
+    }
+    // Si tiene 9 dígitos asume Perú (51). Si ya viene con código país (>=10) lo usa tal cual.
+    const phone = clean.length === 9 ? `51${clean}` : clean;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildMessage())}`;
+    setWaOpen(false);
+    try {
+      await Linking.openURL(url);
+      remoteLogger.info('wa_sent', { phone });
+    } catch (err: any) {
+      remoteLogger.error('wa_open_failed', err);
+      toastError('Error', 'No pude abrir WhatsApp');
+    }
   };
 
   const handlePrint = async () => {
@@ -215,6 +240,41 @@ export default function CobrarExitoScreen() {
       </ScrollView>
 
       <View style={{ height: insets.bottom }} />
+
+      <Modal visible={waOpen} transparent animationType="fade" onRequestClose={() => setWaOpen(false)}>
+        <Pressable style={s.modalScrim} onPress={() => setWaOpen(false)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <View style={s.modalIcon}>
+              <MessageCircle color="#25D366" size={28} strokeWidth={2.2} />
+            </View>
+            <Text style={s.modalTitle}>Enviar por WhatsApp</Text>
+            <Text style={s.modalDesc}>Ingresa el número del cliente. Abrirá el chat directo.</Text>
+            <View style={s.phoneRow}>
+              <View style={s.phonePrefix}>
+                <Text style={s.phonePrefixText}>+51</Text>
+              </View>
+              <TextInput
+                style={s.phoneInput}
+                value={waPhone}
+                onChangeText={setWaPhone}
+                placeholder="987 654 321"
+                placeholderTextColor={colors.textPlaceholder}
+                keyboardType="phone-pad"
+                maxLength={15}
+                autoFocus
+              />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Button label="Cancelar" variant="outline" onPress={() => setWaOpen(false)} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button label="Enviar" icon={MessageCircle} onPress={sendWhatsApp} />
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -282,4 +342,72 @@ const s = StyleSheet.create({
 
   printingNote: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 14 },
   printingText: { fontFamily: fonts.semibold, fontSize: 12.5, color: colors.textMuted },
+
+  modalScrim: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: 22,
+    alignItems: 'stretch',
+  },
+  modalIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#E7FBEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#B7EFCE',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontFamily: fonts.black,
+    fontSize: 18,
+    color: colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  modalDesc: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 18,
+    lineHeight: 19,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    borderWidth: 1.4,
+    borderColor: colors.divider,
+    overflow: 'hidden',
+  },
+  phonePrefix: {
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderRightWidth: 1.4,
+    borderRightColor: colors.divider,
+  },
+  phonePrefixText: { fontFamily: fonts.black, fontSize: 16, color: colors.brand },
+  phoneInput: {
+    flex: 1,
+    height: 54,
+    paddingHorizontal: 14,
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    color: colors.text,
+    letterSpacing: 1,
+  },
 });

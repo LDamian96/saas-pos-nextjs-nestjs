@@ -1,21 +1,21 @@
 // =============================================================================
-// (tabs)/index.tsx — POS principal.
-// Look DineTrack: cards blancas, pills, FAB carrito flotante.
+// (tabs)/index.tsx — POS principal optimizado.
+// Sin stagger en items, FlatList virtualizada, imagenes cacheadas, sin parpadeo
+// al cambiar categoria (placeholderData).
 // =============================================================================
 
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import Animated, {
-  Easing,
   FadeIn,
-  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { CircleAlert, Package, ScanLine, Search, ShoppingCart, WifiOff } from 'lucide-react-native';
@@ -39,11 +39,15 @@ interface Producto {
   variantes?: { id: string; stock: number; precioVenta: number }[];
 }
 
+const CARD_BLUR_HASH = 'L6Pj0^jE.AyE_3t7t7R**0o#DgR4';
+
 export default function POSScreen() {
   const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoading, usuario } = useAuthStore();
   const { isOnline, pendingSales } = useNetworkStore();
-  const { addToCart, itemCount, total } = usePosStore();
+  const addToCart = usePosStore((s) => s.addToCart);
+  const count = usePosStore((s) => s.cart.length);
+  const cartTotal = usePosStore((s) => s.cart.reduce((sum, i) => sum + i.precio * i.cantidad, 0));
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -51,15 +55,15 @@ export default function POSScreen() {
   const [offlineCategorias, setOfflineCategorias] = useState<any[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    const t = setTimeout(() => setDebouncedSearch(search), 220);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data: prodData, error: prodError } = useQuery({
+  const { data: prodData, error: prodError, isFetching } = useQuery({
     queryKey: ['productos', debouncedSearch, selectedCat],
     queryFn: async () => {
       const r = await api.get('/productos', {
-        params: { search: debouncedSearch || undefined, categoriaId: selectedCat || undefined, activo: true, visiblePos: true, limit: 100 },
+        params: { search: debouncedSearch || undefined, categoriaId: selectedCat || undefined, activo: true, visiblePos: true, limit: 60 },
       });
       const list = extractList(r.data);
       if (list.length > 0 && !debouncedSearch && !selectedCat) {
@@ -69,6 +73,8 @@ export default function POSScreen() {
     },
     enabled: isAuthenticated && isOnline,
     retry: false,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
   });
 
   const { data: catData } = useQuery({
@@ -81,12 +87,14 @@ export default function POSScreen() {
     },
     enabled: isAuthenticated && isOnline,
     retry: false,
+    staleTime: 5 * 60_000,
   });
 
   const { data: cajaData } = useQuery({
     queryKey: ['caja-actual'],
     queryFn: () => api.get('/caja/actual').then((r) => r.data).catch(() => null),
     enabled: isAuthenticated && isOnline,
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -109,41 +117,43 @@ export default function POSScreen() {
     }
   }, [prodError, isOnline]);
 
-  if (!isLoading && !isAuthenticated) return <Redirect href="/login" />;
-
-  const handleAddToCart = (prod: Producto) => {
-    const v = prod.variantes?.[0];
-    if (!v) {
-      toastError('Sin stock', 'Este producto no tiene variantes');
-      return;
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    addToCart({
-      varianteId: v.id,
-      productoId: prod.id,
-      nombre: prod.nombre,
-      imagen: prod.imagenPrincipal,
-      precio: Number(v.precioVenta) || Number(prod.precioVenta),
-      stock: v.stock,
-    });
-    toastInfo('Agregado', prod.nombre);
-  };
-
-  const count = itemCount();
-  const cartTotal = total();
-
-  const renderProduct = ({ item, index }: { item: Producto; index: number }) => (
-    <Animated.View
-      entering={FadeInDown.delay(index * 28).duration(280).easing(Easing.out(Easing.cubic))}
-      style={{ flex: 1, marginBottom: 12 }}
-    >
-      <ProductCard product={item} onPress={() => handleAddToCart(item)} />
-    </Animated.View>
+  const handleAddToCart = useCallback(
+    (prod: Producto) => {
+      const v = prod.variantes?.[0];
+      if (!v) {
+        toastError('Sin stock', 'Este producto no tiene variantes');
+        return;
+      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      addToCart({
+        varianteId: v.id,
+        productoId: prod.id,
+        nombre: prod.nombre,
+        imagen: prod.imagenPrincipal,
+        precio: Number(v.precioVenta) || Number(prod.precioVenta),
+        stock: v.stock,
+      });
+      toastInfo('Agregado', prod.nombre);
+    },
+    [addToCart]
   );
+
+  const renderProduct = useCallback(
+    ({ item }: { item: Producto }) => (
+      <View style={{ flex: 1, marginBottom: 12 }}>
+        <ProductCard product={item} onPress={handleAddToCart} />
+      </View>
+    ),
+    [handleAddToCart]
+  );
+
+  const keyExtractor = useCallback((item: Producto) => item.id, []);
+
+  if (!isLoading && !isAuthenticated) return <Redirect href="/login" />;
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      <Animated.View entering={FadeIn.duration(260)} style={s.header}>
+      <View style={s.header}>
         <View style={{ flex: 1 }}>
           <Text style={s.headerEyebrow}>HOLA{usuario?.nombre ? `, ${usuario.nombre.split(' ')[0].toUpperCase()}` : ''}</Text>
           <Text style={s.headerTitle}>Punto de venta</Text>
@@ -157,9 +167,9 @@ export default function POSScreen() {
             {cajaData?.id ? 'Caja abierta' : 'Sin caja'}
           </Text>
         </Pressable>
-      </Animated.View>
+      </View>
 
-      <Animated.View entering={FadeIn.delay(60).duration(260)} style={s.searchRow}>
+      <View style={s.searchRow}>
         <View style={s.searchInputWrap}>
           <Search color={colors.textSubtle} size={18} strokeWidth={2.2} />
           <TextInput
@@ -179,21 +189,19 @@ export default function POSScreen() {
         >
           <ScanLine color={colors.brand} size={22} strokeWidth={2.2} />
         </Pressable>
-      </Animated.View>
+      </View>
 
-      <Animated.View entering={FadeIn.delay(100).duration(260)}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
-          <Pill label="Todos" active={!selectedCat} onPress={() => setSelectedCat(null)} />
-          {categorias.map((cat: any) => (
-            <Pill
-              key={cat.id}
-              label={cat.nombre}
-              active={selectedCat === cat.id}
-              onPress={() => setSelectedCat(selectedCat === cat.id ? null : cat.id)}
-            />
-          ))}
-        </ScrollView>
-      </Animated.View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
+        <Pill label="Todos" active={!selectedCat} onPress={() => setSelectedCat(null)} />
+        {categorias.map((cat: any) => (
+          <Pill
+            key={cat.id}
+            label={cat.nombre}
+            active={selectedCat === cat.id}
+            onPress={() => setSelectedCat(selectedCat === cat.id ? null : cat.id)}
+          />
+        ))}
+      </ScrollView>
 
       {!isOnline && <Banner icon={WifiOff} tone="danger" text="Modo offline · las ventas se sincronizarán al volver internet" />}
       {isOnline && pendingSales > 0 && (
@@ -208,18 +216,25 @@ export default function POSScreen() {
       <FlatList
         data={productos}
         renderItem={renderProduct}
-        keyExtractor={(i) => i.id}
+        keyExtractor={keyExtractor}
         numColumns={2}
         columnWrapperStyle={s.prodRow}
         contentContainerStyle={s.prodGrid}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        updateCellsBatchingPeriod={50}
         ListEmptyComponent={
-          <View style={s.emptyWrap}>
-            <View style={s.emptyIconWrap}>
-              <Package color={colors.textSubtle} size={32} strokeWidth={2} />
+          !isFetching ? (
+            <View style={s.emptyWrap}>
+              <View style={s.emptyIconWrap}>
+                <Package color={colors.textSubtle} size={32} strokeWidth={2} />
+              </View>
+              <Text style={s.emptyText}>{search ? 'Sin resultados' : 'Aún no hay productos'}</Text>
             </View>
-            <Text style={s.emptyText}>{search ? 'Sin resultados' : 'Aún no hay productos'}</Text>
-          </View>
+          ) : null
         }
       />
 
@@ -230,20 +245,31 @@ export default function POSScreen() {
   );
 }
 
-function ProductCard({ product, onPress }: { product: Producto; onPress: () => void }) {
+const ProductCard = memo(function ProductCard({ product, onPress }: { product: Producto; onPress: (p: Producto) => void }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const price = Number(product.precioVenta).toFixed(2);
+  const price = useMemo(() => Number(product.precioVenta).toFixed(2), [product.precioVenta]);
+
+  const handlePress = useCallback(() => onPress(product), [onPress, product]);
+  const handlePressIn = useCallback(() => {
+    scale.value = withTiming(0.97, { duration: 90 });
+  }, []);
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 22, stiffness: 260, mass: 0.6 });
+  }, []);
 
   return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={() => (scale.value = withSpring(0.96, { damping: 14, stiffness: 400 }))}
-      onPressOut={() => (scale.value = withSpring(1, { damping: 14, stiffness: 400 }))}
-    >
+    <Pressable onPress={handlePress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
       <Animated.View style={[pc.card, animStyle]}>
         {product.imagenPrincipal ? (
-          <Image source={{ uri: product.imagenPrincipal }} style={pc.img} contentFit="cover" />
+          <Image
+            source={{ uri: product.imagenPrincipal }}
+            style={pc.img}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={120}
+            placeholder={CARD_BLUR_HASH}
+          />
         ) : (
           <View style={[pc.img, pc.placeholder]}>
             <Text style={pc.placeholderInitial}>{product.nombre.charAt(0).toUpperCase()}</Text>
@@ -264,7 +290,7 @@ function ProductCard({ product, onPress }: { product: Producto; onPress: () => v
       </Animated.View>
     </Pressable>
   );
-}
+});
 
 function Banner({
   icon: Icon,
@@ -282,7 +308,7 @@ function Banner({
   } as const;
   const t = tones[tone];
   return (
-    <Animated.View entering={FadeIn.duration(200)} style={[bn.wrap, { backgroundColor: t.bg, borderColor: t.border }]}>
+    <Animated.View entering={FadeIn.duration(180)} style={[bn.wrap, { backgroundColor: t.bg, borderColor: t.border }]}>
       {Icon && <Icon color={t.color} size={16} strokeWidth={2.2} />}
       <Text style={[bn.text, { color: t.color }]}>{text}</Text>
     </Animated.View>
@@ -290,9 +316,9 @@ function Banner({
 }
 
 function CartFab({ count, total, bottom, onPress }: { count: number; total: number; bottom: number; onPress: () => void }) {
-  const scale = useSharedValue(0);
+  const scale = useSharedValue(0.85);
   useEffect(() => {
-    scale.value = withSpring(1, { damping: 14, stiffness: 220 });
+    scale.value = withSpring(1, { damping: 22, stiffness: 260, mass: 0.6 });
   }, []);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (

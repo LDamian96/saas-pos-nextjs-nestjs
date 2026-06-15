@@ -2,13 +2,12 @@
 // (tabs)/productos.tsx — Listado de productos con búsqueda y FAB +.
 // =============================================================================
 
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
-import Animated, { Easing, FadeIn, FadeInDown } from 'react-native-reanimated';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { ChevronRight, Package, Plus, Search } from 'lucide-react-native';
 
@@ -17,14 +16,24 @@ import { extractList, toastError } from '@/api/helpers';
 import { remoteLogger } from '@/services/remote-logger';
 import { colors, fonts, radius, shadows } from '@/theme';
 
+const CARD_BLUR_HASH = 'L6Pj0^jE.AyE_3t7t7R**0o#DgR4';
+
 export default function ProductosScreen() {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search), 220);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const { data, isLoading, refetch, error } = useQuery({
-    queryKey: ['productos-list', search],
+    queryKey: ['productos-list', debounced],
     queryFn: () =>
-      api.get('/productos', { params: { search: search || undefined, limit: 50, activo: true } }).then((r) => r.data),
+      api.get('/productos', { params: { search: debounced || undefined, limit: 50, activo: true } }).then((r) => r.data),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
   });
   const productos = extractList(data);
 
@@ -35,9 +44,21 @@ export default function ProductosScreen() {
     }
   }, [error]);
 
+  const handleOpenProduct = useCallback((id: string) => {
+    Haptics.selectionAsync();
+    router.push(`/productos/${id}`);
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => <ProductRow item={item} onPress={handleOpenProduct} />,
+    [handleOpenProduct]
+  );
+
+  const keyExtractor = useCallback((item: any) => item.id, []);
+
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      <Animated.View entering={FadeIn.duration(260)} style={s.header}>
+      <View style={s.header}>
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>CATÁLOGO</Text>
           <Text style={s.title}>Productos</Text>
@@ -45,9 +66,9 @@ export default function ProductosScreen() {
         <View style={s.countPill}>
           <Text style={s.countPillText}>{productos.length}</Text>
         </View>
-      </Animated.View>
+      </View>
 
-      <Animated.View entering={FadeIn.delay(80).duration(220)} style={s.searchRow}>
+      <View style={s.searchRow}>
         <View style={s.searchWrap}>
           <Search color={colors.textSubtle} size={18} strokeWidth={2.2} />
           <TextInput
@@ -67,45 +88,21 @@ export default function ProductosScreen() {
         >
           <Plus color="#FFFFFF" size={22} strokeWidth={2.6} />
         </Pressable>
-      </Animated.View>
+      </View>
 
       <FlatList
         data={productos}
-        keyExtractor={(i) => i.id}
+        keyExtractor={keyExtractor}
         onRefresh={refetch}
         refreshing={isLoading}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(index * 28).duration(240).easing(Easing.out(Easing.cubic))}>
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.push(`/productos/${item.id}`);
-              }}
-              style={({ pressed }) => [s.card, { opacity: pressed ? 0.82 : 1 }]}
-            >
-              {item.imagenPrincipal ? (
-                <Image source={{ uri: item.imagenPrincipal }} style={s.cardImg} contentFit="cover" />
-              ) : (
-                <View style={[s.cardImg, s.placeholder]}>
-                  <Text style={s.placeholderInitial}>{(item.nombre || '?').charAt(0).toUpperCase()}</Text>
-                </View>
-              )}
-              <View style={s.cardInfo}>
-                <Text style={s.cardName} numberOfLines={1}>{item.nombre}</Text>
-                <Text style={s.cardSku}>{item.sku}</Text>
-                <View style={s.cardRow}>
-                  <Text style={s.cardPrice}>S/ {Number(item.precioVenta).toFixed(2)}</Text>
-                  <View style={s.stockChip}>
-                    <Text style={s.stockText}>{item.variantes?.[0]?.stock ?? 0} u</Text>
-                  </View>
-                </View>
-              </View>
-              <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.2} />
-            </Pressable>
-          </Animated.View>
-        )}
+        removeClippedSubviews
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        updateCellsBatchingPeriod={50}
+        renderItem={renderItem}
         ListEmptyComponent={
           !isLoading ? (
             <View style={s.emptyWrap}>
@@ -120,6 +117,45 @@ export default function ProductosScreen() {
     </View>
   );
 }
+
+const ProductRow = memo(function ProductRow({
+  item,
+  onPress,
+}: {
+  item: any;
+  onPress: (id: string) => void;
+}) {
+  const handle = useCallback(() => onPress(item.id), [item.id, onPress]);
+  return (
+    <Pressable onPress={handle} style={({ pressed }) => [s.card, { opacity: pressed ? 0.82 : 1 }]}>
+      {item.imagenPrincipal ? (
+        <Image
+          source={{ uri: item.imagenPrincipal }}
+          style={s.cardImg}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={100}
+          placeholder={CARD_BLUR_HASH}
+        />
+      ) : (
+        <View style={[s.cardImg, s.placeholder]}>
+          <Text style={s.placeholderInitial}>{(item.nombre || '?').charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
+      <View style={s.cardInfo}>
+        <Text style={s.cardName} numberOfLines={1}>{item.nombre}</Text>
+        <Text style={s.cardSku}>{item.sku}</Text>
+        <View style={s.cardRow}>
+          <Text style={s.cardPrice}>S/ {Number(item.precioVenta).toFixed(2)}</Text>
+          <View style={s.stockChip}>
+            <Text style={s.stockText}>{item.variantes?.[0]?.stock ?? 0} u</Text>
+          </View>
+        </View>
+      </View>
+      <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.2} />
+    </Pressable>
+  );
+});
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
