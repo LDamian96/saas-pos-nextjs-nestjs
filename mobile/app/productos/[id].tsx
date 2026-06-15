@@ -19,6 +19,7 @@ export default function EditarProductoScreen() {
   const [precioCompra, setPrecioCompra] = useState('');
   const [precioVenta, setPrecioVenta] = useState('');
   const [stock, setStock] = useState('');
+  const [stockMinimo, setStockMinimo] = useState('5');
   const [codigoBarras, setCodigoBarras] = useState('');
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [marcaId, setMarcaId] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export default function EditarProductoScreen() {
       setPrecioCompra(prod.precioCompra?.toString() || '');
       setPrecioVenta(prod.precioVenta?.toString() || '');
       setStock(prod.variantes?.[0]?.stock?.toString() || '0');
+      setStockMinimo((prod.variantes?.[0]?.stockMinimo ?? prod.stockMinimo ?? 5)?.toString() || '5');
       setCodigoBarras(prod.codigoBarras || '');
       setCategoriaId(prod.categoriaId || null);
       setMarcaId(prod.marcaId || null);
@@ -127,6 +129,7 @@ export default function EditarProductoScreen() {
       nombre: nombre.trim(),
       precioCompra: precioCompra ? Number(precioCompra) : undefined,
       precioVenta: Number(precioVenta),
+      stockMinimo: stockMinimo ? Number(stockMinimo) : 5,
       codigoBarras: codigoBarras || undefined,
       categoriaId: categoriaId || undefined,
       marcaId: marcaId || undefined,
@@ -216,8 +219,12 @@ export default function EditarProductoScreen() {
             <Text style={s.label}>Stock actual</Text>
             <TextInput style={[s.input, { backgroundColor: '#f3f4f6' }]} value={stock} editable={false} />
           </View>
-          <View style={s.half} />
+          <View style={s.half}>
+            <Text style={s.label}>Stock minimo (alerta)</Text>
+            <TextInput style={s.input} value={stockMinimo} onChangeText={setStockMinimo} placeholder="5" placeholderTextColor="#9ca3af" keyboardType="number-pad" />
+          </View>
         </View>
+        <Text style={s.hint}>Alerta roja cuando stock {'<='} minimo</Text>
 
         {pc > 0 && pv > 0 && (
           <>
@@ -320,4 +327,5 @@ const s = StyleSheet.create({
   gainTag: { fontSize: 10, fontWeight: '800', color: '#16a34a', letterSpacing: 1, marginBottom: 6 },
   gainValue: { fontSize: 18, fontWeight: '800', letterSpacing: -0.2 },
   gainHint: { fontSize: 11, color: '#9ca3af', marginTop: 8, fontWeight: '500' },
+  hint: { fontSize: 11, color: '#9ca3af', marginTop: 4, fontWeight: '500', fontStyle: 'italic' },
 });
