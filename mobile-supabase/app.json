@@ -77,7 +77,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "5cd21ed2-6fb0-45cf-a111-3b223aa85e3d"
+      }
     },
     "owner": "luis-pruebas",
     "runtimeVersion": {

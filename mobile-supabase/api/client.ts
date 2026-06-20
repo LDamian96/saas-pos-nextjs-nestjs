@@ -218,7 +218,7 @@ async function genericHandler(method: string, path: string, body?: any, params?:
       *,
       categoria:categorias(id, nombre),
       marca:marcas(id, nombre),
-      variantes!productos_id_fkey(*)
+      variantes(*)
     `).eq('empresa_id', ctx.empresaId!).eq('activo', true)
       .order('nombre', { ascending: true }).limit(params?.limit || 200);
     if (params?.categoriaId) q = q.eq('categoria_id', params.categoriaId);
@@ -337,23 +337,217 @@ async function genericHandler(method: string, path: string, body?: any, params?:
     const { data, error } = await supabase.from('empresas')
       .select('*').eq('id', ctx.empresaId!).single();
     if (error) err(error.message);
-    return ok({ success: true, data });
+    // Devolver con field names que espera el frontend (nombre en lugar de nombre_comercial)
+    const e: any = data;
+    return ok({ success: true, data: {
+      ...e,
+      nombre: e.nombre_comercial,
+      aplicaImpuesto: e.aplica_impuesto,
+      porcentajeImpuesto: e.porcentaje_impuesto,
+      nombreImpuesto: e.nombre_impuesto,
+      nubefactEnabled: e.nubefact_enabled,
+      nubefactDemo: e.nubefact_demo,
+      nubefactApiUrl: e.nubefact_api_url,
+      nubefactToken: e.nubefact_token,
+      nubefactRuc: e.nubefact_ruc,
+    } });
   }
-  const empPutMatch = path.match(/^\/empresas\/([^/]+)$/);
-  if (empPutMatch && (method === 'PUT' || method === 'PATCH')) {
+  if (path === '/empresas/me/config' && method === 'GET') {
+    // Algunas pantallas piden /empresas/me/config — devolvemos el mismo objeto
+    const { data, error } = await supabase.from('empresas').select('*').eq('id', ctx.empresaId!).single();
+    if (error) err(error.message);
+    const e: any = data;
+    return ok({ success: true, data: {
+      aplicaImpuesto: e.aplica_impuesto,
+      porcentajeImpuesto: e.porcentaje_impuesto,
+      nombreImpuesto: e.nombre_impuesto,
+      precioIncluyeImpuesto: e.precio_incluye_impuesto,
+      nubefactEnabled: e.nubefact_enabled,
+      nubefactDemo: e.nubefact_demo,
+      nubefactApiUrl: e.nubefact_api_url,
+      nubefactToken: e.nubefact_token,
+      nubefactRuc: e.nubefact_ruc,
+    } });
+  }
+  // Helper local para patch empresas
+  const buildEmpresaPatch = (b: any) => {
     const patch: any = {};
-    if ('nombre' in body) patch.nombre_comercial = body.nombre;
-    if ('ruc' in body) patch.ruc = body.ruc;
-    if ('email' in body) patch.email = body.email;
-    if ('telefono' in body) patch.telefono = body.telefono;
-    if ('aplicaImpuesto' in body) patch.aplica_impuesto = body.aplicaImpuesto;
-    if ('porcentajeImpuesto' in body) patch.porcentaje_impuesto = body.porcentajeImpuesto;
-    if ('nombreImpuesto' in body) patch.nombre_impuesto = body.nombreImpuesto;
-    if ('logo' in body) patch.logo = body.logo;
+    if ('nombre' in b) patch.nombre_comercial = b.nombre;
+    if ('nombreComercial' in b) patch.nombre_comercial = b.nombreComercial;
+    if ('razonSocial' in b) patch.razon_social = b.razonSocial;
+    if ('ruc' in b) patch.ruc = b.ruc;
+    if ('email' in b) patch.email = b.email;
+    if ('telefono' in b) patch.telefono = b.telefono;
+    if ('whatsapp' in b) patch.whatsapp = b.whatsapp;
+    if ('direccionFiscal' in b) patch.direccion_fiscal = b.direccionFiscal;
+    if ('aplicaImpuesto' in b) patch.aplica_impuesto = b.aplicaImpuesto;
+    if ('porcentajeImpuesto' in b) patch.porcentaje_impuesto = b.porcentajeImpuesto;
+    if ('nombreImpuesto' in b) patch.nombre_impuesto = b.nombreImpuesto;
+    if ('precioIncluyeImpuesto' in b) patch.precio_incluye_impuesto = b.precioIncluyeImpuesto;
+    if ('logo' in b) patch.logo = b.logo;
+    if ('nubefactEnabled' in b) patch.nubefact_enabled = b.nubefactEnabled;
+    if ('nubefactDemo' in b) patch.nubefact_demo = b.nubefactDemo;
+    if ('nubefactApiUrl' in b) patch.nubefact_api_url = b.nubefactApiUrl;
+    if ('nubefactToken' in b) patch.nubefact_token = b.nubefactToken;
+    if ('nubefactRuc' in b) patch.nubefact_ruc = b.nubefactRuc;
     patch.updated_at = new Date().toISOString();
-    const { error } = await supabase.from('empresas').update(patch).eq('id', empPutMatch[1]);
+    return patch;
+  };
+  if ((path === '/empresas/me' || path === '/empresas/me/config') && (method === 'PUT' || method === 'PATCH')) {
+    const { error } = await supabase.from('empresas').update(buildEmpresaPatch(body)).eq('id', ctx.empresaId!);
     if (error) err(error.message);
     return ok({ success: true });
+  }
+  const empPutMatch = path.match(/^\/empresas\/([^/]+)$/);
+  if (empPutMatch && empPutMatch[1] !== 'me' && (method === 'PUT' || method === 'PATCH')) {
+    const { error } = await supabase.from('empresas').update(buildEmpresaPatch(body)).eq('id', empPutMatch[1]);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+
+  // ============================================================
+  // Crear / editar / borrar productos / categorias / marcas
+  // ============================================================
+  if (path === '/productos' && method === 'POST') {
+    const id = (globalThis as any).crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    const slug = (body.nombre || 'producto').toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 200);
+    const codigoInterno = body.codigoInterno || ('P-' + Date.now().toString().slice(-8));
+    const ins: any = {
+      id, empresa_id: ctx.empresaId,
+      categoria_id: body.categoriaId, marca_id: body.marcaId || null,
+      codigo_interno: codigoInterno, sku: body.sku || null,
+      codigo_barras: body.codigoBarras || null,
+      nombre: body.nombre, slug,
+      descripcion_corta: body.descripcionCorta || null,
+      tipo: 'simple',
+      precio_compra: Number(body.precioCompra) || 0,
+      precio_venta: Number(body.precioVenta) || 0,
+      aplica_impuesto: body.aplicaImpuesto !== false,
+      maneja_stock: true,
+      stock: Number(body.stock) || 0,
+      stock_minimo: Number(body.stockMinimo) || 0,
+      imagen_principal: body.imagenPrincipal || null,
+      activo: true, visible_pos: true, visible_web: true,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from('productos').insert(ins);
+    if (error) err(error.message);
+    // Crear variante por defecto + stock_sucursal
+    const varianteId = (globalThis as any).crypto?.randomUUID?.() || `${Date.now()}-v`;
+    await supabase.from('variantes').insert({
+      id: varianteId, producto_id: id, sku: ins.sku || ins.codigo_interno,
+      precio_venta: ins.precio_venta, precio_compra: ins.precio_compra,
+      stock: ins.stock, stock_minimo: ins.stock_minimo, activo: true,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    });
+    if (ctx.sucursalId) {
+      await supabase.from('stock_sucursal').insert({
+        id: (globalThis as any).crypto?.randomUUID?.() || `${Date.now()}-s`,
+        variante_id: varianteId, sucursal_id: ctx.sucursalId,
+        stock: ins.stock, stock_minimo: ins.stock_minimo,
+        updated_at: new Date().toISOString(),
+      });
+    }
+    return ok({ success: true, data: { id } });
+  }
+  const prodPutMatch = path.match(/^\/productos\/([^/]+)$/);
+  if (prodPutMatch && (method === 'PUT' || method === 'PATCH')) {
+    const patch: any = { updated_at: new Date().toISOString() };
+    if ('nombre' in body) patch.nombre = body.nombre;
+    if ('precioCompra' in body) patch.precio_compra = Number(body.precioCompra) || 0;
+    if ('precioVenta' in body) patch.precio_venta = Number(body.precioVenta) || 0;
+    if ('codigoBarras' in body) patch.codigo_barras = body.codigoBarras;
+    if ('imagenPrincipal' in body) patch.imagen_principal = body.imagenPrincipal;
+    if ('aplicaImpuesto' in body) patch.aplica_impuesto = body.aplicaImpuesto;
+    if ('categoriaId' in body) patch.categoria_id = body.categoriaId;
+    if ('marcaId' in body) patch.marca_id = body.marcaId;
+    if ('stockMinimo' in body) patch.stock_minimo = Number(body.stockMinimo) || 0;
+    const { error } = await supabase.from('productos').update(patch).eq('id', prodPutMatch[1]);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+  if (prodPutMatch && method === 'DELETE') {
+    const { error } = await supabase.from('productos').update({ activo: false }).eq('id', prodPutMatch[1]);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+
+  if (path === '/categorias' && method === 'POST') {
+    const id = (globalThis as any).crypto?.randomUUID?.() || `${Date.now()}-c`;
+    const slug = (body.nombre || 'cat').toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 160);
+    const { error } = await supabase.from('categorias').insert({
+      id, empresa_id: ctx.empresaId, nombre: body.nombre, slug,
+      activo: true, visible_pos: true, visible_web: true,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    });
+    if (error) err(error.message);
+    return ok({ success: true, data: { id } });
+  }
+  const catMatch = path.match(/^\/categorias\/([^/]+)$/);
+  if (catMatch && (method === 'PUT' || method === 'PATCH')) {
+    const patch: any = { updated_at: new Date().toISOString() };
+    if ('nombre' in body) patch.nombre = body.nombre;
+    if ('imagen' in body) patch.imagen = body.imagen;
+    const { error } = await supabase.from('categorias').update(patch).eq('id', catMatch[1]);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+  if (catMatch && method === 'DELETE') {
+    const { error } = await supabase.from('categorias').update({ activo: false }).eq('id', catMatch[1]);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+
+  if (path === '/marcas' && method === 'POST') {
+    const id = (globalThis as any).crypto?.randomUUID?.() || `${Date.now()}-m`;
+    const slug = (body.nombre || 'marca').toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 160);
+    const { error } = await supabase.from('marcas').insert({
+      id, empresa_id: ctx.empresaId, nombre: body.nombre, slug,
+      activo: true,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    });
+    if (error) err(error.message);
+    return ok({ success: true, data: { id } });
+  }
+  const marcaMatch = path.match(/^\/marcas\/([^/]+)$/);
+  if (marcaMatch && (method === 'PUT' || method === 'PATCH')) {
+    const patch: any = { updated_at: new Date().toISOString() };
+    if ('nombre' in body) patch.nombre = body.nombre;
+    if ('logo' in body) patch.logo = body.logo;
+    const { error } = await supabase.from('marcas').update(patch).eq('id', marcaMatch[1]);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+  if (marcaMatch && method === 'DELETE') {
+    const { error } = await supabase.from('marcas').update({ activo: false }).eq('id', marcaMatch[1]);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+
+  if (path === '/empresas/me/nubefact' && method === 'GET') {
+    const { data, error } = await supabase.from('empresas').select('nubefact_enabled, nubefact_demo, nubefact_api_url, nubefact_token, nubefact_ruc').eq('id', ctx.empresaId!).single();
+    if (error) err(error.message);
+    const e: any = data;
+    return ok({ success: true, data: {
+      nubefactEnabled: e.nubefact_enabled, nubefactDemo: e.nubefact_demo,
+      nubefactApiUrl: e.nubefact_api_url, nubefactToken: e.nubefact_token, nubefactRuc: e.nubefact_ruc,
+    }});
+  }
+  if (path === '/empresas/me/nubefact' && (method === 'PUT' || method === 'PATCH')) {
+    const { error } = await supabase.from('empresas').update({
+      nubefact_enabled: body.nubefactEnabled, nubefact_demo: body.nubefactDemo,
+      nubefact_api_url: body.nubefactApiUrl, nubefact_token: body.nubefactToken, nubefact_ruc: body.nubefactRuc,
+      updated_at: new Date().toISOString(),
+    }).eq('id', ctx.empresaId!);
+    if (error) err(error.message);
+    return ok({ success: true });
+  }
+
+  if (path === '/uploads/imagen' && method === 'POST') {
+    // body es FormData? Por ahora si viene una URL preexistente la devolvemos tal cual.
+    // Las pantallas que usan esto deben subir directo a Supabase Storage en otra iteracion.
+    if (body?.url) return ok({ success: true, data: { url: body.url } });
+    err('Subida de imagen pendiente de implementar Supabase Storage');
   }
 
   err(`Endpoint no implementado: ${method} ${path}`);
@@ -362,24 +556,30 @@ async function genericHandler(method: string, path: string, body?: any, params?:
 // =============================================================================
 // Dispatcher
 // =============================================================================
-async function dispatch(method: string, path: string, body?: any, params?: any) {
+type Resp = { data: any; status: number; statusText: string; headers: any; config: any };
+
+async function dispatch(method: string, path: string, body?: any, params?: any): Promise<Resp> {
   try {
-    if (path.startsWith('/auth/')) return authHandler(method, path, body);
-    if (path.startsWith('/caja/')) return cajaHandler(method, path, body);
-    if (path.startsWith('/ventas')) return ventasHandler(method, path, body, params);
-    return genericHandler(method, path, body, params);
+    let r: any;
+    if (path.startsWith('/auth/')) r = await authHandler(method, path, body);
+    else if (path.startsWith('/caja/')) r = await cajaHandler(method, path, body);
+    else if (path.startsWith('/ventas')) r = await ventasHandler(method, path, body, params);
+    else r = await genericHandler(method, path, body, params);
+    if (!r) throw new Error('Respuesta vacia del adaptador');
+    return r as Resp;
   } catch (e: any) {
     if (e?.response) throw e;
     err(e?.message || 'Error desconocido');
+    throw e; // unreachable, satisface TS
   }
 }
 
 export const api = {
-  get: (path: string, config?: { params?: any }) => dispatch('GET', path, undefined, config?.params),
-  post: (path: string, body?: any) => dispatch('POST', path, body),
-  put: (path: string, body?: any) => dispatch('PUT', path, body),
-  patch: (path: string, body?: any) => dispatch('PATCH', path, body),
-  delete: (path: string) => dispatch('DELETE', path),
+  get: (path: string, config?: { params?: any }): Promise<Resp> => dispatch('GET', path, undefined, config?.params),
+  post: (path: string, body?: any, _opts?: any): Promise<Resp> => dispatch('POST', path, body),
+  put: (path: string, body?: any, _opts?: any): Promise<Resp> => dispatch('PUT', path, body),
+  patch: (path: string, body?: any, _opts?: any): Promise<Resp> => dispatch('PATCH', path, body),
+  delete: (path: string): Promise<Resp> => dispatch('DELETE', path),
 };
 
 export default api;
