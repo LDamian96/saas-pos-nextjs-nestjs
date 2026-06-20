@@ -30,7 +30,7 @@ export default function AbrirCajaScreen() {
     if (!sucursalId) { toastError('Error', 'No tienes sucursal asignada'); return; }
     abrirMutation.mutate({
       sucursalId,
-      montoInicial: Number(montoInicial) || 0,
+      montoApertura: Number(montoInicial) || 0,
     });
   };
 

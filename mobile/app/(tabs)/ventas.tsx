@@ -152,23 +152,29 @@ export default function ReportesScreen() {
     const efectivoCaja = Number(dash?.cajaActual?.efectivoActual || 0);
 
     // Desglose por metodo de pago del dia
-    const porMetodo = new Map<string, { monto: number; count: number }>();
+    // El backend (POSSHOP-52) ahora envia pagos[] en GET /ventas con campos planos:
+    //   metodoPagoNombre, metodoPagoTipo, monto
+    // Mantenemos compatibilidad con el shape anterior por si llega un build viejo.
+    const porMetodo = new Map<string, { monto: number; count: number; tipo: string }>();
     ventas.forEach((v: any) => {
       (v.pagos || []).forEach((p: any) => {
-        const k = (p.metodoPago?.nombre || p.nombre || 'Otro').toString();
-        const cur = porMetodo.get(k) || { monto: 0, count: 0 };
+        const nombre = (p.metodoPagoNombre || p.metodoPago?.nombre || p.nombre || 'Otro').toString();
+        const tipo = (p.metodoPagoTipo || p.metodoPago?.tipo || '').toString();
+        const cur = porMetodo.get(nombre) || { monto: 0, count: 0, tipo };
         cur.monto += Number(p.monto || 0);
         cur.count += 1;
-        porMetodo.set(k, cur);
+        cur.tipo = tipo || cur.tipo;
+        porMetodo.set(nombre, cur);
       });
     });
     const metodosArray = Array.from(porMetodo.entries()).map(([nombre, d]) => ({ nombre, ...d }));
 
-    // Totales SIEMPRE visibles aunq no haya ventas
+    // Totales SIEMPRE visibles aunq no haya ventas.
+    // Yape/Plin/Transferencia tienen tipo='digital' en la BD; tambien matchemos por nombre.
     let totalEfectivo = 0;
     let totalYape = 0;
     porMetodo.forEach((v, k) => {
-      if (/efect/i.test(k)) totalEfectivo += v.monto;
+      if (/efect/i.test(k) || v.tipo === 'efectivo') totalEfectivo += v.monto;
       else if (/yape/i.test(k)) totalYape += v.monto;
     });
 
