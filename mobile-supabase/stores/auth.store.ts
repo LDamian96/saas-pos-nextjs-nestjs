@@ -54,8 +54,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   checkAuth: async () => {
     try {
-      const token = await SecureStore.getItemAsync('access_token');
-      if (!token) { set({ isLoading: false }); return; }
+      const session = await SecureStore.getItemAsync('pos_session');
+      if (!session) { set({ isLoading: false }); return; }
       const { data } = await api.get('/auth/me');
       const result = data?.data || data;
       const usuario = result?.usuario || result;
