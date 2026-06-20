@@ -134,6 +134,13 @@ export class VentaService {
             numeroDocumento: true,
           },
         },
+        pagos: {
+          include: {
+            metodoPago: {
+              select: { id: true, nombre: true, codigo: true, tipo: true },
+            },
+          },
+        },
         _count: {
           select: {
             detalles: true,
@@ -144,7 +151,7 @@ export class VentaService {
 
     return {
       success: true,
-      data: ventas.map((v) => ({
+      data: ventas.map((v: any) => ({
         id: v.id,
         numero: v.numeroVenta,
         numeroVenta: v.numeroVenta,
@@ -162,6 +169,16 @@ export class VentaService {
         estado: v.estado,
         itemsCount: v._count.detalles,
         items: Array(v._count.detalles).fill({}), // Para compatibilidad con items.length
+        // Pagos planos para el reporte mobile (Total + Efectivo + Yape)
+        pagos: v.pagos?.map((p: any) => ({
+          id: p.id,
+          metodoPagoId: p.metodoPagoId,
+          metodoPagoNombre: p.metodoPago?.nombre || 'Pago',
+          metodoPagoCodigo: p.metodoPago?.codigo,
+          metodoPagoTipo: p.metodoPago?.tipo,
+          monto: p.monto,
+          referencia: p.referencia,
+        })) || [],
       })),
       meta: {
         total,
@@ -1192,5 +1209,8 @@ export class VentaService {
    */
   private async invalidateCache(empresaId: string) {
     await this.redis.delPattern(`${CACHE_PREFIX}:${empresaId}:*`);
+    // El dashboard cachea con prefix distinto — sin esto los reportes muestran
+    // datos viejos por hasta 30s tras una venta o anulacion
+    await this.redis.delPattern(`dashboard:${empresaId}:*`);
   }
 }
