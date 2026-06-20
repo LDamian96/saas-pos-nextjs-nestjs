@@ -132,6 +132,31 @@ export default function ReportesScreen() {
   });
   const ventas = extractList(ventasData);
 
+  // Cajas cerradas del dia seleccionado - para mostrar movimientos (retiro/ingreso).
+  // El endpoint /caja/historial devuelve cajas con campo observaciones donde el
+  // cierre guardamos "RETIRO: S/X — motivo" o "INGRESO: S/X — motivo".
+  const { data: cajasDiaData } = useQuery({
+    queryKey: ['cajas-historial', sucursalId, dayOffset],
+    queryFn: () => {
+      const desde = new Date(selectedDate);
+      const hasta = new Date(selectedDate);
+      hasta.setDate(hasta.getDate() + 1);
+      return api.get('/caja/historial', {
+        params: {
+          sucursalId: sucursalId || undefined,
+          fechaInicio: desde.toISOString(),
+          fechaFin: hasta.toISOString(),
+          limit: 20,
+        },
+      }).then(r => r.data);
+    },
+    enabled: isOnline && tab === 'hoy',
+    staleTime: STALE_60S,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
+  const cajasDia = extractList(cajasDiaData);
+
   useEffect(() => {
     if (dashError) toastError('Error', 'No se pudo cargar el dashboard');
   }, [dashError]);
@@ -272,6 +297,48 @@ export default function ReportesScreen() {
           </View>
           <View style={[s.cajaDot, { backgroundColor: cajaAbierta ? '#16a34a' : '#dc2626' }]} />
         </View>
+
+        {/* Movimientos de caja del dia (retiros / ingresos) - solo si hubo */}
+        {(() => {
+          const movs: { tipo: 'RETIRO' | 'INGRESO'; monto: number; motivo: string; hora: string }[] = [];
+          cajasDia.forEach((c: any) => {
+            const obs = (c.observaciones || '').toString();
+            const m = obs.match(/^(RETIRO|INGRESO):\s*S\/\s*([\d.,]+)\s*[—\-]\s*(.+)$/i);
+            if (m) {
+              const tipo = m[1].toUpperCase() as 'RETIRO' | 'INGRESO';
+              const monto = parseFloat(m[2].replace(',', '.')) || 0;
+              const motivo = m[3].trim();
+              const fc = c.fechaCierre ? new Date(c.fechaCierre) : null;
+              const hora = fc
+                ? fc.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
+                : '';
+              if (monto > 0 && motivo) movs.push({ tipo, monto, motivo, hora });
+            }
+          });
+          if (movs.length === 0) return null;
+          return (
+            <View style={s.movsCard}>
+              <Text style={s.movsTitle}>MOVIMIENTOS DE CAJA</Text>
+              {movs.map((m, i) => {
+                const isRetiro = m.tipo === 'RETIRO';
+                return (
+                  <View key={i} style={[s.movRow, i > 0 && s.movRowBorder]}>
+                    <View style={[s.movBadge, { backgroundColor: isRetiro ? '#fef2f2' : '#f0fdf4', borderColor: isRetiro ? '#fecaca' : '#bbf7d0' }]}>
+                      <Text style={[s.movBadgeText, { color: isRetiro ? '#dc2626' : '#16a34a' }]}>{m.tipo}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={s.movMotivo} numberOfLines={2}>{m.motivo}</Text>
+                      {m.hora ? <Text style={s.movHora}>{m.hora}</Text> : null}
+                    </View>
+                    <Text style={[s.movMonto, { color: isRetiro ? '#dc2626' : '#16a34a' }]}>
+                      {isRetiro ? '−' : '+'} S/ {m.monto.toFixed(2)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })()}
 
         {/* Alertas */}
         {(dash?.alertas?.stockBajo > 0 || dash?.alertas?.sinStock > 0) && (
@@ -683,6 +750,28 @@ const s = StyleSheet.create({
   cajaValue: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
   cajaDesc: { fontSize: 11, color: '#6b7280' },
   cajaDot: { width: 10, height: 10, borderRadius: 5, marginRight: 4 },
+
+  movsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    elevation: 1,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  movsTitle: { fontSize: 11, fontWeight: '800', color: '#94a3b8', letterSpacing: 1.2, marginBottom: 10 },
+  movRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  movRowBorder: { borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  movBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
+  movBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
+  movMotivo: { fontSize: 13.5, fontWeight: '600', color: '#0f172a', lineHeight: 18 },
+  movHora: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+  movMonto: { fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
 
   alertCard: {
     flexDirection: 'row',
