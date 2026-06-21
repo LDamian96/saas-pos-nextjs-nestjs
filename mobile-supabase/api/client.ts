@@ -396,6 +396,27 @@ async function genericHandler(method: string, path: string, body?: any, params?:
   if ((path === '/empresas/me' || path === '/empresas/me/config') && (method === 'PUT' || method === 'PATCH')) {
     const { error } = await supabase.from('empresas').update(buildEmpresaPatch(body)).eq('id', ctx.empresaId!);
     if (error) err(error.message);
+    // Refrescar la sesion local para que el nombre/logo de la empresa quede actualizado
+    try {
+      const raw = await SecureStore.getItemAsync('pos_session');
+      if (raw) {
+        const s = JSON.parse(raw);
+        const { data: fresh } = await supabase.from('empresas')
+          .select('id, nombre_comercial, logo, aplica_impuesto, porcentaje_impuesto, nombre_impuesto')
+          .eq('id', ctx.empresaId!).single();
+        if (fresh && s?.usuario) {
+          s.usuario.empresa = {
+            id: fresh.id,
+            nombre: fresh.nombre_comercial,
+            logo: fresh.logo,
+            aplicaImpuesto: fresh.aplica_impuesto,
+            porcentajeImpuesto: fresh.porcentaje_impuesto,
+            nombreImpuesto: fresh.nombre_impuesto,
+          };
+          await SecureStore.setItemAsync('pos_session', JSON.stringify(s));
+        }
+      }
+    } catch {}
     return ok({ success: true });
   }
   const empPutMatch = path.match(/^\/empresas\/([^/]+)$/);

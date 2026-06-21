@@ -92,6 +92,11 @@ export default function NegocioScreen() {
       ]);
       queryClient.invalidateQueries({ queryKey: ['empresa-me'] });
       queryClient.invalidateQueries({ queryKey: ['empresa-config'] });
+      // Refrescar la sesion para que el nombre/logo nuevo aparezca en splash, login y sidebar
+      try {
+        const { useAuthStore } = await import('@/stores/auth.store');
+        await useAuthStore.getState().checkAuth();
+      } catch {}
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       remoteLogger.info('empresa_actualizada');
       toastSuccess('Guardado', 'Datos del negocio actualizados');
