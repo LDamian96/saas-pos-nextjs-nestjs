@@ -70,14 +70,16 @@ async function authHandler(method: string, path: string, body?: any) {
 // =============================================================================
 // CAJA
 // =============================================================================
-async function cajaHandler(method: string, path: string, body?: any) {
+async function cajaHandler(method: string, path: string, body?: any, params?: any) {
   const ctx = await getCtx();
+  void params; // params se usa abajo via body fallback
   if (path === '/caja/actual' && method === 'GET') {
     const { data, error } = await supabase.rpc('pos_caja_actual', {
       p_empresa_id: ctx.empresaId, p_sucursal_id: ctx.sucursalId,
     });
     if (error) err(error.message);
-    return ok({ success: true, data });
+    // NestJS devuelve la caja FLAT (no envuelta). data puede ser null si no hay caja.
+    return ok(data);
   }
   if (path === '/caja/abrir' && method === 'POST') {
     const { data, error } = await supabase.rpc('pos_abrir_caja', {
@@ -88,7 +90,11 @@ async function cajaHandler(method: string, path: string, body?: any) {
     });
     if (error) err(error.message);
     if (!data?.success) err(data?.error || 'No se pudo abrir caja');
-    return ok({ success: true, data });
+    // Devolvemos la caja recien abierta (flat), igual que NestJS
+    const { data: caja } = await supabase.rpc('pos_caja_actual', {
+      p_empresa_id: ctx.empresaId, p_sucursal_id: ctx.sucursalId,
+    });
+    return ok(caja);
   }
   const cierreMatch = path.match(/^\/caja\/([^/]+)\/cerrar$/);
   if (cierreMatch && method === 'POST') {
@@ -99,16 +105,17 @@ async function cajaHandler(method: string, path: string, body?: any) {
       p_observaciones: body.observaciones || null,
     });
     if (error) err(error.message);
-    return ok({ success: true, data });
+    return ok(data);
   }
   if (path === '/caja/historial' && method === 'GET') {
+    const p = params || body || {};
     let q = supabase.from('cajas').select('*, sucursal:sucursales(id, nombre)')
       .eq('empresa_id', ctx.empresaId!)
       .order('fecha_apertura', { ascending: false })
-      .limit(body?.limit || 20);
-    if (body?.fechaInicio) q = q.gte('fecha_apertura', body.fechaInicio);
-    if (body?.fechaFin) q = q.lt('fecha_apertura', body.fechaFin);
-    if (body?.sucursalId) q = q.eq('sucursal_id', body.sucursalId);
+      .limit(p?.limit || 20);
+    if (p?.fechaInicio) q = q.gte('fecha_apertura', p.fechaInicio);
+    if (p?.fechaFin) q = q.lt('fecha_apertura', p.fechaFin);
+    if (p?.sucursalId) q = q.eq('sucursal_id', p.sucursalId);
     const { data, error } = await q;
     if (error) err(error.message);
     const mapped = (data || []).map((c: any) => ({
@@ -119,7 +126,8 @@ async function cajaHandler(method: string, path: string, body?: any) {
       diferencia: c.diferencia, fechaApertura: c.fecha_apertura, fechaCierre: c.fecha_cierre,
       estado: c.estado, observaciones: c.observaciones,
     }));
-    return ok({ success: true, data: mapped });
+    // NestJS historial devuelve { data, total, page, limit, totalPages }
+    return ok({ data: mapped, total: mapped.length, page: 1, limit: p?.limit || 20, totalPages: 1 });
   }
   err(`Caja path no implementado: ${method} ${path}`);
 }
@@ -638,7 +646,7 @@ async function dispatch(method: string, path: string, body?: any, params?: any):
   try {
     let r: any;
     if (path.startsWith('/auth/')) r = await authHandler(method, path, body);
-    else if (path.startsWith('/caja/')) r = await cajaHandler(method, path, body);
+    else if (path.startsWith('/caja/')) r = await cajaHandler(method, path, body, params);
     else if (path.startsWith('/ventas')) r = await ventasHandler(method, path, body, params);
     else r = await genericHandler(method, path, body, params);
     if (!r) throw new Error('Respuesta vacia del adaptador');
