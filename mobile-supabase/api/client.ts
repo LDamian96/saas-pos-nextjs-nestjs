@@ -5,7 +5,7 @@
 // =============================================================================
 
 import * as SecureStore from 'expo-secure-store';
-import { supabase } from './supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 
 interface Ctx {
   empresaId: string | null;
@@ -223,6 +223,7 @@ async function genericHandler(method: string, path: string, body?: any, params?:
       .order('nombre', { ascending: true }).limit(params?.limit || 200);
     if (params?.categoriaId) q = q.eq('categoria_id', params.categoriaId);
     if (params?.search) q = q.ilike('nombre', `%${params.search}%`);
+    if (params?.visiblePos === true || params?.visiblePos === 'true') q = q.eq('visible_pos', true);
     const { data, error } = await q;
     if (error) err(error.message);
     return ok({ success: true, data: (data || []).map((p: any) => ({
@@ -237,8 +238,35 @@ async function genericHandler(method: string, path: string, body?: any, params?:
       })),
     })) });
   }
+  const barcodeMatch = path.match(/^\/productos\/barcode\/([^/]+)$/);
+  if (barcodeMatch && method === 'GET') {
+    const code = decodeURIComponent(barcodeMatch[1]);
+    // Buscar primero en productos, luego en variantes
+    let { data: prod, error } = await supabase.from('productos').select(`
+      *, categoria:categorias(id, nombre), marca:marcas(id, nombre), variantes(*)
+    `).eq('empresa_id', ctx.empresaId!).eq('codigo_barras', code).maybeSingle();
+    if (!prod) {
+      const { data: vari } = await supabase.from('variantes').select('producto_id').eq('codigo_barras', code).maybeSingle();
+      if (vari?.producto_id) {
+        const r = await supabase.from('productos').select(`
+          *, categoria:categorias(id, nombre), marca:marcas(id, nombre), variantes(*)
+        `).eq('id', vari.producto_id).maybeSingle();
+        prod = r.data;
+      }
+    }
+    if (error) err(error.message);
+    if (!prod) err('Producto no encontrado por este codigo', 404);
+    const p: any = prod;
+    return ok({ success: true, data: {
+      id: p.id, nombre: p.nombre, sku: p.sku, codigoBarras: p.codigo_barras,
+      precioVenta: p.precio_venta, precioCompra: p.precio_compra,
+      aplicaImpuesto: p.aplica_impuesto, stock: p.stock, stockMinimo: p.stock_minimo,
+      imagenPrincipal: p.imagen_principal,
+      variantes: p.variantes || [],
+    }});
+  }
   const prodIdMatch = path.match(/^\/productos\/([^/]+)$/);
-  if (prodIdMatch && method === 'GET') {
+  if (prodIdMatch && prodIdMatch[1] !== 'barcode' && method === 'GET') {
     const { data, error } = await supabase.from('productos').select(`
       *, categoria:categorias(id, nombre), marca:marcas(id, nombre), variantes(*)
     `).eq('id', prodIdMatch[1]).single();
@@ -565,10 +593,37 @@ async function genericHandler(method: string, path: string, body?: any, params?:
   }
 
   if (path === '/uploads/imagen' && method === 'POST') {
-    // body es FormData? Por ahora si viene una URL preexistente la devolvemos tal cual.
-    // Las pantallas que usan esto deben subir directo a Supabase Storage en otra iteracion.
-    if (body?.url) return ok({ success: true, data: { url: body.url } });
-    err('Subida de imagen pendiente de implementar Supabase Storage');
+    // Sube a Supabase Storage bucket 'productos'. Acepta FormData con 'imagen' (uri, name, type)
+    // o body { uri, name, type } directo.
+    let file: any = null;
+    if (body?._parts) {
+      // FormData de RN — _parts es array de [name, value]
+      for (const part of body._parts) {
+        if (part[0] === 'imagen') file = part[1];
+      }
+    } else if (body?.uri) {
+      file = body;
+    } else if (body?.url) {
+      return ok({ success: true, data: { url: body.url } });
+    }
+    if (!file?.uri) err('No se recibio archivo');
+    const ext = (file.name || file.uri).split('.').pop() || 'jpg';
+    const path2 = `${ctx.empresaId || 'global'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    // En RN se sube usando FormData con fetch (supabase-js usa fetch internamente)
+    const fd = new FormData();
+    fd.append('file', { uri: file.uri, name: file.name || `img.${ext}`, type: file.type || 'image/jpeg' } as any);
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/productos/${encodeURI(path2)}`;
+    const resp = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: fd as any,
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      err(`Subida fallo: ${resp.status} ${txt.slice(0, 200)}`);
+    }
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/productos/${path2}`;
+    return ok({ success: true, data: { url: publicUrl } });
   }
 
   err(`Endpoint no implementado: ${method} ${path}`);
